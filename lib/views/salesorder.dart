@@ -2,26 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
-class PaymentForm extends StatefulWidget {
-  const PaymentForm({super.key});
+class SalesOrder extends StatefulWidget {
+  const SalesOrder({super.key});
 
   @override
-  State<PaymentForm> createState() => _PaymentFormState();
+  State<SalesOrder> createState() => _SalesOrderState();
 }
 
-class _PaymentFormState extends State<PaymentForm> {
+class _SalesOrderState extends State<SalesOrder> {
   final TextEditingController _adressController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
   final TextEditingController _mailController = TextEditingController();
   final TextEditingController _taxnoController = TextEditingController();
   final TextEditingController _pricelevelController = TextEditingController();
   final TextEditingController _balanceController = TextEditingController();
-
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -32,7 +30,7 @@ class _PaymentFormState extends State<PaymentForm> {
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Text(
               "Sheracc ERP Offline",
-              style: appbarFonts(screenWidth * 0.04, Colors.white),
+              style: appbarFonts(screenHeight * 0.02, Colors.white),
             ),
           ),
         ),
@@ -41,9 +39,15 @@ class _PaymentFormState extends State<PaymentForm> {
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: IconButton(
               onPressed: () {},
-              icon: Icon(Icons.more_vert, color: Colors.white),
+              icon: IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Icons.more_vert,
+                  color: Colors.white,
+                ),
+              ),
             ),
-          ),
+          )
         ],
       ),
       body: SingleChildScrollView(
@@ -51,42 +55,50 @@ class _PaymentFormState extends State<PaymentForm> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.02,
+              ),
               child: Row(
                 children: [
                   Padding(
                     padding: EdgeInsets.only(
-                        left: screenWidth * 0.05,
-                        right: screenWidth * 0.03,
-                        top: screenHeight * 0.02),
+                      left: screenWidth * 0.05,
+                      right: screenWidth * 0.02,
+                      top: screenHeight * 0.02,
+                    ),
                     child: Container(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             "Select Supplier",
-                            style: formFonts(screenWidth * 0.035, Colors.grey),
+                            style: formFonts(screenHeight * 0.018, Colors.grey),
                           ),
                           SizedBox(height: screenHeight * 0.01),
                           Container(
                             height: screenHeight * 0.05,
-                            width: screenWidth * 0.85,
+                            width: screenWidth * 0.8,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                              borderRadius: BorderRadius.circular(5),
                               color: Colors.white,
-                              border: Border.all(color: Appcolors().searchTextcolor),
+                              border: Border.all(
+                                color: Appcolors().searchTextcolor,
+                              ),
                             ),
                             child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.02,
+                              ),
                               child: Row(
                                 children: [
-                                  SizedBox(width: screenWidth * 0.01),
                                   Expanded(
                                     child: TextFormField(
                                       obscureText: false,
                                       decoration: InputDecoration(
                                         border: InputBorder.none,
-                                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                                        contentPadding: EdgeInsets.only(
+                                          bottom: screenHeight * 0.01,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -98,13 +110,14 @@ class _PaymentFormState extends State<PaymentForm> {
                       ),
                     ),
                   ),
+                  SizedBox(width: screenWidth * 0.02),
                   Padding(
                     padding: EdgeInsets.only(top: screenHeight * 0.06),
                     child: Container(
-                      width: screenWidth * 0.1,
+                      width: screenHeight * 0.05,
                       height: screenHeight * 0.05,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                        borderRadius: BorderRadius.circular(10),
                         color: Color(0xFF0008B4),
                       ),
                       child: IconButton(
@@ -112,7 +125,7 @@ class _PaymentFormState extends State<PaymentForm> {
                         icon: Icon(
                           Icons.add,
                           color: Colors.white,
-                          size: screenWidth * 0.05,
+                          size: screenHeight * 0.03,
                         ),
                       ),
                     ),
@@ -120,22 +133,22 @@ class _PaymentFormState extends State<PaymentForm> {
                 ],
               ),
             ),
-            SizedBox(height: screenHeight * 0.03),
+            SizedBox(height: screenHeight * 0.02),
             Container(
               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
               child: Column(
                 children: [
-                  _paymentField("Address", _adressController, screenWidth, screenHeight),
+                  _Paymentfield("Address", _adressController, screenWidth, screenHeight),
                   SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Contact NO", _contactController, screenWidth, screenHeight),
+                  _Paymentfield("Contact NO", _contactController, screenWidth, screenHeight),
                   SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Mail", _mailController, screenWidth, screenHeight),
+                  _Paymentfield("Mail", _mailController, screenWidth, screenHeight),
                   SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Tax NO", _taxnoController, screenWidth, screenHeight),
+                  _Paymentfield("Tax NO", _taxnoController, screenWidth, screenHeight),
                   SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Price Level", _pricelevelController, screenWidth, screenHeight),
+                  _Paymentfield("Price Level", _pricelevelController, screenWidth, screenHeight),
                   SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Balance", _balanceController, screenWidth, screenHeight),
+                  _Paymentfield("Balance", _balanceController, screenWidth, screenHeight),
                   SizedBox(height: screenHeight * 0.02),
                 ],
               ),
@@ -146,18 +159,18 @@ class _PaymentFormState extends State<PaymentForm> {
       bottomNavigationBar: GestureDetector(
         onTap: () {},
         child: Padding(
-          padding: EdgeInsets.all(screenWidth * 0.05),
+          padding: EdgeInsets.all(screenHeight * 0.03),
           child: Container(
             height: screenHeight * 0.07,
             width: screenWidth * 0.9,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              borderRadius: BorderRadius.circular(5),
               color: Color(0xFF0A1EBE),
             ),
             child: Center(
               child: Text(
-                "Payment",
-                style: getFonts(screenWidth * 0.04, Colors.white),
+                "Sales Order",
+                style: getFonts(screenHeight * 0.02, Colors.white),
               ),
             ),
           ),
@@ -165,8 +178,7 @@ class _PaymentFormState extends State<PaymentForm> {
       ),
     );
   }
-
-  Widget _paymentField(String label, TextEditingController controller, double screenWidth, double screenHeight) {
+  Widget _Paymentfield(String textrow, TextEditingController controller, double screenWidth, double screenHeight) {
     return Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,13 +186,16 @@ class _PaymentFormState extends State<PaymentForm> {
           Row(
             children: [
               Text(
-                label,
-                style: formFonts(screenWidth * 0.04, Colors.black),
+                textrow,
+                style: formFonts(screenHeight * 0.02, Colors.black),
               ),
               Text(
                 "*",
-                style: TextStyle(fontSize: screenWidth * 0.04, color: Color(0xFFE22E37)),
-              ),
+                style: TextStyle(
+                  fontSize: screenHeight * 0.02,
+                  color: Color(0xFFE22E37),
+                ),
+              )
             ],
           ),
           SizedBox(height: screenHeight * 0.01),
@@ -188,7 +203,7 @@ class _PaymentFormState extends State<PaymentForm> {
             height: screenHeight * 0.06,
             width: screenWidth * 0.9,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              borderRadius: BorderRadius.circular(5),
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
@@ -196,13 +211,12 @@ class _PaymentFormState extends State<PaymentForm> {
               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
               child: Row(
                 children: [
-                  SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: TextFormField(
                       controller: controller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter $label';
+                          return 'Please enter $textrow';
                         }
                         return null;
                       },

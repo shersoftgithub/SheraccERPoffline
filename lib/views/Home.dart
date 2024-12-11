@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/Ledgerreport.dart';
 import 'package:sheraaccerpoff/views/payment.dart';
+import 'package:sheraaccerpoff/views/reciept.dart';
+import 'package:sheraaccerpoff/views/salesorder.dart';
 
 class HomePageERP extends StatefulWidget {
   const HomePageERP({super.key});
@@ -11,102 +14,130 @@ class HomePageERP extends StatefulWidget {
 }
 
 class _HomePageERPState extends State<HomePageERP> {
-final List Names=[
-  "Payment","Receipt","Sales","Sales Report","Ledger Report","Payment Report","Receipt Report"
-];
-final List images=[
-  "assets/images/cash-payment.png",
-  "assets/images/receipt-payment.png",
-  "assets/images/sales.png",
-  "assets/images/sales report.png",
-  "assets/images/ledger.png",
-  "assets/images/payment report.png",
-  "assets/images/reciept report.png"
-];
+  final List<String> names = [
+    "Payment",
+    "Receipt",
+    "Sales",
+    "Sales Report",
+    "Ledger Report",
+    "Payment Report",
+    "Receipt Report"
+  ];
+
+  final List<String> images = [
+    "assets/images/cash-payment.png",
+    "assets/images/receipt-payment.png",
+    "assets/images/sales.png",
+    "assets/images/sales report.png",
+    "assets/images/ledger.png",
+    "assets/images/payment report.png",
+    "assets/images/reciept report.png"
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    final gridItemWidth = screenWidth * 0.4;
+    final gridItemHeight = screenHeight * 0.2;
+
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
-        toolbarHeight: 80,
+        toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
-        
         title: Center(
           child: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Text("Sheracc ERP Offline",style: appbarFonts(15,Colors.white),),
+            padding: EdgeInsets.only(top: screenHeight * 0.02),
+            child: Text(
+              "Sheracc ERP Offline",
+              style: appbarFonts(screenWidth * 0.04, Colors.white),
+            ),
           ),
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(top: 20),
+            padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: IconButton(
               onPressed: () {},
-              icon: IconButton(onPressed: (){},
-               icon: Icon(Icons.more_vert,color: Colors.white,),),
+              icon: Icon(
+                Icons.more_vert,
+                color: Colors.white,
+              ),
             ),
-          )
+          ),
         ],
       ),
-     
       body: Container(
-        padding: EdgeInsets.symmetric(vertical: 5),
+        padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15,vertical: 15),
+          padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.04, vertical: screenHeight * 0.02),
           child: GridView.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 20,
+              mainAxisSpacing: screenHeight * 0.02,
+              crossAxisSpacing: screenWidth * 0.03,
               crossAxisCount: 2,
+              childAspectRatio: gridItemWidth / gridItemHeight,
             ),
-            itemCount: Names.length,
+            itemCount: names.length,
             itemBuilder: (BuildContext context, int index) {
               return GestureDetector(
                 onTap: () {
                   if (index == 0) {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentForm()));
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => PaymentForm()));
                   } else if (index == 1) {
-                   // Navigator.push(context, MaterialPageRoute(builder: (_) => Jobcards()));
-                  }else if(index==2){
-                    // Navigator.push(context, MaterialPageRoute(builder: (_) => JobcardBill()));
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Reciept()));
+                  } else if (index == 2) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => SalesOrder()));
+                  }else if(index ==3){
+
+                  }else if(index==4){
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => LedgerReport()));
                   }
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3,vertical: 3),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.01,
+                      vertical: screenHeight * 0.01),
                   child: Container(
-                    width: 167,
-                    height: 138,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(screenWidth * 0.02),
                       boxShadow: [
-                          BoxShadow(
-                            color: Appcolors().searchTextcolor,
-                            blurRadius: 2.0,
-                            spreadRadius: 0.0,
-                            offset: Offset(0.0, 0.0), // shadow direction: bottom right
-                          )
-                        ],
+                        BoxShadow(
+                          color: Appcolors().searchTextcolor,
+                          blurRadius: 2.0,
+                          spreadRadius: 0.0,
+                          offset: Offset(0.0, 0.0), // Shadow direction
+                        ),
+                      ],
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Center(
                           child: Container(
-                            height: 77,
-                            width: 77,
+                            height: gridItemHeight * 0.5,
+                            width: gridItemWidth * 0.5,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(42),
+                              borderRadius:
+                                  BorderRadius.circular(screenWidth * 0.1),
                             ),
-                            child: Image.asset(images[index],scale: 1.0, 
-                            //fit: BoxFit.cover
+                            child: Image.asset(
+                              images[index],
+                              scale: 1.0,
                             ),
                           ),
                         ),
-                        SizedBox(height: 4),
+                        SizedBox(height: screenHeight * 0.01),
                         Text(
-                          Names[index],
-                          style: getFonts(15, Colors.black),
+                          names[index],
+                          style: getFonts(screenWidth * 0.04, Colors.black),
                         ),
                       ],
                     ),
