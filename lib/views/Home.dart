@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/Ledgerreport.dart';
+import 'package:sheraaccerpoff/views/newLedger.dart';
 import 'package:sheraaccerpoff/views/payment.dart';
 import 'package:sheraaccerpoff/views/reciept.dart';
+import 'package:sheraaccerpoff/views/salesReport.dart';
 import 'package:sheraaccerpoff/views/salesorder.dart';
 
 class HomePageERP extends StatefulWidget {
@@ -20,8 +22,11 @@ class _HomePageERPState extends State<HomePageERP> {
     "Sales",
     "Sales Report",
     "Ledger Report",
+    "Ledger",
     "Payment Report",
-    "Receipt Report"
+    "Receipt Report",
+    "purchase Report",
+    "Stock Report"
   ];
 
   final List<String> images = [
@@ -30,7 +35,11 @@ class _HomePageERPState extends State<HomePageERP> {
     "assets/images/sales.png",
     "assets/images/sales report.png",
     "assets/images/ledger.png",
+    "assets/images/ledger.png",
     "assets/images/payment report.png",
+    "assets/images/reciept report.png"
+
+    ,"assets/images/reciept report.png",
     "assets/images/reciept report.png"
   ];
 
@@ -58,13 +67,35 @@ class _HomePageERPState extends State<HomePageERP> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(top: screenHeight * 0.02),
-            child: IconButton(
-              onPressed: () {},
+            padding: EdgeInsets.only(top: 20),
+            child: PopupMenuButton<String>(
+              onSelected: (value) {
+                // Handle the selected value (optional)
+                print("Selected: $value");
+              },
               icon: Icon(
                 Icons.more_vert,
                 color: Colors.white,
               ),
+              itemBuilder: (BuildContext context) {
+                List<String> menuItems = List.generate(14, (index) => 'Item ${index + 1}');
+
+                return menuItems.map((String item) {
+                  return PopupMenuItem<String>(
+                    value: item,
+                    child: TextButton(
+                      onPressed: () {
+                        // Handle navigation based on the item
+                        navigateToPage(context, item);
+                      },
+                      child: Text(
+                        item,
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                  );
+                }).toList();
+              },
             ),
           ),
         ],
@@ -94,10 +125,14 @@ class _HomePageERPState extends State<HomePageERP> {
                   } else if (index == 2) {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => SalesOrder()));
                   }else if(index ==3){
-
+                Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => SalesReport()));
                   }else if(index==4){
                     Navigator.push(
                         context, MaterialPageRoute(builder: (_) => LedgerReport()));
+                  }else if(index==5){
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Newledger()));
                   }
                 },
                 child: Padding(
@@ -150,4 +185,34 @@ class _HomePageERPState extends State<HomePageERP> {
       ),
     );
   }
+  void navigateToPage(BuildContext context, String item) {
+    // Navigate to a different page based on the selected item
+    switch (item) {
+      case 'Item 1':
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => Page1()),
+        // );
+        break;
+      case 'Item 2':
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => Page2()),
+        // );
+        break;
+      case 'Item 3':
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => Page3()),
+        // );
+        break;
+      // Add more cases for the remaining items
+      // default:
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => DefaultPage()),
+      //   );
+    }
+  }
+
 }

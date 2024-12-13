@@ -27,29 +27,40 @@ class __RceiptPagStateState extends State<Reciept> {
       appBar: AppBar(
         toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
+         leading: Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: Icon(
+              Icons.arrow_back_ios_new_sharp,
+              color: Colors.white,
+              size: 15,
+            ),
+          ),
+        ),
         title: Center(
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Text(
-              "Sheracc ERP Offline",
+              "Reciept",
               style: appbarFonts(screenHeight * 0.02, Colors.white),
             ),
           ),
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(top: screenHeight * 0.02),
-            child: IconButton(
-              onPressed: () {},
-              icon: IconButton(
-                onPressed: () {},
-                icon: Icon(
-                  Icons.more_vert,
-                  color: Colors.white,
-                ),
+            padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
+            child: GestureDetector(
+              onTap: () {},
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: Image.asset("assets/images/setting (2).png"),
               ),
             ),
-          )
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -79,7 +90,7 @@ class __RceiptPagStateState extends State<Reciept> {
                           SizedBox(height: screenHeight * 0.01),
                           Container(
                             height: screenHeight * 0.05,
-                            width: screenWidth * 0.8,
+                            width: screenWidth * 0.7,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(5),
                               color: Colors.white,
@@ -112,7 +123,7 @@ class __RceiptPagStateState extends State<Reciept> {
                       ),
                     ),
                   ),
-                  SizedBox(width: screenWidth * 0.02),
+                  SizedBox(width: screenWidth * 0.04),
                   Padding(
                     padding: EdgeInsets.only(top: screenHeight * 0.06),
                     child: Container(
@@ -190,15 +201,9 @@ class __RceiptPagStateState extends State<Reciept> {
             children: [
               Text(
                 textrow,
-                style: formFonts(screenHeight * 0.02, Colors.black),
+                style: formFonts(14, Colors.black),
               ),
-              Text(
-                "*",
-                style: TextStyle(
-                  fontSize: screenHeight * 0.02,
-                  color: Color(0xFFE22E37),
-                ),
-              )
+            
             ],
           ),
           SizedBox(height: screenHeight * 0.01),
