@@ -6,6 +6,7 @@ import 'package:sheraaccerpoff/provider/sherprovider.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/newLedger.dart';
 
 class PaymentForm extends StatefulWidget {
   const PaymentForm({super.key});
@@ -83,7 +84,7 @@ class _PaymentFormState extends State<PaymentForm> {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: Image.asset("assets/images/setting (2).png"),
+                child: Image.asset("assets/images/save-instagram.png"),
               ),
             ),
           ),
@@ -93,230 +94,170 @@ class _PaymentFormState extends State<PaymentForm> {
         physics: ScrollPhysics(),
         child: Column(
           children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: Row(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(
-                        left: screenWidth * 0.05,
-                        right: screenWidth * 0.03,
-                        top: screenHeight * 0.02),
-                    child: Container(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Select Supplier",
-                            style: formFonts(screenWidth * 0.035, Colors.grey),
-                          ),
-                          SizedBox(height: screenHeight * 0.01),
-                          Container(
-                            height: screenHeight * 0.08,
-                            width: screenWidth * 0.7,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                              color: Colors.white,
-                              border: Border.all(color: Appcolors().searchTextcolor),
-                            ),
-                            child: EasyAutocomplete(
-                                                    controller: _selectSupplierController,
-                                                    suggestions: _supplierSuggestions,
-                            
-                                                    onSubmitted: (value) {
-                                                      onJobcardSelected(value);
-                                                    },
-                                                    decoration: InputDecoration(
-                                                      border: InputBorder.none,
-                                                    ),
-                                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: screenWidth * 0.04),
-                  Padding(
-                    padding: EdgeInsets.only(top: screenHeight * 0.06),
-                    child: Container(
-                      width: screenWidth * 0.1,
-                      height: screenHeight * 0.05,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                        color: Color(0xFF0008B4),
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Appcolors().Scfold,
-          title: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text( "Enter Supplier"),
-                IconButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  icon: Icon(Icons.close),
-                ),
-              ],
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                TextField(
-                  controller: _selectSupplierController,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    filled: true,
-                    fillColor: Appcolors().scafoldcolor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Appcolors().maincolor),
-                    ),
-                    hintText: "Enter supplier name",
-                    hintStyle: TextStyle(color: Color(0xFF948C93)),
-                  ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 15),
-                GestureDetector(
-                  onTap: () async {
-                    final supplierData = SupplierModel(suppliername: _selectSupplierController.text);
-                  try {
-                    await Provider.of<PaymentFormProvider>(context, listen: false)
-                        .insertSupplier(supplierData); 
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Supplier Saved Successfully!'),
-                      ),
-                    );
-
-                    _selectSupplierController.clear();
-                    Navigator.pop(context); 
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                      ),
-                    );
-                  }
-                  },
-                  child: Center(
-                    child: Container(
-                      width: 155,
-                      height: 43,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: Color(0xFF0008B4),
-                      ),
-                      child: Center(
-                        child: Text(
-                         "Save",
-                          style: getFonts(14, Colors.white),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-                        },
-                        icon: Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: screenWidth * 0.05,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+            SizedBox(height: screenHeight*0.02,),
+        Container(
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Text(
+                
+                'Date',
+                style: formFonts(14, Colors.black),
               ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(
+             height: 35, 
+            width: 172,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
             ),
-            SizedBox(height: screenHeight * 0.03),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-              child: Column(
-                children: [
-                  _paymentField("Address", _adressController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Contact NO", _contactController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Mail", _mailController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Tax NO", _taxnoController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Price Level", _pricelevelController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _paymentField("Balance", _balanceController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                ],
-              ),
-            )
-          ],
-        ),
+           
+          ),
+        ],
       ),
-      bottomNavigationBar: GestureDetector(
+    ),
+              Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Text(
+                
+                'Cash Account',
+                style: formFonts(14, Colors.black),
+              ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(
+             height: 35, 
+            width: 172,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            // child: EasyAutocomplete(
+            //             controller: _InvoicenoController,
+            //             //suggestions: vamnes
+            //                 //.map((jobcard) => jobcard['VehicleName'].toString())
+            //                 //.toList(),
+            //             // onSubmitted: (value) {
+            //             //   onJobcardSelected(value);  // Handle selection
+            //             // },
+            //             decoration: InputDecoration(
+            //               border: InputBorder.none,
+            //             ),
+            //           ),
+          ),
+        ],
+      ),
+    ),
+     
+            ],
+          ),
+        ),
+        GestureDetector(
         onTap: () {
-          final paymentData = PaymentFormModel(
-            address: _adressController.text,
-            contactno: _contactController.text,
-            mailid: _mailController.text,
-            taxno: _taxnoController.text,
-            pricelevel: _pricelevelController.text,
-            balance: _balanceController.text,
-          );
-
-          Provider.of<PaymentFormProvider>(context, listen: false)
-              .insertPaymentData(paymentData)
-              .then((_) {
-                _adressController.clear();
-                _balanceController.clear();
-                _contactController.clear();
-                _mailController.clear();
-                _pricelevelController.clear();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Payment Data Saved Successfully!'),
-              ),
-            );
-          }).catchError((e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error: $e'),
-              ),
-            );
-          });
+          Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Newledger()));
         },
         child: Padding(
-          padding: EdgeInsets.all(screenWidth * 0.05),
+          padding: EdgeInsets.all(screenHeight * 0.03),
           child: Container(
-            height: screenHeight * 0.07,
-            width: screenWidth * 0.9,
+            height: screenHeight * 0.05,
+            width: screenWidth * 0.8,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              borderRadius: BorderRadius.circular(5),
               color: Color(0xFF0A1EBE),
             ),
             child: Center(
-              child: Text(
-                "Payment",
-                style: getFonts(screenWidth * 0.04, Colors.white),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add,color: Colors.white,size: 17,),
+                  Text(
+                    "Add New Ledger",
+                    style: getFonts(14, Colors.white),
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ),
+      Container(
+        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                "Select Ledger Name",
+                style: formFonts(14, Colors.black),
+              ),
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(
+            height: screenHeight * 0.06,
+            width: screenWidth * 0.9,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+              child: Row(
+                children: [
+                  SizedBox(width: screenWidth * 0.02),
+                  Expanded(
+                    child: TextFormField(
+                     // controller: controller,
+                     
+                      obscureText: false,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+    SizedBox(height: screenHeight * 0.02),
+    Padding(
+      padding: const EdgeInsets.only(right: 295),
+      child: Text("Balance : ",style: getFonts(14, Appcolors().maincolor),),
+    ),
+    SizedBox(height: screenHeight * 0.02),
+    Container(
+      padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
+      child: Column(children: [
+        _paymentField("Amount", _adressController, screenWidth, screenHeight),
+        SizedBox(height: screenHeight * 0.01),
+        _paymentField("Discount", _adressController, screenWidth, screenHeight),
+        SizedBox(height: screenHeight * 0.01),
+         Padding(
+      padding: const EdgeInsets.only(right: 320),
+      child: Text("Total : ",style: getFonts(14, Appcolors().maincolor),),
+    ),
+      SizedBox(height: screenHeight * 0.01),
+            _paymentField("Narration", _adressController, screenWidth, screenHeight)
+      ],),
+    )
+          ],
+        ),
+      ),
+      
     );
   }
 
@@ -329,12 +270,9 @@ class _PaymentFormState extends State<PaymentForm> {
             children: [
               Text(
                 label,
-                style: formFonts(screenWidth * 0.04, Colors.black),
+                style: formFonts(14, Colors.black),
               ),
-              Text(
-                "*",
-                style: TextStyle(fontSize: screenWidth * 0.04, color: Color(0xFFE22E37)),
-              ),
+             
             ],
           ),
           SizedBox(height: screenHeight * 0.01),

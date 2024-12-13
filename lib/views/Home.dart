@@ -4,7 +4,9 @@ import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/Ledgerreport.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
 import 'package:sheraaccerpoff/views/payment.dart';
+import 'package:sheraaccerpoff/views/paymentReport.dart';
 import 'package:sheraaccerpoff/views/reciept.dart';
+import 'package:sheraaccerpoff/views/recieptreport.dart';
 import 'package:sheraaccerpoff/views/salesReport.dart';
 import 'package:sheraaccerpoff/views/salesorder.dart';
 
@@ -133,6 +135,12 @@ class _HomePageERPState extends State<HomePageERP> {
                   }else if(index==5){
                     Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Newledger()));
+                  }else if(index==6){
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Paymentreport()));
+                  }else if(index==7){
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Recieptreport()));
                   }
                 },
                 child: Padding(

@@ -1,22 +1,49 @@
+import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sheraaccerpoff/models/paymant_model.dart';
+import 'package:sheraaccerpoff/provider/sherprovider.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/newLedger.dart';
 
 class Reciept extends StatefulWidget {
   const Reciept({super.key});
 
   @override
-  State<Reciept> createState() => __RceiptPagStateState();
+  State<Reciept> createState() => _PaymentFormState();
 }
 
-class __RceiptPagStateState extends State<Reciept> {
+class _PaymentFormState extends State<Reciept> {
   final TextEditingController _adressController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
   final TextEditingController _mailController = TextEditingController();
   final TextEditingController _taxnoController = TextEditingController();
   final TextEditingController _pricelevelController = TextEditingController();
   final TextEditingController _balanceController = TextEditingController();
+  final TextEditingController _selectSupplierController = TextEditingController();
+   List <String>_supplierSuggestions=[];
+   @override
+  void initState() {
+    super.initState();
+    _fetchSuppliers();
+  }
 
+    Future<void> _fetchSuppliers() async {
+    final dbHelper = DatabaseHelper();
+    final suppliers = await dbHelper.getSuppliers();
+    
+    setState(() {
+      _supplierSuggestions = suppliers.map((supplier) => supplier.suppliername).toList();
+    });
+  }
+
+  void onJobcardSelected(String value) {
+    print('Selected Supplier: $value');
+   
+    _selectSupplierController.text = value;
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -44,8 +71,8 @@ class __RceiptPagStateState extends State<Reciept> {
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Text(
-              "Reciept",
-              style: appbarFonts(screenHeight * 0.02, Colors.white),
+              "Payment",
+              style: appbarFonts(screenWidth * 0.04, Colors.white),
             ),
           ),
         ),
@@ -57,7 +84,7 @@ class __RceiptPagStateState extends State<Reciept> {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: Image.asset("assets/images/setting (2).png"),
+                child: Image.asset("assets/images/save-instagram.png"),
               ),
             ),
           ),
@@ -67,143 +94,111 @@ class __RceiptPagStateState extends State<Reciept> {
         physics: ScrollPhysics(),
         child: Column(
           children: [
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.02,
+            SizedBox(height: screenHeight*0.02,),
+        Container(
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Text(
+                
+                'Date',
+                style: formFonts(14, Colors.black),
               ),
-              child: Row(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: screenWidth * 0.05,
-                      right: screenWidth * 0.02,
-                      top: screenHeight * 0.02,
-                    ),
-                    child: Container(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Select Supplier",
-                            style: formFonts(screenHeight * 0.018, Colors.grey),
-                          ),
-                          SizedBox(height: screenHeight * 0.01),
-                          Container(
-                            height: screenHeight * 0.05,
-                            width: screenWidth * 0.7,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(5),
-                              color: Colors.white,
-                              border: Border.all(
-                                color: Appcolors().searchTextcolor,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.02,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      obscureText: false,
-                                      decoration: InputDecoration(
-                                        border: InputBorder.none,
-                                        contentPadding: EdgeInsets.only(
-                                          bottom: screenHeight * 0.01,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: screenWidth * 0.04),
-                  Padding(
-                    padding: EdgeInsets.only(top: screenHeight * 0.06),
-                    child: Container(
-                      width: screenHeight * 0.05,
-                      height: screenHeight * 0.05,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: Color(0xFF0008B4),
-                      ),
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: screenHeight * 0.03,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(
+             height: 35, 
+            width: 172,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
             ),
-            SizedBox(height: screenHeight * 0.02),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-              child: Column(
-                children: [
-                  _Paymentfield("Address", _adressController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _Paymentfield("Contact NO", _contactController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _Paymentfield("Mail", _mailController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _Paymentfield("Tax NO", _taxnoController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _Paymentfield("Price Level", _pricelevelController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                  _Paymentfield("Balance", _balanceController, screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.02),
-                ],
-              ),
-            )
-          ],
-        ),
+           
+          ),
+        ],
       ),
-      bottomNavigationBar: GestureDetector(
-        onTap: () {},
+    ),
+              Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Text(
+                
+                'Cash Account',
+                style: formFonts(14, Colors.black),
+              ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(
+             height: 35, 
+            width: 172,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            // child: EasyAutocomplete(
+            //             controller: _InvoicenoController,
+            //             //suggestions: vamnes
+            //                 //.map((jobcard) => jobcard['VehicleName'].toString())
+            //                 //.toList(),
+            //             // onSubmitted: (value) {
+            //             //   onJobcardSelected(value);  // Handle selection
+            //             // },
+            //             decoration: InputDecoration(
+            //               border: InputBorder.none,
+            //             ),
+            //           ),
+          ),
+        ],
+      ),
+    ),
+     
+            ],
+          ),
+        ),
+        GestureDetector(
+        onTap: () {
+          Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Newledger()));
+        },
         child: Padding(
           padding: EdgeInsets.all(screenHeight * 0.03),
           child: Container(
-            height: screenHeight * 0.07,
-            width: screenWidth * 0.9,
+            height: screenHeight * 0.05,
+            width: screenWidth * 0.8,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
               color: Color(0xFF0A1EBE),
             ),
             child: Center(
-              child: Text(
-                "Reciept",
-                style: getFonts(screenHeight * 0.02, Colors.white),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add,color: Colors.white,size: 17,),
+                  Text(
+                    "Add New Ledger",
+                    style: getFonts(14, Colors.white),
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _Paymentfield(String textrow, TextEditingController controller, double screenWidth, double screenHeight) {
-    return Container(
+      Container(
+        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Text(
-                textrow,
+                "Select Ledger Name",
                 style: formFonts(14, Colors.black),
               ),
-            
             ],
           ),
           SizedBox(height: screenHeight * 0.01),
@@ -211,7 +206,7 @@ class __RceiptPagStateState extends State<Reciept> {
             height: screenHeight * 0.06,
             width: screenWidth * 0.9,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
@@ -219,12 +214,87 @@ class __RceiptPagStateState extends State<Reciept> {
               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
               child: Row(
                 children: [
+                  SizedBox(width: screenWidth * 0.02),
+                  Expanded(
+                    child: TextFormField(
+                     // controller: controller,
+                     
+                      obscureText: false,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+    SizedBox(height: screenHeight * 0.02),
+    Padding(
+      padding: const EdgeInsets.only(right: 295),
+      child: Text("Balance : ",style: getFonts(14, Appcolors().maincolor),),
+    ),
+    SizedBox(height: screenHeight * 0.02),
+    Container(
+      padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
+      child: Column(children: [
+        _paymentField("Amount", _adressController, screenWidth, screenHeight),
+        SizedBox(height: screenHeight * 0.01),
+        _paymentField("Discount", _adressController, screenWidth, screenHeight),
+        SizedBox(height: screenHeight * 0.01),
+         Padding(
+      padding: const EdgeInsets.only(right: 320),
+      child: Text("Total : ",style: getFonts(14, Appcolors().maincolor),),
+    ),
+      SizedBox(height: screenHeight * 0.01),
+            _paymentField("Narration", _adressController, screenWidth, screenHeight)
+      ],),
+    )
+          ],
+        ),
+      ),
+      
+    );
+  }
+
+  Widget _paymentField(String label, TextEditingController controller, double screenWidth, double screenHeight) {
+    return Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                label,
+                style: formFonts(14, Colors.black),
+              ),
+             
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(
+            height: screenHeight * 0.06,
+            width: screenWidth * 0.9,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+              child: Row(
+                children: [
+                  SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: TextFormField(
                       controller: controller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter $textrow';
+                          return 'Please enter $label';
                         }
                         return null;
                       },
