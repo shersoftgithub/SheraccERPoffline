@@ -1,5 +1,6 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/addPaymant.dart';
@@ -19,6 +20,27 @@ class _SalesOrderState extends State<SalesOrder> {
   final TextEditingController _totalamtController = TextEditingController();
   final TextEditingController _salerateController = TextEditingController();
   bool isCreditSelected = true;
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  Future<void> _selectDate(BuildContext context, bool isFromDate) async {
+    final DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (selectedDate != null) {
+      setState(() {
+        if (isFromDate) {
+          _fromDate = selectedDate;
+        } else {
+          _toDate = selectedDate;
+        }
+      });
+     
+    }}
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -37,7 +59,7 @@ class _SalesOrderState extends State<SalesOrder> {
             icon: Icon(
               Icons.arrow_back_ios_new_sharp,
               color: Colors.white,
-              size: 15,
+              size: 20,
             ),
           ),
         ),
@@ -218,7 +240,21 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
-           
+           child: GestureDetector(
+                       onTap: () => _selectDate(context, false),
+                       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                         children: [
+                           
+                           Text(
+                             _toDate != null ? _dateFormat.format(_toDate!) : "",
+                             style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
+                           ),
+                           
+                           SizedBox(width: 5),
+                           Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor,size: 17,),
+                         ],
+                       ),
+                     ),
           ),
         ],
       ),
@@ -270,7 +306,7 @@ SizedBox(height: screenHeight*0.03,),
       ),
     ),
     SizedBox(height: screenHeight*0.03,),
-            _field("Billing Name", _CustomerController, screenWidth, screenHeight),
+            _field("Customer", _CustomerController, screenWidth, screenHeight),
             SizedBox(height: screenHeight*0.03,),
              _field("Phone Number", _CustomerController, screenWidth, screenHeight),
              SizedBox(height: screenHeight*0.001,),
@@ -302,7 +338,7 @@ SizedBox(height: screenHeight*0.03,),
                   ),
                   Text(
                     "Add Item",
-                    style: getFonts(screenHeight * 0.01, Colors.white),
+                    style: getFonts(11, Colors.white),
                   ),
                 ],
               ),
@@ -397,7 +433,21 @@ SizedBox(height: screenHeight*0.03,),
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
-           
+            child: GestureDetector(
+                       onTap: () => _selectDate(context, false),
+                       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                         children: [
+                           
+                           Text(
+                             _toDate != null ? _dateFormat.format(_toDate!) : "",
+                             style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
+                           ),
+                           
+                           SizedBox(width: 5),
+                           Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor,size: 17,),
+                         ],
+                       ),
+                     ),
           ),
         ],
       ),
@@ -449,7 +499,7 @@ SizedBox(height: screenHeight*0.03,),
       ),
     ),
     SizedBox(height: screenHeight*0.03,),
-            _field("Customer", _CustomerController, screenWidth, screenHeight),
+            _field("Billing Name", _CustomerController, screenWidth, screenHeight),
             SizedBox(height: screenHeight*0.03,),
              _field("Phone Number", _CustomerController, screenWidth, screenHeight),
              SizedBox(height: screenHeight*0.001,),
@@ -481,7 +531,7 @@ SizedBox(height: screenHeight*0.03,),
                   ),
                   Text(
                     "Add Item",
-                    style: getFonts(screenHeight * 0.01, Colors.white),
+                    style: getFonts(11, Colors.white),
                   ),
                 ],
               ),

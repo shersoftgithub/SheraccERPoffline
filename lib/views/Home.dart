@@ -5,10 +5,12 @@ import 'package:sheraaccerpoff/views/Ledgerreport.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
 import 'package:sheraaccerpoff/views/payment.dart';
 import 'package:sheraaccerpoff/views/paymentReport.dart';
+import 'package:sheraaccerpoff/views/purcahsereport.dart';
 import 'package:sheraaccerpoff/views/reciept.dart';
 import 'package:sheraaccerpoff/views/recieptreport.dart';
 import 'package:sheraaccerpoff/views/salesReport.dart';
 import 'package:sheraaccerpoff/views/salesorder.dart';
+import 'package:sheraaccerpoff/views/stockreport.dart';
 
 class HomePageERP extends StatefulWidget {
   const HomePageERP({super.key});
@@ -37,12 +39,12 @@ class _HomePageERPState extends State<HomePageERP> {
     "assets/images/sales.png",
     "assets/images/sales report.png",
     "assets/images/ledger.png",
-    "assets/images/ledger.png",
+    "assets/images/ledger (2).png",
     "assets/images/payment report.png",
     "assets/images/reciept report.png"
 
-    ,"assets/images/reciept report.png",
-    "assets/images/reciept report.png"
+    ,"assets/images/purchase reports.png",
+    "assets/images/stock report.png"
   ];
 
   @override
@@ -141,6 +143,12 @@ class _HomePageERPState extends State<HomePageERP> {
                   }else if(index==7){
                     Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Recieptreport()));
+                  }else if(index==8){
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Purcahsereport()));
+                  }else if(index==9){
+                    Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => StockReport()));
                   }
                 },
                 child: Padding(

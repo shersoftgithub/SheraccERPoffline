@@ -47,7 +47,7 @@ class _PaymentreportState extends State<Paymentreport> {
         padding: const EdgeInsets.only(top: 20),
         child: IconButton(onPressed: (){
           Navigator.pop(context);
-        }, icon: Icon(Icons.arrow_back_ios_new_sharp,color: Colors.white,size: 15,)),
+        }, icon: Icon(Icons.arrow_back_ios_new_sharp,color: Colors.white,size: 20,)),
       ),
         title: Center(
           child: Padding(
@@ -77,47 +77,51 @@ class _PaymentreportState extends State<Paymentreport> {
       body: Column(
         children: [
           SizedBox(height: screenHeight * 0.02),
-          Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                     // controller: controller,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter ';
-                        }
-                        return null;
-                      },
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: screenHeight * 0.03),
+            child: Container(
+              height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                       // controller: controller,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter ';
+                          }
+                          return null;
+                        },
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
  SizedBox(height: screenHeight * 0.02),
            Padding(
-             padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
+             padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.03),
              child: Container(
                height: 39,
+               width: screenWidth * 0.9,
                decoration: BoxDecoration(
-                 borderRadius: BorderRadius.circular(8),
+                 borderRadius: BorderRadius.circular(5),
                  color: Colors.white,
-                 border: Border.all(color: Appcolors().maincolor)
+                 border: Border.all(color: Appcolors().searchTextcolor)
                ),
                child: Padding(
                  padding: const EdgeInsets.symmetric(horizontal: 8.0),

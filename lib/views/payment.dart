@@ -1,5 +1,6 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:sheraaccerpoff/models/paymant_model.dart';
 import 'package:sheraaccerpoff/provider/sherprovider.dart';
@@ -44,6 +45,29 @@ class _PaymentFormState extends State<PaymentForm> {
    
     _selectSupplierController.text = value;
   }
+
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  Future<void> _selectDate(BuildContext context, bool isFromDate) async {
+    final DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (selectedDate != null) {
+      setState(() {
+        if (isFromDate) {
+          _fromDate = selectedDate;
+        } else {
+          _toDate = selectedDate;
+        }
+      });
+     
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -63,13 +87,13 @@ class _PaymentFormState extends State<PaymentForm> {
             icon: Icon(
               Icons.arrow_back_ios_new_sharp,
               color: Colors.white,
-              size: 15,
+              size: 20,
             ),
           ),
         ),
         title: Center(
           child: Padding(
-            padding: EdgeInsets.only(top: screenHeight * 0.02),
+            padding: EdgeInsets.only(top: screenHeight * 0.02,right: screenHeight*0.01),
             child: Text(
               "Payment",
               style: appbarFonts(screenWidth * 0.04, Colors.white),
@@ -116,8 +140,23 @@ class _PaymentFormState extends State<PaymentForm> {
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
-           
+           child:  GestureDetector(
+                       onTap: () => _selectDate(context, false),
+                       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                         children: [
+                           
+                           Text(
+                             _toDate != null ? _dateFormat.format(_toDate!) : "",
+                             style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
+                           ),
+                           
+                           SizedBox(width: 5),
+                           Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor),
+                         ],
+                       ),
+                     ),
           ),
+        
         ],
       ),
     ),
@@ -189,7 +228,7 @@ class _PaymentFormState extends State<PaymentForm> {
         ),
       ),
       Container(
-        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
+        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.025),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -235,22 +274,22 @@ class _PaymentFormState extends State<PaymentForm> {
     ),
     SizedBox(height: screenHeight * 0.02),
     Padding(
-      padding: const EdgeInsets.only(right: 295),
+      padding: const EdgeInsets.only(right: 290),
       child: Text("Balance : ",style: getFonts(14, Appcolors().maincolor),),
     ),
     SizedBox(height: screenHeight * 0.02),
     Container(
-      padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
+      padding: EdgeInsets.symmetric(horizontal: screenHeight*0.025),
       child: Column(children: [
         _paymentField("Amount", _adressController, screenWidth, screenHeight),
         SizedBox(height: screenHeight * 0.01),
         _paymentField("Discount", _adressController, screenWidth, screenHeight),
-        SizedBox(height: screenHeight * 0.01),
+        SizedBox(height: screenHeight * 0.02),
          Padding(
       padding: const EdgeInsets.only(right: 320),
       child: Text("Total : ",style: getFonts(14, Appcolors().maincolor),),
     ),
-      SizedBox(height: screenHeight * 0.01),
+      SizedBox(height: screenHeight * 0.02),
             _paymentField("Narration", _adressController, screenWidth, screenHeight)
       ],),
     )

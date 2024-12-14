@@ -30,7 +30,14 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
     _tabController.dispose();
     super.dispose();
   }
+bool _isChecked = false;
 
+Map<String, bool> _checkboxStates = {
+    "Active": false,
+    "Cost Center": false,
+    "Franchise": false,
+    "Bill Wise": false,
+  };
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -41,6 +48,19 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
       appBar: AppBar(
         toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: Icon(
+              Icons.arrow_back_ios_new_sharp,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
         title: Center(
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
@@ -68,19 +88,20 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
         children: [
           // Top Buttons Row
           Container(
-            padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02,horizontal: screenHeight*0.02),
+            padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02,horizontal: screenHeight*0.07),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+             
               children: [
                 GestureDetector(
                   onTap: () {},
                   child: _TopButtons("Save", screenWidth, screenHeight),
                 ),
+                SizedBox(width: screenHeight*0.02,),
                 GestureDetector(
                   onTap: () {},
                   child: _TopButtons("Clear", screenWidth, screenHeight),
                 ),
+                SizedBox(width: screenHeight*0.02,),
                 GestureDetector(
                   onTap: () {},
                   child: _TopButtons("Delete", screenWidth, screenHeight),
@@ -101,10 +122,11 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
                 indicatorColor: Appcolors().maincolor,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white,
+                labelStyle: getFonts(12, Colors.white),
                 tabs: const [
-                  Tab(text: "Account"),
+                  Tab(text: "Account",),
                   Tab(text: "Address"),
-                  Tab(text: "Opening Balance"),
+                  Tab(text: "Opening Balance",),
                 ],
               ),
             ),
@@ -126,8 +148,8 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
 
   Widget _TopButtons(String text, double screenWidth, double screenHeight) {
     return Container(
-      height: screenHeight * 0.04,
-      width: screenWidth * 0.3,
+      height: 33,
+      width: 84,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(5),
         color: const Color(0xFF0A1EBE),
@@ -169,7 +191,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label ){
             children: [
               Text(
                 label,
-                style: formFonts(screenWidth * 0.03, Colors.black),
+                style: getFonts(14, Colors.black),
               ),
             ],
           ),
@@ -312,10 +334,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label ){
                 label,
                 style: formFonts(14, Colors.black),
               ),
-              Text(
-                "*",
-                style: TextStyle(fontSize: screenWidth * 0.04, color: Color(0xFFE22E37)),
-              ),
+              
             ],
           ),
           SizedBox(height: screenHeight * 0.01),
@@ -408,7 +427,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label ){
     );
   }
   Widget _buttonOB(double screenHeight,double screenWidth,String txt){
-     bool _isChecked = false;
+     
     return Container(
             height: screenHeight * 0.05,
             width: screenWidth * 0.4,
@@ -420,22 +439,22 @@ Widget _accfield(double screenHeight,double screenWidth,String label ){
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
                   child: Text(
                     "$txt",
-                    style: getFonts(16, Colors.white),
+                    style: getFonts(14, Colors.white),
                   ),
                 ),
                 Checkbox(
-                value: _isChecked,
+                  side: BorderSide(color: Colors.white),
+                value: _checkboxStates[txt] ?? false,
                 onChanged: (bool? value) {
                   setState(() {
-                    _isChecked = value!;
+                    _checkboxStates[txt] = value!;
                   });
                 },
-                hoverColor: Colors.white,
-                focusColor: Colors.white,
-                checkColor: Colors.white,
+                
+                checkColor: Appcolors().maincolor,
                 activeColor: Colors.white, 
               ),
               ],

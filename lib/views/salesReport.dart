@@ -41,6 +41,18 @@ class _SalesReportState extends State<SalesReport> {
      
     }
   }
+   bool _isChecked = false;
+   bool _isCheckedd = false;
+  String selectedValue = "Report Type";
+  bool isExpanded = false; 
+  final List<String> reportTypes = [
+    "Report 1",
+    "Report 2",
+    "Report 3",
+    "Report 4",
+    "Report 5",
+  ];
+final GlobalKey _arrowKey = GlobalKey();
   @override
   
   Widget build(BuildContext context) {
@@ -51,6 +63,19 @@ class _SalesReportState extends State<SalesReport> {
       appBar: AppBar(
         toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: Icon(
+              Icons.arrow_back_ios_new_sharp,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
         title: Center(
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
@@ -62,127 +87,168 @@ class _SalesReportState extends State<SalesReport> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(top: screenHeight * 0.02),
-            child: IconButton(
-              onPressed: () {},
-              icon: IconButton(
-                onPressed: () {},
-                icon: Icon(
-                  Icons.more_vert,
-                  color: Colors.white,
-                ),
+            padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
+            child: GestureDetector(
+              onTap: () {},
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: Image.asset("assets/images/setting (2).png"),
               ),
             ),
-          )
+          ),
         ],
       ),
-      body: Column(
-        children: [
-          SizedBox(height: screenHeight * 0.02),
-          Padding(
-             padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
-             child: Container(
-               height: 39,
-               decoration: BoxDecoration(
-                 borderRadius: BorderRadius.circular(8),
-                 color: Colors.white,
-                 border: Border.all(color: Appcolors().maincolor)
-               ),
-               child: Padding(
-                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                 child: Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                   children: [
-                     GestureDetector(
-                       onTap: () => _selectDate(context, true),
-                       child: Row(
-                         children: [
-                           Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                           SizedBox(width: 5),
-                           Text(
-                             _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
-                             style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
-                           ),
-                         ],
+      body: SingleChildScrollView(
+        physics: ScrollPhysics(),
+        child: Column(
+          children: [
+            SizedBox(height: screenHeight * 0.02),
+            Padding(
+               padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
+               child: Container(
+                 height: 39,
+                 width: screenWidth*0.9,
+                 decoration: BoxDecoration(
+                   borderRadius: BorderRadius.circular(5),
+                   color: Colors.white,
+                   border: Border.all(color: Appcolors().maincolor)
+                 ),
+                 child: Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                   child: Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     children: [
+                       GestureDetector(
+                         onTap: () => _selectDate(context, true),
+                         child: Row(
+                           children: [
+                             Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor),
+                             SizedBox(width: 5),
+                             Text(
+                               _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
+                               style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                             ),
+                           ],
+                         ),
                        ),
-                     ),
-                     Text("-", style: TextStyle(color: Appcolors().maincolor)),
-                     GestureDetector(
-                       onTap: () => _selectDate(context, false),
-                       child: Row(
-                         children: [
-                           Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                           SizedBox(width: 5),
-                           Text(
-                             _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
-                             style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                           ),
-                         ],
+                       Text("-", style: TextStyle(color: Appcolors().maincolor,fontSize: 14)),
+                       GestureDetector(
+                         onTap: () => _selectDate(context, false),
+                         child: Row(
+                           children: [
+                             Text(
+                               _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
+                               style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
+                             ),
+                             SizedBox(width: 5),
+                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
+                           ],
+                         ),
                        ),
-                     ),
-                   ],
+                     ],
+                   ),
                  ),
                ),
              ),
-           ),
-           SizedBox(height: screenHeight * 0.0002),
-            GestureDetector(
-        onTap: () {},
-        child: Padding(
-          padding: EdgeInsets.all(screenHeight * 0.03),
-          child: Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Color(0xFF0A1EBE),
-            ),
-            child: Center(
-              child: Text(
-                "Show",
-                style: getFonts(screenHeight * 0.02, Colors.white),
+             SizedBox(height: screenHeight * 0.0002),
+              GestureDetector(
+          onTap: () {},
+          child: Padding(
+            padding: EdgeInsets.all(screenHeight * 0.03),
+            child: Container(
+              height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Color(0xFF0A1EBE),
+              ),
+              child: Center(
+                child: Text(
+                  "Show",
+                  style: getFonts(screenHeight * 0.02, Colors.white),
+                ),
               ),
             ),
           ),
         ),
-      ),
-      Padding(
-        padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
-        child: Container(
-          child: Column(
-            children: [
-              _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
-              SizedBox(height: screenHeight * 0.0002),
-              _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Manufacture", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Category", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Group", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Salesman", _selectSupplierController, screenWidth, screenHeight)
-        
-            ],
-          ),
-        ),
-      ),
-       SizedBox(height: screenHeight * 0.02),
-      Container(
-        height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              border: Border.all(color: Appcolors().maincolor)
-            ),
-            child: Row(
+        Padding(
+          padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
+          child: Container(
+            child: Column(
               children: [
-_buttonOB(screenHeight, screenWidth),
-SizedBox(width: screenHeight*0.01,),
-Text("Report Type",style: getFonts(12, Colors.black),),
-SizedBox(width: screenHeight*0.02,),
-Text("Summery",style: getFonts(12, Colors.black),),
-IconButton(onPressed: (){}, icon: Icon(Icons.arrow_drop_up_outlined))
+                _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
+                SizedBox(height: screenHeight * 0.0002),
+                _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Manufacture", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Category", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Group", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Salesman", _selectSupplierController, screenWidth, screenHeight)
+          
               ],
             ),
-      )
-        ],
+          ),
+        ),
+        SizedBox(height: screenHeight*0.02,),
+        Container(
+          height: screenHeight * 0.03,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                border: Border.all(color: Appcolors().maincolor)
+              ),
+              child: Row(
+                children: [
+                  SizedBox(width: screenHeight*0.03,),
+        Text("Sales From",style: getFonts(12, Colors.black),),
+        SizedBox(width: screenHeight*0.05,),
+         InkWell(
+          onTap: (){
+         showRectangularDialog(context,screenHeight,screenWidth);
+          },
+          child: Text("Sales",style: getFonts(12, Colors.black),)),
+                ],
+              ),
+        ),
+         SizedBox(height: screenHeight * 0.02),
+        Container(
+          height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                border: Border.all(color: Appcolors().maincolor)
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+        _buttonOB(screenHeight, screenWidth),
+        SizedBox(width: screenHeight*0.01,),
+        Text("Report Type",style: getFonts(12, Colors.black),),
+        SizedBox(width: screenHeight*0.02,),
+        Expanded(
+                child: GestureDetector(
+                  child: Text(
+                    selectedValue,
+                    style: getFonts(12, Colors.black),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                key: _arrowKey,
+                onTap: () {
+                  setState(() {
+                    isExpanded = !isExpanded;
+                  });
+                  _showPopupMenu();
+                },
+                child: Icon(
+                  isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: Colors.black,
+                ),
+              ),
+                ],
+              ),
+        )
+          ],
+        ),
       ),
       
     );
@@ -205,7 +271,8 @@ IconButton(onPressed: (){}, icon: Icon(Icons.arrow_drop_up_outlined))
               decoration: InputDecoration(
                 border: UnderlineInputBorder(),
                 contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
-                hintText: "$txt"
+                hintText: "$txt",
+                hintStyle: TextStyle(fontSize: 14)
               ),
             ),
           ),
@@ -214,7 +281,7 @@ IconButton(onPressed: (){}, icon: Icon(Icons.arrow_drop_up_outlined))
     );
   }
    Widget _buttonOB(double screenHeight,double screenWidth){
-     bool _isChecked = false;
+    
     return Row(
       children: [
         Checkbox(
@@ -224,13 +291,189 @@ IconButton(onPressed: (){}, icon: Icon(Icons.arrow_drop_up_outlined))
                         _isChecked = value!;
                       });
                     },
-                    hoverColor: Colors.white,
-                    focusColor: Colors.white,
-                    checkColor: Colors.red,
-                    activeColor: Colors.white, 
+                    
+                    checkColor: Colors.white,
+                    activeColor: _isChecked ? Appcolors().maincolor : Colors.transparent, 
                   ),
                   Text("All")
       ],
+    );
+  }
+void _showPopupMenu() async {
+    final RenderBox arrowBox =
+        _arrowKey.currentContext!.findRenderObject() as RenderBox;
+    final Offset arrowPosition = arrowBox.localToGlobal(Offset.zero);
+    final Size arrowSize = arrowBox.size;
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        arrowPosition.dx, 
+        arrowPosition.dy + arrowSize.height, 
+        arrowPosition.dx + arrowSize.width,
+        arrowPosition.dy, 
+      ),
+      items: reportTypes
+          .map(
+            (type) => PopupMenuItem<String>(
+              
+              value: type,
+              child: Text(type,style: getFonts(13, Colors.black),),
+            ),
+          )
+          .toList(),
+      elevation: 8.0,
+    );
+
+    if (selected != null) {
+      setState(() {
+        selectedValue = selected; 
+        isExpanded = false; 
+      });
+    } else {
+      setState(() {
+        isExpanded = false; 
+      });
+    }
+  }
+   void showRectangularDialog(BuildContext context,double screenHeight,double screenWidth) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(0), 
+          ),
+          child: Container(
+            width: screenWidth*0.5,
+            height: screenHeight*0.5, 
+            color: Colors.white,
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(height: screenHeight*0.02,),
+                    Checkbox(
+                    value: _isCheckedd,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _isCheckedd = value!;
+                      });
+                    },
+                    
+                    checkColor: Colors.white,
+                    activeColor: _isCheckedd ? Appcolors().maincolor : Colors.transparent, 
+                  ),
+                    SizedBox(height: screenHeight*0.02,),
+                    Text("Sales ES",style: getFonts(14, Colors.black),)
+                    ],
+                ),
+                Row(
+                  children: [
+                    SizedBox(height: screenHeight*0.02,),
+                    Checkbox(
+                    value: _isCheckedd,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _isCheckedd = value!;
+                      });
+                    },
+                    
+                    checkColor: Colors.white,
+                    activeColor: _isCheckedd ? Appcolors().maincolor : Colors.transparent, 
+                  ),
+                    SizedBox(height: screenHeight*0.02,),
+                    Text("Sales B2B",style: getFonts(14, Colors.black),)
+                    ],
+                ),
+                Row(
+                  children: [
+                    SizedBox(height: screenHeight*0.02,),
+                    Checkbox(
+                    value: _isCheckedd,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _isCheckedd = value!;
+                      });
+                    },
+                    
+                    checkColor: Colors.white,
+                    activeColor: _isCheckedd ? Appcolors().maincolor : Colors.transparent, 
+                  ),
+                    SizedBox(height: screenHeight*0.02,),
+                    Text("Sales B2C",style: getFonts(14, Colors.black),)
+                    ],
+                ),
+                Row(
+                  children: [
+                    SizedBox(height: screenHeight*0.02,),
+                    Checkbox(
+                    value: _isCheckedd,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _isCheckedd = value!;
+                      });
+                    },
+                    
+                    checkColor: Colors.white,
+                    activeColor: _isCheckedd ? Appcolors().maincolor : Colors.transparent, 
+                  ),
+                    SizedBox(height: screenHeight*0.02,),
+                    Text("Sales of Supply",style: getFonts(14, Colors.black),)
+                    ],
+                ),
+                Row(
+                  children: [
+                    SizedBox(height: screenHeight*0.02,),
+                    Checkbox(
+                    value: _isCheckedd,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _isCheckedd = value!;
+                      });
+                    },
+                    
+                    checkColor: Colors.white,
+                    activeColor: _isCheckedd? Appcolors().maincolor : Colors.transparent, 
+                  ),
+                    SizedBox(height: screenHeight*0.02,),
+                    Text("Sales IS",style: getFonts(14, Colors.black),)
+                    ],
+                ),
+                Row(
+                  children: [
+                    SizedBox(height: screenHeight*0.02,),
+                    Checkbox(
+                    value: _isCheckedd,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _isCheckedd = value!;
+                      });
+                    },
+                    
+                    checkColor: Colors.white,
+                    activeColor: _isChecked ? Appcolors().maincolor : Colors.transparent, 
+                  ),
+                    SizedBox(height: screenHeight*0.02,),
+                    Text("Sales Order",style: getFonts(14, Colors.black),)
+                    ],
+                ),
+                Row(mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: (){},
+                     child: Text("OK",style: getFonts(14, Colors.black),)),
+                     SizedBox(width: screenHeight*0.01,),
+                     TextButton(onPressed: (){Navigator.pop(context);},
+                     child: Text("Cancel",style: getFonts(14, Colors.black),))
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

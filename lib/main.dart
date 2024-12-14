@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sheraaccerpoff/provider/sherprovider.dart';
 import 'package:sheraaccerpoff/views/Home.dart';
+import 'package:sheraaccerpoff/views/splash.dart';
 
 void main() {
   runApp(
@@ -21,8 +22,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData(
+        popupMenuTheme: PopupMenuThemeData(
+          color: Colors.white
+        )
+      ),
       debugShowCheckedModeBanner: false,
-      home: const HomePageERP(), 
+      home: const Splash(), 
     );
   }
 }

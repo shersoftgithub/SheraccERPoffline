@@ -47,7 +47,7 @@ class _RecieptreportState extends State<Recieptreport> {
         padding: const EdgeInsets.only(top: 20),
         child: IconButton(onPressed: (){
           Navigator.pop(context);
-        }, icon: Icon(Icons.arrow_back_ios_new_sharp,color: Colors.white,size: 15,)),
+        }, icon: Icon(Icons.arrow_back_ios_new_sharp,color: Colors.white,size: 20,)),
       ),
         title: Center(
           child: Padding(
@@ -115,9 +115,9 @@ class _RecieptreportState extends State<Recieptreport> {
              child: Container(
                height: 39,
                decoration: BoxDecoration(
-                 borderRadius: BorderRadius.circular(8),
+                 borderRadius: BorderRadius.circular(5),
                  color: Colors.white,
-                 border: Border.all(color: Appcolors().maincolor)
+                 border: Border.all(color: Appcolors().searchTextcolor)
                ),
                child: Padding(
                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -158,7 +158,7 @@ class _RecieptreportState extends State<Recieptreport> {
                ),
              ),
            ),
-                 SizedBox(height: screenHeight * 0.02),
+                 SizedBox(height: screenHeight * 0.01),
                 GestureDetector(
         onTap: () {},
         child: Padding(

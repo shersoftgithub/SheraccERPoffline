@@ -33,7 +33,17 @@ DateTime? _fromDate;
      
     }
   }
-  
+   String selectedValue = "Report Type";
+  bool isExpanded = false; 
+  final List<String> reportTypes = [
+    "Report 1",
+    "Report 2",
+    "Report 3",
+    "Report 4",
+    "Report 5",
+  ];
+final GlobalKey _arrowKey = GlobalKey();
+ bool _isChecked = false;
   @override
   Widget build(BuildContext context) {
       final screenWidth = MediaQuery.of(context).size.width;
@@ -47,13 +57,13 @@ DateTime? _fromDate;
         padding: const EdgeInsets.only(top: 20),
         child: IconButton(onPressed: (){
           Navigator.pop(context);
-        }, icon: Icon(Icons.arrow_back_ios_new_sharp,color: Colors.white,size: 15,)),
+        }, icon: Icon(Icons.arrow_back_ios_new_sharp,color: Colors.white,size: 20,)),
       ),
         title: Center(
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Text(
-              "Sheracc ERP Offline",
+              "Ledger Report",
               style: appbarFonts(screenHeight * 0.02, Colors.white),
             ),
           ),
@@ -114,9 +124,11 @@ DateTime? _fromDate;
              padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
              child: Container(
                height: 39,
+               width: screenWidth*0.9,
                decoration: BoxDecoration(
-                 borderRadius: BorderRadius.circular(8),
+                 borderRadius: BorderRadius.circular(5),
                  color: Colors.white,
+                 border: Border.all(color: Appcolors().searchTextcolor)
                ),
                child: Padding(
                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -141,12 +153,14 @@ DateTime? _fromDate;
                        onTap: () => _selectDate(context, false),
                        child: Row(
                          children: [
-                           Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                           SizedBox(width: 5),
+                          
                            Text(
                              _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
                              style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
                            ),
+                            
+                           SizedBox(width: 5),
+                           Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
                          ],
                        ),
                      ),
@@ -155,7 +169,62 @@ DateTime? _fromDate;
                ),
              ),
            ),
-                 SizedBox(height: screenHeight * 0.02),
+           SizedBox(height: screenHeight * 0.02),
+        Container(
+          height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                border: Border.all(color: Appcolors().searchTextcolor)
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+        SizedBox(width: screenHeight*0.01,),
+        Text("Report Type",style: getFonts(12, Colors.black),),
+        SizedBox(width: screenHeight*0.02,),
+        Expanded(
+                child: GestureDetector(
+                  child: Text(
+                    selectedValue,
+                    style: getFonts(12, Colors.black),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                key: _arrowKey,
+                onTap: () {
+                  setState(() {
+                    isExpanded = !isExpanded;
+                  });
+                  _showPopupMenu();
+                },
+                child: Icon(
+                  isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: Colors.black,
+                ),
+              ),
+                ],
+              ),
+        ),
+                 SizedBox(height: screenHeight * 0.01),
+                 Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 5),
+                   child: Row(
+                         children: [
+                           Checkbox(
+                      value: _isChecked,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _isChecked = value!;
+                        });
+                      },
+                      
+                      checkColor: Colors.white,
+                      activeColor: _isChecked ? Appcolors().maincolor : Colors.transparent, 
+                    ),
+                    Text("Opening Balance",style: getFonts(14, Colors.black),)
+                         ],
+                       ),
+                 ),
                 GestureDetector(
         onTap: () {},
         child: Padding(
@@ -179,5 +248,42 @@ DateTime? _fromDate;
         ],
       ),
     );
+  }
+  void _showPopupMenu() async {
+    final RenderBox arrowBox =
+        _arrowKey.currentContext!.findRenderObject() as RenderBox;
+    final Offset arrowPosition = arrowBox.localToGlobal(Offset.zero);
+    final Size arrowSize = arrowBox.size;
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        arrowPosition.dx, 
+        arrowPosition.dy + arrowSize.height, 
+        arrowPosition.dx + arrowSize.width,
+        arrowPosition.dy, 
+      ),
+      items: reportTypes
+          .map(
+            (type) => PopupMenuItem<String>(
+              
+              value: type,
+              child: Text(type,style: getFonts(13, Colors.black),),
+            ),
+          )
+          .toList(),
+      elevation: 8.0,
+    );
+
+    if (selected != null) {
+      setState(() {
+        selectedValue = selected; 
+        isExpanded = false; 
+      });
+    } else {
+      setState(() {
+        isExpanded = false; 
+      });
+    }
   }
 }
