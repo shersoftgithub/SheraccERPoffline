@@ -4,10 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:sheraaccerpoff/models/paymant_model.dart';
 import 'package:sheraaccerpoff/provider/sherprovider.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
+
 
 class PaymentForm extends StatefulWidget {
   const PaymentForm({super.key});
@@ -23,27 +24,20 @@ class _PaymentFormState extends State<PaymentForm> {
   final TextEditingController _taxnoController = TextEditingController();
   final TextEditingController _pricelevelController = TextEditingController();
   final TextEditingController _balanceController = TextEditingController();
-  final TextEditingController _selectSupplierController = TextEditingController();
+  final TextEditingController _selectlnamesController = TextEditingController();
    List <String>_supplierSuggestions=[];
    @override
   void initState() {
     super.initState();
-    _fetchSuppliers();
+    _fetchLedgerNames();
   }
 
-    Future<void> _fetchSuppliers() async {
-    final dbHelper = DatabaseHelper();
-    final suppliers = await dbHelper.getSuppliers();
     
-    setState(() {
-      _supplierSuggestions = suppliers.map((supplier) => supplier.suppliername).toList();
-    });
-  }
 
   void onJobcardSelected(String value) {
     print('Selected Supplier: $value');
    
-    _selectSupplierController.text = value;
+    _selectlnamesController.text = value;
   }
 
   DateTime? _fromDate;
@@ -67,6 +61,13 @@ class _PaymentFormState extends State<PaymentForm> {
       });
      
     }
+  }
+  List <String>ledgerNames = [];
+  Future<void> _fetchLedgerNames() async {
+    List<String> names = await DatabaseHelper.instance.getAllLedgerNames();
+    setState(() {
+      ledgerNames = names; 
+    });
   }
   @override
   Widget build(BuildContext context) {
@@ -112,6 +113,7 @@ class _PaymentFormState extends State<PaymentForm> {
               ),
             ),
           ),
+          
         ],
       ),
       body: SingleChildScrollView(
@@ -255,15 +257,17 @@ class _PaymentFormState extends State<PaymentForm> {
                 children: [
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
-                    child: TextFormField(
-                     // controller: controller,
-                     
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                    child: EasyAutocomplete(
+                        controller: _selectlnamesController,
+                        suggestions: ledgerNames,
+                           
+                        onSubmitted: (value) {
+                          onJobcardSelected(value);  // Handle selection
+                        },
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                        ),
                       ),
-                    ),
                   ),
                 ],
               ),

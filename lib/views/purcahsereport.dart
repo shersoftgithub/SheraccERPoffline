@@ -281,7 +281,7 @@ bool _isChecked = false;
                       checkColor: Colors.white,
                       activeColor: _isChecked ? Appcolors().maincolor : Colors.transparent, 
                     ),
-                    Text("Purchace only \n or \n(purchase,purchase return,purchase order)",style: getFonts(10, Colors.black),)
+                    Text("Purchace only\nor\n(purchase,purchase return,purchase order)",style: getFonts(10, Colors.black),)
                          ],
                        ),
                  ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:sheraaccerpoff/models/newLedger.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -18,6 +20,8 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
   final TextEditingController _taxnoController = TextEditingController();
   final TextEditingController _pricelevelController = TextEditingController();
   final TextEditingController _balanceController = TextEditingController();
+  final TextEditingController _LedgernameController = TextEditingController();
+  final TextEditingController _underController = TextEditingController();
   final TextEditingController _selectSupplierController = TextEditingController();
   @override
   void initState() {
@@ -38,6 +42,46 @@ Map<String, bool> _checkboxStates = {
     "Franchise": false,
     "Bill Wise": false,
   };
+
+  void _saveAccount() async {
+  final ledger = Ledger(
+    ledgerName: _LedgernameController.text, 
+    under: _underController.text, 
+    address: '', 
+    contact: '',
+    mail: '',
+    taxNo: '',
+    priceLevel: '',
+    balance: 0.0,
+  );
+
+  // Insert the new ledger record
+  await DatabaseHelper.instance.insert(ledger.toMap());
+
+  // Optionally, show a success message
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Basic data saved successfully')));
+}
+
+void _saveAdress() async {
+  // Saving all fields including address, contact, mail, etc.
+  final ledger = Ledger(
+    ledgerName: "",
+    under: "",
+    address: _adressController.text, // Use actual controller for address
+    contact: _contactController.text, // Use actual controller for contact
+    mail: _mailController.text,
+    taxNo: _taxnoController.text,
+    priceLevel: _pricelevelController.text,
+    balance: double.parse(_balanceController.text), // Handle parsing carefully
+  );
+
+  // Insert the new ledger record
+  await DatabaseHelper.instance.insert(ledger.toMap());
+
+  // Optionally, show a success message
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Full data saved successfully')));
+}
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -74,11 +118,27 @@ Map<String, bool> _checkboxStates = {
           Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
             child: GestureDetector(
-              onTap: () {},
+              onTap: () {
+                
+              },
               child: SizedBox(
                 width: 20,
                 height: 20,
                 child: Image.asset("assets/images/setting (2).png"),
+              ),
+            ),
+          ),
+           Padding(
+            padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
+            child: GestureDetector(
+              onTap: () {
+                _saveAccount();
+                _saveAdress();
+              },
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: Image.asset("assets/images/save-instagram.png"),
               ),
             ),
           ),
@@ -172,9 +232,9 @@ Map<String, bool> _checkboxStates = {
           child: Column(
             children: [
               SizedBox(height: screenHeight*0.05,),
-        _accfield(screenHeight, screenWidth, "Ledger Name"),
+        _accfield(screenHeight, screenWidth, "Ledger Name",_LedgernameController),
           SizedBox(height: screenHeight*0.03,),
-           _accfield(screenHeight, screenWidth, "Under")
+           _accfield(screenHeight, screenWidth, "Under",_underController)
             ],
           ),
         )
@@ -182,7 +242,7 @@ Map<String, bool> _checkboxStates = {
     );
   }
   
-Widget _accfield(double screenHeight,double screenWidth,String label ){
+Widget _accfield(double screenHeight,double screenWidth,String label,TextEditingController controller ){
   return Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +271,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label ){
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: TextFormField(
-                     // controller: controller,
+                      controller: controller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter $label';
@@ -297,7 +357,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label ){
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _field("Recieve Amount", screenWidth, screenHeight),
-                _field("Recieve Amount", screenWidth, screenHeight)
+                _field("Pay Amount", screenWidth, screenHeight)
               ],
             ),
             SizedBox(height: screenHeight * 0.03),
@@ -384,14 +444,14 @@ Widget _accfield(double screenHeight,double screenWidth,String label ){
             children: [
               Text(
                 label,
-                style: formFonts(screenWidth * 0.03, Colors.black),
+                style: formFonts(14, Colors.black),
               ),
             ],
           ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-            height: screenHeight * 0.04,
-            width: screenWidth * 0.4,
+            height: 35,
+            width: 170,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(screenWidth * 0.02),
               color: Colors.white,
@@ -429,8 +489,8 @@ Widget _accfield(double screenHeight,double screenWidth,String label ){
   Widget _buttonOB(double screenHeight,double screenWidth,String txt){
      
     return Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.4,
+            height: 35,
+            width: 170,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: Color(0xFF0A1EBE),
