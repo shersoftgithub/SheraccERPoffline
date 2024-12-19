@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/salesreportShow.dart';
 
 class SalesReport extends StatefulWidget {
   const SalesReport({super.key});
@@ -12,6 +14,7 @@ class SalesReport extends StatefulWidget {
 }
 
 class _SalesReportState extends State<SalesReport> {
+   int? selectedIndex;
  final TextEditingController _selectSupplierController=TextEditingController();
  final TextEditingController _selectItemcodeController=TextEditingController();
  final TextEditingController _selectItemnameController=TextEditingController();
@@ -53,6 +56,11 @@ class _SalesReportState extends State<SalesReport> {
     "Report 5",
   ];
 final GlobalKey _arrowKey = GlobalKey();
+optionsDBHelper dbHelper=optionsDBHelper();
+List salieretype=[];
+Future<void> salesreporttype()async{
+  salieretype=await dbHelper.getOptionsByType("sales_reporttype");
+}
   @override
   
   Widget build(BuildContext context) {
@@ -153,7 +161,9 @@ final GlobalKey _arrowKey = GlobalKey();
              ),
              SizedBox(height: screenHeight * 0.0002),
               GestureDetector(
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ShowSalesReport()));
+          },
           child: Padding(
             padding: EdgeInsets.all(screenHeight * 0.03),
             child: Container(
@@ -300,43 +310,47 @@ final GlobalKey _arrowKey = GlobalKey();
     );
   }
 void _showPopupMenu() async {
-    final RenderBox arrowBox =
-        _arrowKey.currentContext!.findRenderObject() as RenderBox;
-    final Offset arrowPosition = arrowBox.localToGlobal(Offset.zero);
-    final Size arrowSize = arrowBox.size;
-
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        arrowPosition.dx, 
-        arrowPosition.dy + arrowSize.height, 
-        arrowPosition.dx + arrowSize.width,
-        arrowPosition.dy, 
-      ),
-      items: reportTypes
-          .map(
-            (type) => PopupMenuItem<String>(
-              
-              value: type,
-              child: Text(type,style: getFonts(13, Colors.black),),
-            ),
-          )
-          .toList(),
-      elevation: 8.0,
-    );
-
-    if (selected != null) {
-      setState(() {
-        selectedValue = selected; 
-        isExpanded = false; 
-      });
-    } else {
-      setState(() {
-        isExpanded = false; 
-      });
-    }
+  await salesreporttype();
+  if (salieretype.isEmpty) {
+    return; 
   }
-   void showRectangularDialog(BuildContext context,double screenHeight,double screenWidth) {
+
+  final RenderBox arrowBox =
+      _arrowKey.currentContext!.findRenderObject() as RenderBox;
+  final Offset arrowPosition = arrowBox.localToGlobal(Offset.zero);
+  final Size arrowSize = arrowBox.size;
+
+  final selected = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromLTRB(
+      arrowPosition.dx,
+      arrowPosition.dy + arrowSize.height,
+      arrowPosition.dx + arrowSize.width,
+      arrowPosition.dy,
+    ),
+    items: salieretype 
+        .map(
+          (type) => PopupMenuItem<String>(
+            value: type,
+            child: Text(type, style: getFonts(13, Colors.black)),
+          ),
+        )
+        .toList(),
+    elevation: 8.0,
+  );
+
+  if (selected != null) {
+    setState(() {
+      selectedValue = selected;
+      isExpanded = false;
+    });
+  } else {
+    setState(() {
+      isExpanded = false;
+    });
+  }
+}
+  void showRectangularDialog(BuildContext context, double screenHeight, double screenWidth) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -345,128 +359,33 @@ void _showPopupMenu() async {
             borderRadius: BorderRadius.circular(0), 
           ),
           child: Container(
-            width: screenWidth*0.5,
-            height: screenHeight*0.5, 
+            width: screenWidth * 0.5,
+            height: screenHeight * 0.5, 
             color: Colors.white,
             padding: EdgeInsets.all(16.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                buildCheckboxRow(0, "Sales ES", screenHeight),
+                buildCheckboxRow(1, "Sales B2B", screenHeight),
+                buildCheckboxRow(2, "Sales B2C", screenHeight),
+                buildCheckboxRow(3, "Sales of Supply", screenHeight),
+                buildCheckboxRow(4, "Sales IS", screenHeight),
+                buildCheckboxRow(5, "Sales Order", screenHeight),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    SizedBox(height: screenHeight*0.02,),
-                    Checkbox(
-                    value: _isCheckedd,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isCheckedd = value!;
-                      });
-                    },
-                    
-                    checkColor: Colors.white,
-                    activeColor: _isCheckedd ? Appcolors().maincolor : Colors.transparent, 
-                  ),
-                    SizedBox(height: screenHeight*0.02,),
-                    Text("Sales ES",style: getFonts(14, Colors.black),)
-                    ],
-                ),
-                Row(
-                  children: [
-                    SizedBox(height: screenHeight*0.02,),
-                    Checkbox(
-                    value: _isCheckedd,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isCheckedd = value!;
-                      });
-                    },
-                    
-                    checkColor: Colors.white,
-                    activeColor: _isCheckedd ? Appcolors().maincolor : Colors.transparent, 
-                  ),
-                    SizedBox(height: screenHeight*0.02,),
-                    Text("Sales B2B",style: getFonts(14, Colors.black),)
-                    ],
-                ),
-                Row(
-                  children: [
-                    SizedBox(height: screenHeight*0.02,),
-                    Checkbox(
-                    value: _isCheckedd,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isCheckedd = value!;
-                      });
-                    },
-                    
-                    checkColor: Colors.white,
-                    activeColor: _isCheckedd ? Appcolors().maincolor : Colors.transparent, 
-                  ),
-                    SizedBox(height: screenHeight*0.02,),
-                    Text("Sales B2C",style: getFonts(14, Colors.black),)
-                    ],
-                ),
-                Row(
-                  children: [
-                    SizedBox(height: screenHeight*0.02,),
-                    Checkbox(
-                    value: _isCheckedd,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isCheckedd = value!;
-                      });
-                    },
-                    
-                    checkColor: Colors.white,
-                    activeColor: _isCheckedd ? Appcolors().maincolor : Colors.transparent, 
-                  ),
-                    SizedBox(height: screenHeight*0.02,),
-                    Text("Sales of Supply",style: getFonts(14, Colors.black),)
-                    ],
-                ),
-                Row(
-                  children: [
-                    SizedBox(height: screenHeight*0.02,),
-                    Checkbox(
-                    value: _isCheckedd,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isCheckedd = value!;
-                      });
-                    },
-                    
-                    checkColor: Colors.white,
-                    activeColor: _isCheckedd? Appcolors().maincolor : Colors.transparent, 
-                  ),
-                    SizedBox(height: screenHeight*0.02,),
-                    Text("Sales IS",style: getFonts(14, Colors.black),)
-                    ],
-                ),
-                Row(
-                  children: [
-                    SizedBox(height: screenHeight*0.02,),
-                    Checkbox(
-                    value: _isCheckedd,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isCheckedd = value!;
-                      });
-                    },
-                    
-                    checkColor: Colors.white,
-                    activeColor: _isChecked ? Appcolors().maincolor : Colors.transparent, 
-                  ),
-                    SizedBox(height: screenHeight*0.02,),
-                    Text("Sales Order",style: getFonts(14, Colors.black),)
-                    ],
-                ),
-                Row(mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(onPressed: (){},
-                     child: Text("OK",style: getFonts(14, Colors.black),)),
-                     SizedBox(width: screenHeight*0.01,),
-                     TextButton(onPressed: (){Navigator.pop(context);},
-                     child: Text("Cancel",style: getFonts(14, Colors.black),))
+                    TextButton(
+                      onPressed: () {},
+                      child: Text("OK", style: getFonts(14, Colors.black)),
+                    ),
+                    SizedBox(width: screenHeight * 0.01),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text("Cancel", style: getFonts(14, Colors.black)),
+                    ),
                   ],
                 )
               ],
@@ -476,4 +395,28 @@ void _showPopupMenu() async {
       },
     );
   }
+
+  // This function builds each row with a checkbox and its text.
+  Widget buildCheckboxRow(int index, String text, double screenHeight) {
+    return Row(
+      children: [
+        SizedBox(height: screenHeight * 0.02),
+        Checkbox(
+          value: selectedIndex == index, // Only check the checkbox if the index matches
+          onChanged: (bool? value) {
+            setState(() {
+              // If the value is true, select the checkbox, else deselect it.
+              selectedIndex = value! ? index : null;
+            });
+          },
+          checkColor: Colors.white,
+          activeColor: selectedIndex == index ? Colors.blue : Colors.transparent, // You can replace 'Colors.blue' with your desired color.
+        ),
+        SizedBox(height: screenHeight * 0.02),
+        Text(text, style: getFonts(14, Colors.black)),
+      ],
+    );
+    
+  }
+  
 }

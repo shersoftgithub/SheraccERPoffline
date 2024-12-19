@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/stockreportShow.dart';
 
 class StockReport extends StatefulWidget {
   const StockReport({super.key});
@@ -45,13 +47,11 @@ class _SalesReportState extends State<StockReport> {
 
   String selectedValue = "Report Type";
   bool isExpanded = false; 
-  final List<String> reportTypes = [
-    "Report 1",
-    "Report 2",
-    "Report 3",
-    "Report 4",
-    "Report 5",
-  ];
+  optionsDBHelper dbHelper=optionsDBHelper();
+List Stock_reportType=[];
+Future<void> StockreportType()async{
+  Stock_reportType=await dbHelper.getOptionsByType("Stock_reportType");
+}
 final GlobalKey _arrowKey = GlobalKey();
   @override
   
@@ -99,133 +99,138 @@ final GlobalKey _arrowKey = GlobalKey();
           ),
         ],
       ),
-      body: Column(
-        children: [
-          SizedBox(height: screenHeight * 0.02),
-          Padding(
-             padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
-             child: Container(
-               height: 39,
-               width: screenWidth*0.9,
-               decoration: BoxDecoration(
-                 borderRadius: BorderRadius.circular(5),
-                 color: Colors.white,
-                 border: Border.all(color: Appcolors().maincolor)
-               ),
-               child: Padding(
-                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                 child: Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                   children: [
-                     GestureDetector(
-                       onTap: () => _selectDate(context, true),
-                       child: Row(
-                         children: [
-                           Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor),
-                           SizedBox(width: 5),
-                           Text(
-                             _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
-                             style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
-                           ),
-                         ],
+      body: SingleChildScrollView(
+        physics: ScrollPhysics(),
+        child: Column(
+          children: [
+            SizedBox(height: screenHeight * 0.02),
+            Padding(
+               padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
+               child: Container(
+                 height: 39,
+                 width: screenWidth*0.9,
+                 decoration: BoxDecoration(
+                   borderRadius: BorderRadius.circular(5),
+                   color: Colors.white,
+                   border: Border.all(color: Appcolors().maincolor)
+                 ),
+                 child: Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                   child: Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     children: [
+                       GestureDetector(
+                         onTap: () => _selectDate(context, true),
+                         child: Row(
+                           children: [
+                             Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor),
+                             SizedBox(width: 5),
+                             Text(
+                               _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
+                               style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                             ),
+                           ],
+                         ),
                        ),
-                     ),
-                     Text("-", style: TextStyle(color: Appcolors().maincolor,fontSize: 14)),
-                     GestureDetector(
-                       onTap: () => _selectDate(context, false),
-                       child: Row(
-                         children: [
-                           Text(
-                             _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
-                             style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                           ),
-                           SizedBox(width: 5),
-                           Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                         ],
+                       Text("-", style: TextStyle(color: Appcolors().maincolor,fontSize: 14)),
+                       GestureDetector(
+                         onTap: () => _selectDate(context, false),
+                         child: Row(
+                           children: [
+                             Text(
+                               _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
+                               style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
+                             ),
+                             SizedBox(width: 5),
+                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
+                           ],
+                         ),
                        ),
-                     ),
-                   ],
+                     ],
+                   ),
                  ),
                ),
              ),
-           ),
-           SizedBox(height: screenHeight * 0.0002),
-            GestureDetector(
-        onTap: () {},
-        child: Padding(
-          padding: EdgeInsets.all(screenHeight * 0.03),
-          child: Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Color(0xFF0A1EBE),
-            ),
-            child: Center(
-              child: Text(
-                "Show",
-                style: getFonts(screenHeight * 0.02, Colors.white),
-              ),
-            ),
-          ),
-        ),
-      ),
-      Padding(
-        padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
-        child: Container(
-          child: Column(
-            children: [
-              _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
-              SizedBox(height: screenHeight * 0.0002),
-              _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Manufacture", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Category", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Group", _selectSupplierController, screenWidth, screenHeight),
-              _salefield("Salesman", _selectSupplierController, screenWidth, screenHeight)
-        
-            ],
-          ),
-        ),
-      ),
-       SizedBox(height: screenHeight * 0.02),
-      Container(
-        height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              border: Border.all(color: Appcolors().maincolor)
-            ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-_buttonOB(screenHeight, screenWidth),
-SizedBox(width: screenHeight*0.01,),
-Text("Report Type",style: getFonts(12, Colors.black),),
-SizedBox(width: screenHeight*0.02,),
-Expanded(
-                child: GestureDetector(
-                  child: Text(
-                    selectedValue,
-                    style: getFonts(12, Colors.black),
-                  ),
-                ),
-              ),
+             SizedBox(height: screenHeight * 0.0002),
               GestureDetector(
-                key: _arrowKey,
-                onTap: () {
-                  setState(() {
-                    isExpanded = !isExpanded;
-                  });
-                  _showPopupMenu();
-                },
-                child: Icon(
-                  isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  color: Colors.black,
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ShowStockReport()));
+          },
+          child: Padding(
+            padding: EdgeInsets.all(screenHeight * 0.03),
+            child: Container(
+              height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Color(0xFF0A1EBE),
+              ),
+              child: Center(
+                child: Text(
+                  "Show",
+                  style: getFonts(screenHeight * 0.02, Colors.white),
                 ),
               ),
+            ),
+          ),
+        ),
+        Padding(
+          padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
+          child: Container(
+            child: Column(
+              children: [
+                _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
+                SizedBox(height: screenHeight * 0.0002),
+                _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Manufacture", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Category", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Group", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Salesman", _selectSupplierController, screenWidth, screenHeight)
+          
               ],
             ),
-      )
-        ],
+          ),
+        ),
+         SizedBox(height: screenHeight * 0.02),
+        Container(
+          height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                border: Border.all(color: Appcolors().maincolor)
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+        _buttonOB(screenHeight, screenWidth),
+        SizedBox(width: screenHeight*0.01,),
+        Text("Report Type",style: getFonts(12, Colors.black),),
+        SizedBox(width: screenHeight*0.02,),
+        Expanded(
+                  child: GestureDetector(
+                    child: Text(
+                      selectedValue,
+                      style: getFonts(12, Colors.black),
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  key: _arrowKey,
+                  onTap: () {
+                    setState(() {
+                      isExpanded = !isExpanded;
+                    });
+                    _showPopupMenu();
+                  },
+                  child: Icon(
+                    isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    color: Colors.black,
+                  ),
+                ),
+                ],
+              ),
+        )
+          ],
+        ),
       ),
       
     );
@@ -278,40 +283,44 @@ Expanded(
     );
   }
   void _showPopupMenu() async {
-    final RenderBox arrowBox =
-        _arrowKey.currentContext!.findRenderObject() as RenderBox;
-    final Offset arrowPosition = arrowBox.localToGlobal(Offset.zero);
-    final Size arrowSize = arrowBox.size;
-
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        arrowPosition.dx, 
-        arrowPosition.dy + arrowSize.height, 
-        arrowPosition.dx + arrowSize.width,
-        arrowPosition.dy, 
-      ),
-      items: reportTypes
-          .map(
-            (type) => PopupMenuItem<String>(
-              
-              value: type,
-              child: Text(type,style: getFonts(13, Colors.black),),
-            ),
-          )
-          .toList(),
-      elevation: 8.0,
-    );
-
-    if (selected != null) {
-      setState(() {
-        selectedValue = selected; 
-        isExpanded = false; 
-      });
-    } else {
-      setState(() {
-        isExpanded = false; 
-      });
-    }
+  await StockreportType();
+  if (Stock_reportType.isEmpty) {
+    return; 
   }
+
+  final RenderBox arrowBox =
+      _arrowKey.currentContext!.findRenderObject() as RenderBox;
+  final Offset arrowPosition = arrowBox.localToGlobal(Offset.zero);
+  final Size arrowSize = arrowBox.size;
+
+  final selected = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromLTRB(
+      arrowPosition.dx,
+      arrowPosition.dy + arrowSize.height,
+      arrowPosition.dx + arrowSize.width,
+      arrowPosition.dy,
+    ),
+    items: Stock_reportType 
+        .map(
+          (type) => PopupMenuItem<String>(
+            value: type,
+            child: Text(type, style: getFonts(13, Colors.black)),
+          ),
+        )
+        .toList(),
+    elevation: 8.0,
+  );
+
+  if (selected != null) {
+    setState(() {
+      selectedValue = selected;
+      isExpanded = false;
+    });
+  } else {
+    setState(() {
+      isExpanded = false;
+    });
+  }
+}
 }

@@ -29,7 +29,7 @@ class _AddpaymantState extends State<Addpaymant> {
             icon: Icon(
               Icons.arrow_back_ios_new_sharp,
               color: Colors.white,
-              size: 15,
+              size: 20,
             ),
           ),
         ),
@@ -56,178 +56,181 @@ class _AddpaymantState extends State<Addpaymant> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          SizedBox(height: screenHeight * 0.02),
-          Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-        Text(
-                "Item Name",
-                style: formFonts(14, Colors.black),
+      body: SingleChildScrollView(
+        physics: ScrollPhysics(),
+        child: Column(
+          children: [
+            SizedBox(height: screenHeight * 0.02),
+            Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  "Item Name",
+                  style: formFonts(14, Colors.black),
+                ),
+            SizedBox(height: screenHeight * 0.01),
+            Container(
+              height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
               ),
-          SizedBox(height: screenHeight * 0.01),
-          Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                     // controller: _salerateController,
-                      
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                       // controller: _salerateController,
+                        
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    ),
-    SizedBox(height: screenHeight*0.02,),
-        Container(
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-        Text(
-                
-                'Qyantity',
-                style: formFonts(14, Colors.black),
-              ),
-          SizedBox(height: screenHeight * 0.01),
-          Container(
-             height: 35, 
-            width: 173,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-            // child: EasyAutocomplete(
-            //             controller: _InvoicenoController,
-            //             //suggestions: vamnes
-            //                 //.map((jobcard) => jobcard['VehicleName'].toString())
-            //                 //.toList(),
-            //             // onSubmitted: (value) {
-            //             //   onJobcardSelected(value);  // Handle selection
-            //             // },
-            //             decoration: InputDecoration(
-            //               border: InputBorder.none,
-            //             ),
-            //           ),
-          ),
-        ],
-      ),
-    ),
-     Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-        Text(
-                
-                'Unit',
-                style: formFonts(14, Colors.black),
-              ),
-          SizedBox(height: screenHeight * 0.01),
-          Container(
-             height: 35, 
-            width: 173,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-           
-          ),
-        ],
-      ),
-    )
-            ],
-          ),
+          ],
         ),
-
-        SizedBox(height: screenHeight*0.02,),
-        Container(
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-        Text(
-                
-                'Rate(Price/unit)',
-                style: formFonts(14, Colors.black),
-              ),
-          SizedBox(height: screenHeight * 0.01),
-          Container(
-             height: 35, 
-            width: 173,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
             ),
-            // child: EasyAutocomplete(
-            //             controller: _InvoicenoController,
-            //             //suggestions: vamnes
-            //                 //.map((jobcard) => jobcard['VehicleName'].toString())
-            //                 //.toList(),
-            //             // onSubmitted: (value) {
-            //             //   onJobcardSelected(value);  // Handle selection
-            //             // },
-            //             decoration: InputDecoration(
-            //               border: InputBorder.none,
-            //             ),
-            //           ),
-          ),
-        ],
-      ),
-    ),
-     Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-        Text(
-                
-                'Tax',
-                style: formFonts(14, Colors.black),
-              ),
-          SizedBox(height: screenHeight * 0.01),
+            SizedBox(height: screenHeight*0.02,),
           Container(
-             height: 35, 
-            width: 173,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  
+                  'Qyantity',
+                  style: formFonts(14, Colors.black),
+                ),
+            SizedBox(height: screenHeight * 0.01),
+            Container(
+               height: 35, 
+              width: 173,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+              // child: EasyAutocomplete(
+              //             controller: _InvoicenoController,
+              //             //suggestions: vamnes
+              //                 //.map((jobcard) => jobcard['VehicleName'].toString())
+              //                 //.toList(),
+              //             // onSubmitted: (value) {
+              //             //   onJobcardSelected(value);  // Handle selection
+              //             // },
+              //             decoration: InputDecoration(
+              //               border: InputBorder.none,
+              //             ),
+              //           ),
             ),
-           
-          ),
-        ],
-      ),
-    )
-            ],
-          ),
+          ],
         ),
-        ],
+            ),
+             Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  
+                  'Unit',
+                  style: formFonts(14, Colors.black),
+                ),
+            SizedBox(height: screenHeight * 0.01),
+            Container(
+               height: 35, 
+              width: 173,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+             
+            ),
+          ],
+        ),
+            )
+              ],
+            ),
+          ),
+        
+          SizedBox(height: screenHeight*0.02,),
+          Container(
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  
+                  'Rate(Price/unit)',
+                  style: formFonts(14, Colors.black),
+                ),
+            SizedBox(height: screenHeight * 0.01),
+            Container(
+               height: 35, 
+              width: 173,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+              // child: EasyAutocomplete(
+              //             controller: _InvoicenoController,
+              //             //suggestions: vamnes
+              //                 //.map((jobcard) => jobcard['VehicleName'].toString())
+              //                 //.toList(),
+              //             // onSubmitted: (value) {
+              //             //   onJobcardSelected(value);  // Handle selection
+              //             // },
+              //             decoration: InputDecoration(
+              //               border: InputBorder.none,
+              //             ),
+              //           ),
+            ),
+          ],
+        ),
+            ),
+             Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  
+                  'Tax',
+                  style: formFonts(14, Colors.black),
+                ),
+            SizedBox(height: screenHeight * 0.01),
+            Container(
+               height: 35, 
+              width: 173,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+             
+            ),
+          ],
+        ),
+            )
+              ],
+            ),
+          ),
+          ],
+        ),
       ),
        bottomNavigationBar: Container(
         padding: EdgeInsets.symmetric(horizontal: screenHeight*0.03,vertical:screenHeight*0.03 ),

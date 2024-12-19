@@ -72,7 +72,21 @@ class DatabaseHelper {
     return await db.delete(table, where: '$columnId = ?', whereArgs: [id]);
   }
 
-  // Method to retrieve all ledger names from the database
+ Future<List<int>> getAllLedgerIds() async {
+  Database db = await instance.database;
+
+  // Query the database for only the 'id' column
+  final List<Map<String, dynamic>> result = await db.query(
+    table,
+    columns: [columnId], // Only select the 'id' column
+  );
+
+  // Convert the result to a list of 'id' values (which are int)
+  List<int> ledgerIds = result.map((row) => row[columnId] as int).toList();
+
+  return ledgerIds;
+}
+
 Future<List<String>> getAllLedgerNames() async {
   Database db = await instance.database;
 

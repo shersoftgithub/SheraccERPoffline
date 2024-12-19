@@ -1,6 +1,8 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/addPaymant.dart';
@@ -19,6 +21,7 @@ class _SalesOrderState extends State<SalesOrder> {
   final TextEditingController _phonenoController = TextEditingController();
   final TextEditingController _totalamtController = TextEditingController();
   final TextEditingController _salerateController = TextEditingController();
+  final TextEditingController _billnameController = TextEditingController();
   bool isCreditSelected = true;
   DateTime? _fromDate;
   DateTime? _toDate;
@@ -41,6 +44,63 @@ class _SalesOrderState extends State<SalesOrder> {
       });
      
     }}
+    @override
+  void initState() {
+    super.initState();
+    fetch_options();
+    _fetchLedgerIds();
+  }
+    optionsDBHelper dbHelper = optionsDBHelper();
+    List<String> salesrate = [];
+    Future<void>fetch_options()async{
+      salesrate = await dbHelper.getOptionsByType('price_level');
+      setState(() {
+        
+      });
+    }
+   List<int> ledgerIds = [];
+
+Future<void> _fetchLedgerIds() async {
+  List<int> ids = await DatabaseHelper.instance.getAllLedgerIds();
+  setState(() {
+    ledgerIds = ids;
+  });
+}
+  void onSaleRateSelected(String value) {
+    print('Selected Supplier: $value');
+   
+    _salerateController.text = value;
+    _CustomerController.text=value;
+  }
+  void onSelected(String value) {
+    print('Selected Supplier: $value');
+       _CustomerController.text=value;
+  }
+
+void _fetchInvoiceData(int ledgerId) async {
+  // Query the database for the selected ledger by ID
+  DatabaseHelper dbHelper = DatabaseHelper.instance;
+  
+  // Fetch the ledger data based on the ID
+  List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
+  
+  // Find the row that matches the selected ledger ID
+  var selectedLedger = ledgerData.firstWhere(
+    (row) => row[DatabaseHelper.columnId] == ledgerId,
+    orElse: () => {},
+  );
+  
+  if (selectedLedger.isNotEmpty) {
+    setState(() {
+      // Update the UI fields with the selected ledger data
+      _salerateController.text = selectedLedger[DatabaseHelper.columnPriceLevel].toString();
+            _CustomerController.text = selectedLedger[DatabaseHelper.columnLedgerName].toString();
+
+      _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
+      // Update other fields as needed
+    });
+  }
+}
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -146,11 +206,14 @@ class _SalesOrderState extends State<SalesOrder> {
           ),
         ],
       ),
-         body: Center(
-        child: isCreditSelected
-            ? _CreditScreenContent(screenHeight,screenWidth)
-            : _CashScreenContent(screenHeight,screenWidth),
-      ), 
+         body: SingleChildScrollView(
+          physics: ScrollPhysics(),
+           child: Center(
+                   child: isCreditSelected
+              ? _CreditScreenContent(screenHeight,screenWidth)
+              : _CashScreenContent(screenHeight,screenWidth),
+                 ),
+         ), 
       bottomNavigationBar: Container(
         padding: EdgeInsets.symmetric(horizontal: screenHeight*0.03,vertical:screenHeight*0.03 ),
         child: Row(children: [
@@ -182,6 +245,8 @@ class _SalesOrderState extends State<SalesOrder> {
     );
   }
 Widget _CreditScreenContent(double screenHeight,double screenWidth) {
+  List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
+
     return Column(
       children: [
         SizedBox(height: screenHeight*0.02,),
@@ -199,26 +264,31 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-             height: 26, 
+   height: 26, 
             width: 172,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-            // child: EasyAutocomplete(
-            //             controller: _InvoicenoController,
-            //             //suggestions: vamnes
-            //                 //.map((jobcard) => jobcard['VehicleName'].toString())
-            //                 //.toList(),
-            //             // onSubmitted: (value) {
-            //             //   onJobcardSelected(value);  // Handle selection
-            //             // },
-            //             decoration: InputDecoration(
-            //               border: InputBorder.none,
-            //             ),
-            //           ),
-          ),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(5),
+    color: Colors.white,
+    border: Border.all(color: Appcolors().searchTextcolor),
+  ),
+  child: Expanded(
+                    child: EasyAutocomplete(
+                        controller: _InvoicenoController,
+                        suggestions: ledgerNamesAsString,
+                           
+                        onSubmitted: (value) {
+                          int selectedId = ledgerIds[ledgerNamesAsString.indexOf(value)];
+                        _fetchInvoiceData(selectedId);  // Handle selection
+                        },
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          
+                        ),
+                        
+                      ),
+                  ),
+)
+,
         ],
       ),
     ),
@@ -262,7 +332,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
             ],
           ),
         ),
-SizedBox(height: screenHeight*0.03,),
+    SizedBox(height: screenHeight*0.03,),
        Container(
         child: Column(
           children: [
@@ -276,14 +346,14 @@ SizedBox(height: screenHeight*0.03,),
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-            child: Padding(
+                    height: screenHeight * 0.05,
+                    width: screenWidth * 0.9,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5),
+                      color: Colors.white,
+                      border: Border.all(color: Appcolors().searchTextcolor),
+                    ),
+                    child: Padding(
               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
               child: Row(
                 children: [
@@ -301,14 +371,52 @@ SizedBox(height: screenHeight*0.03,),
                 ],
               ),
             ),
-          ),
+                  ),
         ],
       ),
     ),
     SizedBox(height: screenHeight*0.03,),
-            _field("Customer", _CustomerController, screenWidth, screenHeight),
+    Container(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+      Text(
+              "Customer",
+              style: formFonts(14, Colors.black),
+            ),
+        SizedBox(height: screenHeight * 0.01),
+        Container(
+                    height: screenHeight * 0.05,
+                    width: screenWidth * 0.9,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5),
+                      color: Colors.white,
+                      border: Border.all(color: Appcolors().searchTextcolor),
+                    ),
+                    child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _CustomerController,
+                      
+                      obscureText: false,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+                  ),
+      ],
+    ),
+        ),
             SizedBox(height: screenHeight*0.03,),
-             _field("Phone Number", _CustomerController, screenWidth, screenHeight),
+             _field("Phone Number", _phonenoController, screenWidth, screenHeight),
              SizedBox(height: screenHeight*0.001,),
              GestureDetector(
         onTap: () {
@@ -455,7 +563,7 @@ SizedBox(height: screenHeight*0.03,),
             ],
           ),
         ),
-SizedBox(height: screenHeight*0.03,),
+    SizedBox(height: screenHeight*0.03,),
        Container(
         child: Column(
           children: [
@@ -499,9 +607,9 @@ SizedBox(height: screenHeight*0.03,),
       ),
     ),
     SizedBox(height: screenHeight*0.03,),
-            _field("Billing Name", _CustomerController, screenWidth, screenHeight),
+            _field("Billing Name", _billnameController, screenWidth, screenHeight),
             SizedBox(height: screenHeight*0.03,),
-             _field("Phone Number", _CustomerController, screenWidth, screenHeight),
+             _field("Phone Number", _phonenoController, screenWidth, screenHeight),
              SizedBox(height: screenHeight*0.001,),
              GestureDetector(
         onTap: () {

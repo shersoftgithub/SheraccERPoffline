@@ -8,8 +8,8 @@ import 'package:sheraaccerpoff/views/paymentReport.dart';
 import 'package:sheraaccerpoff/views/purcahsereport.dart';
 import 'package:sheraaccerpoff/views/reciept.dart';
 import 'package:sheraaccerpoff/views/recieptreport.dart';
+import 'package:sheraaccerpoff/views/sales.dart';
 import 'package:sheraaccerpoff/views/salesReport.dart';
-import 'package:sheraaccerpoff/views/salesorder.dart';
 import 'package:sheraaccerpoff/views/stockreport.dart';
 
 class HomePageERP extends StatefulWidget {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sheraaccerpoff/models/newLedger.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -26,7 +27,8 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this); // 3 tabs
+    _tabController = TabController(length: 3, vsync: this);
+    fetch_options();
   }
 
   @override
@@ -43,45 +45,64 @@ Map<String, bool> _checkboxStates = {
     "Bill Wise": false,
   };
 
-  void _saveAccount() async {
-  final ledger = Ledger(
-    ledgerName: _LedgernameController.text, 
-    under: _underController.text, 
-    address: '', 
-    contact: '',
-    mail: '',
-    taxNo: '',
-    priceLevel: '',
-    balance: 0.0,
-  );
+bool isBasicDataSaved = false;  // Flag to check if basic data is saved
+Ledger? tempLedger;  // Temporary variable to store basic data
 
-  // Insert the new ledger record
-  await DatabaseHelper.instance.insert(ledger.toMap());
+// Function to handle saving both basic and full data
+void _saveData() async {
+  if (!isBasicDataSaved) {
+    // Save basic data when first tab's save button is clicked
+    tempLedger = Ledger(
+      ledgerName: _LedgernameController.text, 
+      under: _underController.text, 
+      address: '', 
+      contact: '',
+      mail: '',
+      taxNo: '',
+      priceLevel: '',
+      balance: 0.0,
+    );
+    
+    // Mark that basic data has been saved
+    isBasicDataSaved = true;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Basic data saved temporarily')));
+  } else {
+    // Combine the basic data with full data and save to database
+    final ledger = Ledger(
+      ledgerName: tempLedger!.ledgerName,
+      under: tempLedger!.under,
+      address: _adressController.text,
+      contact: _contactController.text,
+      mail: _mailController.text,
+      taxNo: _taxnoController.text,
+      priceLevel: _pricelevelController.text,
+      balance: double.parse(_balanceController.text), // Handle parsing carefully
+    );
 
-  // Optionally, show a success message
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Basic data saved successfully')));
+    // Insert the full data into the database
+    await DatabaseHelper.instance.insert(ledger.toMap());
+
+    // Reset the flag and tempLedger after saving full data
+    isBasicDataSaved = false;  // Reset flag for the next entry
+    tempLedger = null;  // Clear the temporary data
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Full data saved successfully')));
+  }
 }
 
-void _saveAdress() async {
-  // Saving all fields including address, contact, mail, etc.
-  final ledger = Ledger(
-    ledgerName: "",
-    under: "",
-    address: _adressController.text, // Use actual controller for address
-    contact: _contactController.text, // Use actual controller for contact
-    mail: _mailController.text,
-    taxNo: _taxnoController.text,
-    priceLevel: _pricelevelController.text,
-    balance: double.parse(_balanceController.text), // Handle parsing carefully
-  );
-
-  // Insert the new ledger record
-  await DatabaseHelper.instance.insert(ledger.toMap());
-
-  // Optionally, show a success message
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Full data saved successfully')));
-}
-
+optionsDBHelper dbHelper = optionsDBHelper();
+    List<String> salesrate = [];
+    Future<void>fetch_options()async{
+      salesrate = await dbHelper.getOptionsByType('price_level');
+      setState(() {
+        
+      });
+    }
+    void onSaleRateSelected(String value) {
+    print('Selected Supplier: $value');
+   
+    _pricelevelController.text = value;
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -132,8 +153,7 @@ void _saveAdress() async {
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
             child: GestureDetector(
               onTap: () {
-                _saveAccount();
-                _saveAdress();
+                _saveData();
               },
               child: SizedBox(
                 width: 20,
@@ -296,7 +316,6 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
   // Address Tab Content
   Widget _AddressTab(double screenHeight,double screenWidth) {
     return SingleChildScrollView(
-      physics: ScrollPhysics(),
       child: Column(
         children: [
           SizedBox(height: screenHeight*0.05,),
@@ -312,7 +331,72 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
                     SizedBox(height: screenHeight * 0.02),
                     _paymentField("Tax NO", _taxnoController, screenWidth, screenHeight),
                     SizedBox(height: screenHeight * 0.02),
-                    _paymentField("Price Level", _pricelevelController, screenWidth, screenHeight),
+                    Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                "Price Level",
+                style: formFonts(14, Colors.black),
+              ),
+              
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(
+            height: screenHeight * 0.06,
+            width: screenWidth * 0.9,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            child: 
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                      child: Autocomplete<String>(
+                        optionsBuilder: (TextEditingValue textEditingValue) {
+                          return salesrate.where((String option) {
+                            return option
+                                .toLowerCase()
+                                .contains(textEditingValue.text.toLowerCase());
+                          }).toList();
+                        },
+                        onSelected: (value) {
+                          onSaleRateSelected(value); // Handle selection
+                        },
+                        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                          return TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            onEditingComplete: onEditingComplete,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                            ),
+                          );
+                        },
+                        optionsViewBuilder: (context, onSelected, options) {
+                          return Container(
+                            color: Appcolors().Scfold,
+                            height: screenHeight * 0.2, // Set max height for suggestions
+                            child: ListView(
+                              children: options
+                                  .map((e) => ListTile(
+                                        title: Text(e),
+                                        onTap: () => onSelected(e),
+                                      ))
+                                  .toList(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+          ),
+        ],
+      ),
+    ),
                     SizedBox(height: screenHeight * 0.02),
                     _paymentField("Balance", _balanceController, screenWidth, screenHeight),
                     SizedBox(height: screenHeight * 0.02),
@@ -326,60 +410,57 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
 
   // Opening Balance Tab Content
   Widget _OpeningBalanceTab(double screenHeight,double screenWidth) {
-    return SingleChildScrollView(
-      physics: ScrollPhysics(),
-      child: Column(
-        children: [
-           SizedBox(height: screenHeight * 0.03),
-          Center(
-            child: Text("Opening Balance",style: getFonts(16, Color(0xFF0008B4)),),
-          ),
-           SizedBox(height: screenHeight * 0.01),
-          Center(
-            child: Container(
-        height: screenHeight * 0.04,
-        width: screenWidth * 0.4,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: Colors.grey.shade600)
+    return Column(
+      children: [
+         SizedBox(height: screenHeight * 0.03),
+        Center(
+          child: Text("Opening Balance",style: getFonts(16, Color(0xFF0008B4)),),
         ),
-        
+         SizedBox(height: screenHeight * 0.01),
+        Center(
+          child: Container(
+      height: screenHeight * 0.04,
+      width: screenWidth * 0.4,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: Colors.grey.shade600)
       ),
-          ),
-          SizedBox(height: screenHeight * 0.04),
-          Padding(
-            padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.03),
-            child: Container(
-              
-              child: Column(
-                children: [
-                  Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      
+    ),
+        ),
+        SizedBox(height: screenHeight * 0.04),
+        Padding(
+          padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.03),
+          child: Container(
+            
+            child: Column(
               children: [
-                _field("Recieve Amount", screenWidth, screenHeight),
-                _field("Pay Amount", screenWidth, screenHeight)
+                Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _field("Recieve Amount", screenWidth, screenHeight),
+              _field("Pay Amount", screenWidth, screenHeight)
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.03),
+                   Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buttonOB(screenHeight, screenWidth, "Active"),
+                   _buttonOB(screenHeight, screenWidth, "Cost Center"),
+          ],
+                   ),
+                   SizedBox(height: screenHeight * 0.02),
+                   Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buttonOB(screenHeight, screenWidth, "Franchise"),
+                   _buttonOB(screenHeight, screenWidth, "Bill Wise")
+          ],
+                   )
               ],
             ),
-            SizedBox(height: screenHeight * 0.03),
-                     Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buttonOB(screenHeight, screenWidth, "Active"),
-                     _buttonOB(screenHeight, screenWidth, "Cost Center"),
-            ],
-                     ),
-                     SizedBox(height: screenHeight * 0.02),
-                     Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buttonOB(screenHeight, screenWidth, "Franchise"),
-                     _buttonOB(screenHeight, screenWidth, "Bill Wise")
-            ],
-                     )
-                ],
-              ),
-            ),
-          )
-        ],
-      ),
+          ),
+        )
+      ],
     );
   }
 

@@ -29,3 +29,6 @@ TextStyle drewerFonts (){
   return GoogleFonts.poppins(fontWeight: FontWeight.w500,fontSize: 14 ,color:Color(0xFF8A8C91)
  );
 }
+TextStyle splash3Fonts (){
+  return GoogleFonts.hahmlet(fontWeight: FontWeight.w700,fontSize: 20 ,color:Colors.black );
+}

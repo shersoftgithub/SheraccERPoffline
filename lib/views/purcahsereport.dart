@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -14,13 +15,11 @@ class Purcahsereport extends StatefulWidget {
 class _PurcahsereportState extends State<Purcahsereport> {
  String selectedValue = "Report Type";
   bool isExpanded = false; 
-  final List<String> reportTypes = [
-    "Report 1",
-    "Report 2",
-    "Report 3",
-    "Report 4",
-    "Report 5",
-  ];
+   optionsDBHelper dbHelper=optionsDBHelper();
+List purcahse_reportType=[];
+Future<void> salesreporttype()async{
+  purcahse_reportType=await dbHelper.getOptionsByType("purcahse_reportType");
+}
 final GlobalKey _arrowKey = GlobalKey();
 bool _isChecked = false;
   DateTime? _fromDate;
@@ -326,41 +325,45 @@ bool _isChecked = false;
     );
   }
 
-  void _showPopupMenu() async {
-    final RenderBox arrowBox =
-        _arrowKey.currentContext!.findRenderObject() as RenderBox;
-    final Offset arrowPosition = arrowBox.localToGlobal(Offset.zero);
-    final Size arrowSize = arrowBox.size;
-
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        arrowPosition.dx, 
-        arrowPosition.dy + arrowSize.height, 
-        arrowPosition.dx + arrowSize.width,
-        arrowPosition.dy, 
-      ),
-      items: reportTypes
-          .map(
-            (type) => PopupMenuItem<String>(
-              
-              value: type,
-              child: Text(type,style: getFonts(13, Colors.black),),
-            ),
-          )
-          .toList(),
-      elevation: 8.0,
-    );
-
-    if (selected != null) {
-      setState(() {
-        selectedValue = selected; 
-        isExpanded = false; 
-      });
-    } else {
-      setState(() {
-        isExpanded = false; 
-      });
-    }
+ void _showPopupMenu() async {
+  await salesreporttype();
+  if (purcahse_reportType.isEmpty) {
+    return; 
   }
+
+  final RenderBox arrowBox =
+      _arrowKey.currentContext!.findRenderObject() as RenderBox;
+  final Offset arrowPosition = arrowBox.localToGlobal(Offset.zero);
+  final Size arrowSize = arrowBox.size;
+
+  final selected = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromLTRB(
+      arrowPosition.dx,
+      arrowPosition.dy + arrowSize.height,
+      arrowPosition.dx + arrowSize.width,
+      arrowPosition.dy,
+    ),
+    items: purcahse_reportType 
+        .map(
+          (type) => PopupMenuItem<String>(
+            value: type,
+            child: Text(type, style: getFonts(13, Colors.black)),
+          ),
+        )
+        .toList(),
+    elevation: 8.0,
+  );
+
+  if (selected != null) {
+    setState(() {
+      selectedValue = selected;
+      isExpanded = false;
+    });
+  } else {
+    setState(() {
+      isExpanded = false;
+    });
+  }
+}
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/recieptreportShow.dart';
 
 class Recieptreport extends StatefulWidget {
   const Recieptreport({super.key});
@@ -74,112 +75,117 @@ class _RecieptreportState extends State<Recieptreport> {
           )
         ],
       ),
-      body: Column(
-        children: [
-          SizedBox(height: screenHeight * 0.02),
-          Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                     // controller: controller,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter ';
-                        }
-                        return null;
-                      },
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+      body: SingleChildScrollView(
+        physics: ScrollPhysics(),
+        child: Column(
+          children: [
+            SizedBox(height: screenHeight * 0.02),
+            Container(
+              height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                       // controller: controller,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter ';
+                          }
+                          return null;
+                        },
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
- SizedBox(height: screenHeight * 0.02),
-           Padding(
-             padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
-             child: Container(
-               height: 39,
-               decoration: BoxDecoration(
-                 borderRadius: BorderRadius.circular(5),
-                 color: Colors.white,
-                 border: Border.all(color: Appcolors().searchTextcolor)
-               ),
-               child: Padding(
-                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                 child: Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                   children: [
-                     GestureDetector(
-                       onTap: () => _selectDate(context, true),
-                       child: Row(
-                         children: [
-                          
-                           Text(
-                             _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
-                             style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
-                           ),
-                            SizedBox(width: 5),
-                                                      Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-
-                         ],
+         SizedBox(height: screenHeight * 0.02),
+             Padding(
+               padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
+               child: Container(
+                 height: 39,
+                 decoration: BoxDecoration(
+                   borderRadius: BorderRadius.circular(5),
+                   color: Colors.white,
+                   border: Border.all(color: Appcolors().searchTextcolor)
+                 ),
+                 child: Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                   child: Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     children: [
+                       GestureDetector(
+                         onTap: () => _selectDate(context, true),
+                         child: Row(
+                           children: [
+                            
+                             Text(
+                               _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
+                               style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                             ),
+                              SizedBox(width: 5),
+                                                        Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
+        
+                           ],
+                         ),
                        ),
-                     ),
-                     Text("-", style: TextStyle(color: Appcolors().maincolor)),
-                     GestureDetector(
-                       onTap: () => _selectDate(context, false),
-                       child: Row(
-                         children: [
-                           Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                           SizedBox(width: 5),
-                           Text(
-                             _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
-                             style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                           ),
-                         ],
+                       Text("-", style: TextStyle(color: Appcolors().maincolor)),
+                       GestureDetector(
+                         onTap: () => _selectDate(context, false),
+                         child: Row(
+                           children: [
+                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
+                             SizedBox(width: 5),
+                             Text(
+                               _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
+                               style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
+                             ),
+                           ],
+                         ),
                        ),
-                     ),
-                   ],
+                     ],
+                   ),
                  ),
                ),
              ),
-           ),
-                 SizedBox(height: screenHeight * 0.01),
-                GestureDetector(
-        onTap: () {},
-        child: Padding(
-          padding: EdgeInsets.all(screenHeight * 0.03),
-          child: Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.7,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: Color(0xFF0A1EBE),
-            ),
-            child: Center(
-              child: Text(
-                "Show",
-                style: getFonts(screenHeight * 0.02, Colors.white),
+                   SizedBox(height: screenHeight * 0.01),
+                  GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ShowRecieptReport()));                                                                                   
+          },
+          child: Padding(
+            padding: EdgeInsets.all(screenHeight * 0.03),
+            child: Container(
+              height: screenHeight * 0.05,
+              width: screenWidth * 0.7,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: Color(0xFF0A1EBE),
+              ),
+              child: Center(
+                child: Text(
+                  "Show",
+                  style: getFonts(screenHeight * 0.02, Colors.white),
+                ),
               ),
             ),
           ),
+        )
+          ],
         ),
-      )
-        ],
       ),
     );
   }
