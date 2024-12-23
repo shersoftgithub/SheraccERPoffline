@@ -1,5 +1,5 @@
-class PaymentModel {
-  final int? id; // Primary key
+class RecieptModel {
+  final int? id; 
   final String date;
   final String cashAccount;
   final String ledgerName;
@@ -9,7 +9,7 @@ class PaymentModel {
   final double total;
   final String narration;
 
-  PaymentModel({
+  RecieptModel({
     this.id,
     required this.date,
     required this.cashAccount,
@@ -35,8 +35,8 @@ class PaymentModel {
     };
   }
 
-  factory PaymentModel.fromMap(Map<String, dynamic> map) {
-    return PaymentModel(
+  factory RecieptModel.fromMap(Map<String, dynamic> map) {
+    return RecieptModel(
       id: map['id'],
       date: map['date'],
       cashAccount: map['cashAccount'],

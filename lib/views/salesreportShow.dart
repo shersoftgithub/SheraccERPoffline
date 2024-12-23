@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart'; // Adjust with your actual import
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -6,26 +7,25 @@ class ShowSalesReport extends StatefulWidget {
   const ShowSalesReport({super.key});
 
   @override
-  State<ShowSalesReport> createState() => _ShowSalesReportState();
+  State<ShowSalesReport> createState() => _ShowPaymentReportState();
 }
 
-class _ShowSalesReportState extends State<ShowSalesReport> {
-  List<Map<String, String>> salesData = [
-    {
-      'SiNo': 'data 1',
-      'Date': 'Data 2',
-      'EntryNo': 'Data 3',
-      'InvoiceNo': 'Data 4',
-      'Customer': 'Data 5',
-      'Sub total': 'Data 6',
-      'Discount': 'Data 7',
-      'Tax': 'Data 8',
-      'Total': 'Data 9',
-      'SalesMan': 'Data 10',
-      'Form': 'Data 11',
-      'Cash Model': 'Data 12',
-    },
-  ];
+class _ShowPaymentReportState extends State<ShowSalesReport> {
+  List<Map<String, dynamic>> paymentData = []; 
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPaymentData(); 
+  }
+
+  Future<void> _fetchPaymentData() async {
+    List<Map<String, dynamic>> data =
+        await SaleDatabaseHelper.instance.queryAllRows(); 
+    setState(() {
+      paymentData = data;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +54,7 @@ class _ShowSalesReportState extends State<ShowSalesReport> {
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Text(
-              "Sales Report",
+              "Payment Report",
               style: appbarFonts(screenHeight * 0.02, Colors.white),
             ),
           ),
@@ -84,80 +84,77 @@ class _ShowSalesReportState extends State<ShowSalesReport> {
             ),
             columnWidths: {
               0: FixedColumnWidth(60), 
-              1: FixedColumnWidth(80), 
-              2: FixedColumnWidth(80),
-              3: FixedColumnWidth(80),
-              4: FixedColumnWidth(80),
-              5: FixedColumnWidth(80),
-              6: FixedColumnWidth(80),
-              7: FixedColumnWidth(80),
-              8: FixedColumnWidth(80),
-              9: FixedColumnWidth(80),
-              10: FixedColumnWidth(80),
-              11: FixedColumnWidth(80),
-                },
-                children: [
-          TableRow(
+              1: FixedColumnWidth(80),
+              2: FixedColumnWidth(80), 
+              3: FixedColumnWidth(80), 
+              4: FixedColumnWidth(80), 
+              5: FixedColumnWidth(80), 
+              6: FixedColumnWidth(80), 
+              7: FixedColumnWidth(80), 
+              8: FixedColumnWidth(80), 
+              9: FixedColumnWidth(80), 
+              10: FixedColumnWidth(80), 
+            },
             children: [
-              _buildHeaderCell('SiNo'),
-              _buildHeaderCell('Date'),
-              _buildHeaderCell('EntryNo'),
-              _buildHeaderCell('InvoiceNo'),
-              _buildHeaderCell('Customer'),
-              _buildHeaderCell('Sub total'),
-              _buildHeaderCell('Discount'),
-              _buildHeaderCell('Tax'),
-              _buildHeaderCell('Total'),
-              _buildHeaderCell('SalesMan'),
-              _buildHeaderCell('Form'),
-              _buildHeaderCell('Cash Model'),
-            ],
-          ),
-          // Table data rows
-          ...salesData.map((data) {
-            return TableRow(
-              children: [
-                _buildDataCell(data['SiNo']!),
-                _buildDataCell(data['Date']!),
-                _buildDataCell(data['EntryNo']!),
-                _buildDataCell(data['InvoiceNo']!),
-                _buildDataCell(data['Customer']!),
-                _buildDataCell(data['Sub total']!),
-                _buildDataCell(data['Discount']!),
-                _buildDataCell(data['Tax']!),
-                _buildDataCell(data['Total']!),
-                _buildDataCell(data['SalesMan']!),
-                _buildDataCell(data['Form']!),
-                _buildDataCell(data['Cash Model']!),
-              ],
-            );
-          }).toList(),
+              TableRow(
+                children: [
+                  _buildHeaderCell('Invoice No'),
+                  _buildHeaderCell('Date'),
+                  _buildHeaderCell('Sale Rate'),
+                  _buildHeaderCell('Customer'),
+                  _buildHeaderCell('Phone No'),
+                  _buildHeaderCell('Item Name'),
+                  _buildHeaderCell('Quantity'),
+                  _buildHeaderCell('Unit'),
+                  _buildHeaderCell('Rate'),
+                  _buildHeaderCell('Tax'),
+                  _buildHeaderCell('Total Amt'),
                 ],
               ),
+              // Table data rows
+              ...paymentData.map((data) {
+                return TableRow(
+                  children: [
+                    _buildDataCell(data[SaleDatabaseHelper.columnId].toString()), // Invoice No
+                    _buildDataCell(data[SaleDatabaseHelper.columnDate]),
+                    _buildDataCell(data[SaleDatabaseHelper.columnSaleRate].toString()), // Sale Rate
+                    _buildDataCell(data[SaleDatabaseHelper.columnCustomer]), // Customer
+                    _buildDataCell(data[SaleDatabaseHelper.columnPhoneNo]), // Phone No
+                    _buildDataCell(data[SaleDatabaseHelper.columnItemName]), // Item Name
+                    _buildDataCell(data[SaleDatabaseHelper.columnQTY].toString()), // Quantity
+                    _buildDataCell(data[SaleDatabaseHelper.columnUnit]), // Unit
+                    _buildDataCell(data[SaleDatabaseHelper.columnRate].toString()), // Rate
+                    _buildDataCell(data[SaleDatabaseHelper.columnTax].toString()), // Tax
+                    _buildDataCell(data[SaleDatabaseHelper.columnTotalAmt].toString()), // Total Amount
+                  ],
+                );
+              }).toList(),
+            ],
+          ),
         ),
-  ),
-);
-}
+      ),
+    );
+  }
 
-Widget _buildHeaderCell(String text) {
-  return Container(
-    padding: const EdgeInsets.all(8.0),
-    color: Colors.white,
-    child: Text(
-      text,
-      textAlign: TextAlign.center,
-      style: TextStyle(fontWeight: FontWeight.bold),
-    ),
-  );
-}
+  Widget _buildHeaderCell(String text) {
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      color: Colors.white,
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
+  }
 
-Widget _buildDataCell(String text) {
-  return Container(
-    padding: const EdgeInsets.all(8.0),
-    child: Text(
-      text,
-      textAlign: TextAlign.center,
-    ),
-  );
-}
+  Widget _buildDataCell(String text) {
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
 }

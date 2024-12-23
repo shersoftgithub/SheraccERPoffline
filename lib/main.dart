@@ -5,15 +5,7 @@ import 'package:sheraaccerpoff/views/Home.dart';
 import 'package:sheraaccerpoff/views/splash.dart';
 
 void main() {
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => PaymentFormProvider()), 
-        //ChangeNotifierProvider(create: (context) => UserProvider()), 
-      ],
-      child: const MyApp(),
-    ),
-  );
+ runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

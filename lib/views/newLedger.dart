@@ -1,3 +1,4 @@
+import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sheraaccerpoff/models/newLedger.dart';
@@ -24,11 +25,15 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
   final TextEditingController _LedgernameController = TextEditingController();
   final TextEditingController _underController = TextEditingController();
   final TextEditingController _selectSupplierController = TextEditingController();
+  final TextEditingController _openingBalanceController = TextEditingController();
+  final TextEditingController _reievedAmtController = TextEditingController();
+  final TextEditingController _PayAmtController = TextEditingController();
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     fetch_options();
+    _loadUnderSuggestions();
   }
 
   @override
@@ -45,15 +50,13 @@ Map<String, bool> _checkboxStates = {
     "Bill Wise": false,
   };
 
-bool isBasicDataSaved = false;  // Flag to check if basic data is saved
-Ledger? tempLedger;  // Temporary variable to store basic data
-
-// Function to handle saving both basic and full data
+bool isBasicDataSaved = false;  
+Ledger? tempLedger;  
 void _saveData() async {
-  if (!isBasicDataSaved) {
-    // Save basic data when first tab's save button is clicked
-    tempLedger = Ledger(
-      ledgerName: _LedgernameController.text, 
+  try {
+    if (!isBasicDataSaved) {
+      tempLedger = Ledger(
+        ledgerName: _LedgernameController.text, 
       under: _underController.text, 
       address: '', 
       contact: '',
@@ -61,34 +64,106 @@ void _saveData() async {
       taxNo: '',
       priceLevel: '',
       balance: 0.0,
+      openingBalance: 0.0,
+      receivedBalance: 0.0,
+      payAmount: 0.0
+      );
+      isBasicDataSaved = true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Basic data saved temporarily')),
+      );
+    } else {
+      final ledger = Ledger(
+        ledgerName: tempLedger!.ledgerName,
+        under: tempLedger!.under,
+        address: _adressController.text,
+        contact: _contactController.text,
+        mail: _mailController.text,
+        taxNo: _taxnoController.text,
+        priceLevel: _pricelevelController.text,
+        balance: double.tryParse(_balanceController.text) ?? 0.0,
+        openingBalance: double.tryParse(_openingBalanceController.text) ?? 0.0,
+        receivedBalance: double.tryParse(_reievedAmtController.text) ?? 0.0,
+        payAmount: double.tryParse(_PayAmtController.text) ?? 0.0,
+      );
+
+      // Insert the ledger and capture the inserted ID
+      int id = await DatabaseHelper.instance.insert(ledger.toMap());
+      print('Inserted ledger with ID: $id'); // Debug output
+
+      if (id != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Full data saved successfully with ID $id')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save data')),
+        );
+      }
+
+      isBasicDataSaved = false;
+      tempLedger = null;
+    }
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
     );
-    
-    // Mark that basic data has been saved
-    isBasicDataSaved = true;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Basic data saved temporarily')));
-  } else {
-    // Combine the basic data with full data and save to database
-    final ledger = Ledger(
-      ledgerName: tempLedger!.ledgerName,
-      under: tempLedger!.under,
-      address: _adressController.text,
-      contact: _contactController.text,
-      mail: _mailController.text,
-      taxNo: _taxnoController.text,
-      priceLevel: _pricelevelController.text,
-      balance: double.parse(_balanceController.text), // Handle parsing carefully
-    );
-
-    // Insert the full data into the database
-    await DatabaseHelper.instance.insert(ledger.toMap());
-
-    // Reset the flag and tempLedger after saving full data
-    isBasicDataSaved = false;  // Reset flag for the next entry
-    tempLedger = null;  // Clear the temporary data
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Full data saved successfully')));
   }
 }
+
+// void _saveData() async {
+//   try {
+//     if (!isBasicDataSaved) {
+//       tempLedger = Ledger(
+//       ledgerName: _LedgernameController.text, 
+//       under: _underController.text, 
+//       address: '', 
+//       contact: '',
+//       mail: '',
+//       taxNo: '',
+//       priceLevel: '',
+//       balance: 0.0,
+//       openingBalance: 0.0,
+//       receivedBalance: 0.0,
+//       payAmount: 0.0
+//     );
+//       isBasicDataSaved = true;
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text('Basic data saved temporarily')),
+//       );
+//     } else {
+//       final ledger = Ledger(
+//         ledgerName: tempLedger!.ledgerName,
+//         under: tempLedger!.under,
+//         address: _adressController.text,
+//         contact: _contactController.text,
+//         mail: _mailController.text,
+//         taxNo: _taxnoController.text,
+//         priceLevel: _pricelevelController.text,
+//         balance: double.tryParse(_balanceController.text) ?? 0.0,
+//         openingBalance: double.tryParse(_openingBalanceController.text) ?? 0.0,
+//         receivedBalance: double.tryParse(_reievedAmtController.text) ?? 0.0,
+//         payAmount: double.tryParse(_PayAmtController.text) ?? 0.0,
+//       );
+//       int id = await DatabaseHelper.instance.insert(ledger.toMap());
+//       print('Inserted ledger with ID: $id'); // Debug output
+
+//       isBasicDataSaved = false;
+//       tempLedger = null;
+
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text('Full data saved successfully')),
+//       );
+//     }
+//   } catch (e) {
+//     print('Error while saving data: $e');
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       SnackBar(content: Text('Error saving data: $e')),
+//     );
+//   }
+// }
+
 
 optionsDBHelper dbHelper = optionsDBHelper();
     List<String> salesrate = [];
@@ -102,6 +177,25 @@ optionsDBHelper dbHelper = optionsDBHelper();
     print('Selected Supplier: $value');
    
     _pricelevelController.text = value;
+  }
+
+  List<String> _underSuggestions = [];
+  List<String> _allUnder = [];
+
+
+ _loadUnderSuggestions() async {
+    List<String> uniqueUnder = await DatabaseHelper.instance.getAllUniqueUnder();
+    setState(() {
+      _allUnder = uniqueUnder;
+      _underSuggestions = uniqueUnder;  
+    });
+  }
+  void _onUnderTextChanged(String query) {
+    setState(() {
+      _underSuggestions = _allUnder
+          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
   }
   @override
   Widget build(BuildContext context) {
@@ -248,17 +342,68 @@ optionsDBHelper dbHelper = optionsDBHelper();
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.symmetric(horizontal: screenHeight*.02),
+          padding: EdgeInsets.symmetric(horizontal: screenHeight * .02),
           child: Column(
             children: [
-              SizedBox(height: screenHeight*0.05,),
-        _accfield(screenHeight, screenWidth, "Ledger Name",_LedgernameController),
-          SizedBox(height: screenHeight*0.03,),
-           _accfield(screenHeight, screenWidth, "Under",_underController)
+              SizedBox(height: screenHeight * 0.05),
+              _accfield(
+                screenHeight,
+                screenWidth,
+                "Ledger Name",
+                _LedgernameController,
+              ),
+              SizedBox(height: screenHeight * 0.03),
+              Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Text(
+                
+                'Under',
+                style: formFonts(14, Colors.black),
+              ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(
+             height: screenHeight * 0.06,
+            width: screenWidth * 0.9,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+           child: SingleChildScrollView(
+             child: EasyAutocomplete(
+                 controller: _underController,
+                 suggestions: _underSuggestions,
+                    
+                 onSubmitted: (value) {
+                   _onUnderTextChanged(value);  
+                 },
+                 decoration: InputDecoration(
+                   border: InputBorder.none,
+                   contentPadding: EdgeInsets.only(bottom: 20)
+                 ),
+                 suggestionBackgroundColor: Appcolors().Scfold,
+               ),
+           ),
+          ),
+        ],
+      ),
+    )
             ],
           ),
-        )
+        ),
       ],
+    );
+  }
+
+  Widget _accfield22(double screenHeight, double screenWidth, String label,
+      TextEditingController controller,
+      {Function(String)? onChanged}) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(labelText: label),
+      onChanged: onChanged,
     );
   }
   
@@ -365,7 +510,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
                           }).toList();
                         },
                         onSelected: (value) {
-                          onSaleRateSelected(value); // Handle selection
+                          onSaleRateSelected(value); 
                         },
                         fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
                           return TextField(
@@ -374,13 +519,15 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
                             onEditingComplete: onEditingComplete,
                             decoration: InputDecoration(
                               border: InputBorder.none,
+                            
                             ),
+                            keyboardType: TextInputType.none,
                           );
                         },
                         optionsViewBuilder: (context, onSelected, options) {
                           return Container(
                             color: Appcolors().Scfold,
-                            height: screenHeight * 0.2, // Set max height for suggestions
+                            height: screenHeight * 0.2, 
                             child: ListView(
                               children: options
                                   .map((e) => ListTile(
@@ -408,7 +555,6 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
     );
   }
 
-  // Opening Balance Tab Content
   Widget _OpeningBalanceTab(double screenHeight,double screenWidth) {
     return Column(
       children: [
@@ -425,7 +571,9 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
         borderRadius: BorderRadius.circular(5),
         border: Border.all(color: Colors.grey.shade600)
       ),
-      
+      child: TextField(
+        controller: _openingBalanceController,
+      ),
     ),
         ),
         SizedBox(height: screenHeight * 0.04),
@@ -438,8 +586,8 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
                 Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _field("Recieve Amount", screenWidth, screenHeight),
-              _field("Pay Amount", screenWidth, screenHeight)
+              _field("Recieve Amount", screenWidth, screenHeight,_reievedAmtController),
+              _field("Pay Amount", screenWidth, screenHeight,_PayAmtController)
             ],
           ),
           SizedBox(height: screenHeight * 0.03),
@@ -516,7 +664,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
       ),
     );
   }
-  Widget _field (String label,double screenWidth,double screenHeight ){
+  Widget _field (String label,double screenWidth,double screenHeight ,TextEditingController controller){
     return Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,7 +693,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: TextFormField(
-                     // controller: controller,
+                      controller: controller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter $label';

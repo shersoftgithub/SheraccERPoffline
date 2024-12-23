@@ -1,6 +1,8 @@
+import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/recieptreportShow.dart';
@@ -13,6 +15,7 @@ class Recieptreport extends StatefulWidget {
 }
 
 class _RecieptreportState extends State<Recieptreport> {
+  final TextEditingController ledgernamesController=TextEditingController();
  DateTime? _fromDate;
   DateTime? _toDate;
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
@@ -35,6 +38,33 @@ class _RecieptreportState extends State<Recieptreport> {
      
     }
   }
+
+   @override
+  void initState() {
+    super.initState();
+   _fetchLedgerNames();
+   
+  }
+  List <String>ledgerNames = [];
+  Future<void> _fetchLedgerNames() async {
+  List<String> names = await DatabaseHelper.instance.getAllLedgerNames();
+    setState(() {
+    ledgerNames = names; 
+    });
+  }
+
+
+void _showLedgerWithFilters() {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => ShowRecieptReport(
+        fromDate: _fromDate,
+        toDate: _toDate,
+        ledgerName: ledgernamesController.text,
+      ),
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
      final screenWidth = MediaQuery.of(context).size.width;
@@ -89,28 +119,20 @@ class _RecieptreportState extends State<Recieptreport> {
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                       // controller: controller,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter ';
-                          }
-                          return null;
-                        },
-                        obscureText: false,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
-                        ),
-                      ),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+              child: SingleChildScrollView(
+                child: EasyAutocomplete(
+                    controller: ledgernamesController,
+                    suggestions: ledgerNames,
+                       
+                    onSubmitted: (value) {
+                              },
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
                     ),
-                  ],
-                ),
+                  ),
               ),
+            ),
             ),
          SizedBox(height: screenHeight * 0.02),
              Padding(

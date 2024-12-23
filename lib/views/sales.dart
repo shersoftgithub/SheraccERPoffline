@@ -1,14 +1,19 @@
+import 'dart:ffi';
+
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/models/salescredit_modal.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/addPaymant.dart';
 
 class SalesOrder extends StatefulWidget {
-  const SalesOrder({super.key});
+  final SalesCredit? salesCredit;
+  const SalesOrder({super.key, this.salesCredit});
 
   @override
   State<SalesOrder> createState() => _SalesOrderState();
@@ -25,6 +30,7 @@ class _SalesOrderState extends State<SalesOrder> {
   bool isCreditSelected = true;
   DateTime? _fromDate;
   DateTime? _toDate;
+  int? amount;
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
@@ -78,13 +84,10 @@ Future<void> _fetchLedgerIds() async {
   }
 
 void _fetchInvoiceData(int ledgerId) async {
-  // Query the database for the selected ledger by ID
   DatabaseHelper dbHelper = DatabaseHelper.instance;
   
-  // Fetch the ledger data based on the ID
   List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
   
-  // Find the row that matches the selected ledger ID
   var selectedLedger = ledgerData.firstWhere(
     (row) => row[DatabaseHelper.columnId] == ledgerId,
     orElse: () => {},
@@ -92,19 +95,46 @@ void _fetchInvoiceData(int ledgerId) async {
   
   if (selectedLedger.isNotEmpty) {
     setState(() {
-      // Update the UI fields with the selected ledger data
-      _salerateController.text = selectedLedger[DatabaseHelper.columnPriceLevel].toString();
             _CustomerController.text = selectedLedger[DatabaseHelper.columnLedgerName].toString();
 
       _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
-      // Update other fields as needed
     });
   }
 }
+
+void _saveData()async{
+  
+  final creditsale=SalesCredit(
+    
+    invoiceId: int.parse(_InvoicenoController.text),
+    date: _dateController.text, 
+    salesRate: double.parse(_salerateController.text),
+     customer: _CustomerController.text,
+      phoneNo: _phonenoController.text,
+       itemName:widget.salesCredit!.itemName,
+        qty: widget.salesCredit!.qty,
+         unit: widget.salesCredit!.unit,
+          rate: widget.salesCredit!.rate,
+           tax: widget.salesCredit!.tax, 
+           totalAmt:double.parse(_totalamtController.text));
+           await SaleDatabaseHelper.instance.insert(creditsale.toMap());
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('saved successfully')));
+   
+}
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+     void updateTotalAmount() {
+    double qty = widget.salesCredit?.qty ?? 0.0;
+    double rate = widget.salesCredit?.rate ?? 0.0;
+    double tax = widget.salesCredit?.tax ?? 0.0;
+    double saleRate = double.tryParse(_salerateController.text) ?? 0.0;
+        double totalAmt = (qty * rate) + tax + ((saleRate - rate) * qty);
+        _totalamtController.text = totalAmt.toStringAsFixed(2);
+  }
+  _salerateController.addListener(updateTotalAmount);
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -230,7 +260,9 @@ void _fetchInvoiceData(int ledgerId) async {
             ),
           ),
           GestureDetector(
-            onTap: (){},
+            onTap: (){
+              _saveData();
+              },
             child: Container(
               width: 175,height: 53,
               decoration: BoxDecoration(
@@ -246,6 +278,7 @@ void _fetchInvoiceData(int ledgerId) async {
   }
 Widget _CreditScreenContent(double screenHeight,double screenWidth) {
   List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
+   double additem_total=widget.salesCredit?.totalAmt??0.0;
 
     return Column(
       children: [
@@ -271,7 +304,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
     color: Colors.white,
     border: Border.all(color: Appcolors().searchTextcolor),
   ),
-  child: Expanded(
+  child: SingleChildScrollView(
                     child: EasyAutocomplete(
                         controller: _InvoicenoController,
                         suggestions: ledgerNamesAsString,
@@ -284,7 +317,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                           border: InputBorder.none,
                           
                         ),
-                        
+                        suggestionBackgroundColor: Appcolors().Scfold,
                       ),
                   ),
 )
@@ -303,29 +336,49 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-             height: 26, 
-            width: 172,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-           child: GestureDetector(
-                       onTap: () => _selectDate(context, false),
-                       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                         children: [
-                           
-                           Text(
-                             _toDate != null ? _dateFormat.format(_toDate!) : "",
-                             style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                           ),
-                           
-                           SizedBox(width: 5),
-                           Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor,size: 17,),
-                         ],
-                       ),
-                     ),
-          ),
+                                    height: 26,
+                          width: 172,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: TextField(
+                                      onTap: () async {
+                                        DateTime? selectedDate = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(1900), 
+                                          lastDate: DateTime(2100), 
+                                        );
+                                        if (selectedDate != null) {
+                                          String formattedDate = DateFormat('MM/dd/yyyy').format(selectedDate);
+                                          
+                                          _dateController.text = formattedDate;
+                                        }
+                                      },
+                                      controller: _dateController,
+                                      readOnly: true, 
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(5),
+                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(5),
+                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(5),
+                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
+                                        ),
+                                        hintStyle: TextStyle(color: Appcolors().searchTextcolor,fontSize: 12),
+                                        hintText: "Select Date",
+                                      ),
+                                      autofocus: true,
+                                    ),
+                                  ),
         ],
       ),
     )
@@ -468,9 +521,14 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 Row(
                   children: [
                     Text("₹",style: getFonts(14, Colors.black)),
-                    Text("...........................",style: getFonts(14, Colors.black))
-                  ],
+ Text(
+                        _totalamtController.text.isEmpty
+                            ? additem_total.toString()
+                            : _totalamtController.text,
+                        style: getFonts(14, Colors.red),
+                      ),                  ],
                 ),
+                Text("...........................",style: getFonts(14, Colors.black)),
                 // Text(".......................",style: getFonts(10, Colors.black),)
               ],)
             ],

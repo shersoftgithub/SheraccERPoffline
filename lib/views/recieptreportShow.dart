@@ -1,25 +1,78 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
 class ShowRecieptReport extends StatefulWidget {
-  const ShowRecieptReport({super.key});
+ final DateTime? fromDate;
+  final DateTime? toDate;
+  final String? ledgerName;
+
+  const ShowRecieptReport({super.key, this.fromDate, this.toDate, this.ledgerName});
 
   @override
   State<ShowRecieptReport> createState() => _ShowRecieptReportState();
 }
 
 class _ShowRecieptReportState extends State<ShowRecieptReport> {
-  // Payment data with correct keys
-  List<Map<String, String>> paymentData = [
-    {
-      'No': '1',
-      'Date': '2024-12-19',
-      'Customer': 'Customer A',
-      'Amount': '1000',
-      'Narration': 'Payment received',
-    },
-  ];
+
+ List<Map<String, dynamic>> recieptdata = [];
+  double totalAmount = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLedgerData();
+    _fetchLedgerData2();
+  }
+
+  Future<void> _fetchLedgerData() async {
+    List<Map<String, dynamic>> data = await ReceiptDatabaseHelper.instance.queryAllRows();
+
+    setState(() {
+      recieptdata = data.map((ledger) {
+        String? dateString = ledger['date'];
+        DateTime? ledgerDate;
+
+        if (dateString != null && dateString.isNotEmpty) {
+          try {
+            ledgerDate = DateFormat('MM/dd/yyyy').parse(dateString);
+          } catch (e) {
+            print("Error parsing date: $e");
+            print("Invalid date string: $dateString");
+
+            ledgerDate = DateTime.now();
+          }
+        } else {
+          print("Date string is empty or null for ledger: $ledger");
+          ledgerDate = DateTime.now();
+        }
+
+        return {...ledger, 'date': ledgerDate};
+      }).toList();
+      totalAmount = recieptdata.fold(0.0, (sum, item) {
+        double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
+        return sum - amount;
+      });
+    });
+  }
+
+  Future<void> _fetchLedgerData2() async {
+    List<Map<String, dynamic>> data = await ReceiptDatabaseHelper.instance.queryFilteredRows(
+      widget.fromDate,
+      widget.toDate,
+      widget.ledgerName ?? "",
+    );
+
+    setState(() {
+      recieptdata = data;
+      totalAmount = recieptdata.fold(0.0, (sum, item) {
+        double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
+        return sum - amount;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +131,7 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
             ),
             columnWidths: {
               0: FixedColumnWidth(60), 
-              1: FixedColumnWidth(100), 
+              1: FixedColumnWidth(130), 
               2: FixedColumnWidth(120),
               3: FixedColumnWidth(100),
               4: FixedColumnWidth(160), 
@@ -95,17 +148,26 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
                 ],
               ),
               // Table data rows
-              ...paymentData.map((data) {
+              ...recieptdata.map((data) {
                 return TableRow(
                   children: [
-                    _buildDataCell(data['No']!),
-                    _buildDataCell(data['Date']!),
-                    _buildDataCell(data['Customer']!),
-                    _buildDataCell(data['Amount']!),
-                    _buildDataCell(data['Narration']!),
+                    _buildDataCell(data[ReceiptDatabaseHelper.columnId].toString()),
+                    _buildDataCell(data[ReceiptDatabaseHelper.columnDate].toString()),
+                    _buildDataCell(data[ReceiptDatabaseHelper.columnLedgerName].toString()),
+                    _buildDataCell(data[ReceiptDatabaseHelper.columnTotal].toString()),
+                    _buildDataCell(data[ReceiptDatabaseHelper.columnNarration].toString()),
                   ],
                 );
               }).toList(),
+              TableRow(
+                children: [
+                  _buildDataCell(''),
+                  _buildDataCell(''),
+                  _buildDataCell2('Total'),
+                  _buildDataCell2(totalAmount.toStringAsFixed(2)), 
+                  _buildDataCell(''),
+                ],
+              ),
             ],
           ),
         ),
@@ -121,8 +183,8 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
         text,
         textAlign: TextAlign.center,
         style: TextStyle(fontWeight: FontWeight.bold),
-        overflow: TextOverflow.ellipsis,  // Ensures text does not wrap, uses ellipsis if it's too long
-        softWrap: false,  // Ensures no wrapping
+        overflow: TextOverflow.ellipsis,  
+        softWrap: false,  
       ),
     );
   }
@@ -135,6 +197,16 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
         textAlign: TextAlign.center,
         overflow: TextOverflow.ellipsis,  // Ensures text does not wrap, uses ellipsis if it's too long
         softWrap: false,  // Ensures no wrapping
+      ),
+    );
+  }
+  Widget _buildDataCell2(String text) {
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        style: getFonts(12, Colors.red),
+        textAlign: TextAlign.center,
       ),
     );
   }

@@ -1,25 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
 class ShowPaymentReport extends StatefulWidget {
-  const ShowPaymentReport({super.key});
+  final DateTime? fromDate;
+  final DateTime? toDate;
+  final String? ledgerName;
+
+  const ShowPaymentReport({super.key, this.fromDate, this.toDate, this.ledgerName});
 
   @override
   State<ShowPaymentReport> createState() => _ShowPaymentReportState();
 }
 
 class _ShowPaymentReportState extends State<ShowPaymentReport> {
-  // Sales data with correct keys
-  List<Map<String, String>> paymentData = [
-    {
-      'No': 'Data 1',
-      'Date': 'Data 2',
-      'Customer': 'Data 5',
-      'Amount': 'Data 6',
-      'Narration': 'Data 7',
-    },
-  ];
+  List<Map<String, dynamic>> paymentData = [];
+  double totalAmount = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLedgerData();
+    _fetchLedgerData2();
+  }
+
+  Future<void> _fetchLedgerData() async {
+    List<Map<String, dynamic>> data = await PaymentDatabaseHelper.instance.queryAllRows();
+
+    setState(() {
+      paymentData = data.map((ledger) {
+        String? dateString = ledger['date'];
+        DateTime? ledgerDate;
+
+        if (dateString != null && dateString.isNotEmpty) {
+          try {
+            ledgerDate = DateFormat('MM/dd/yyyy').parse(dateString);
+          } catch (e) {
+            print("Error parsing date: $e");
+            print("Invalid date string: $dateString");
+
+            ledgerDate = DateTime.now();
+          }
+        } else {
+          print("Date string is empty or null for ledger: $ledger");
+          ledgerDate = DateTime.now();
+        }
+
+        return {...ledger, 'date': ledgerDate};
+      }).toList();
+      totalAmount = paymentData.fold(0.0, (sum, item) {
+        double amount = double.tryParse(item[PaymentDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
+        return amount;
+      });
+    });
+  }
+
+  Future<void> _fetchLedgerData2() async {
+    List<Map<String, dynamic>> data = await PaymentDatabaseHelper.instance.queryFilteredRows(
+      widget.fromDate,
+      widget.toDate,
+      widget.ledgerName ?? "",
+    );
+
+    setState(() {
+      paymentData = data;
+      totalAmount = paymentData.fold(0.0, (sum, item) {
+        double amount = double.tryParse(item[PaymentDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
+        return  amount;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +100,7 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Text(
-              "Payment Report",  // Updated title to reflect the correct report
+              "Payment Report",
               style: appbarFonts(screenHeight * 0.02, Colors.white),
             ),
           ),
@@ -77,10 +129,10 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
               width: 1.0,
             ),
             columnWidths: {
-              0: FixedColumnWidth(60), // Adjust the first column width (No)
-              1: FixedColumnWidth(80), // Adjust other column widths
+              0: FixedColumnWidth(60),
+              1: FixedColumnWidth(100),
               2: FixedColumnWidth(100),
-              3: FixedColumnWidth(80),
+              3: FixedColumnWidth(100),
               4: FixedColumnWidth(100),
             },
             children: [
@@ -98,14 +150,23 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
               ...paymentData.map((data) {
                 return TableRow(
                   children: [
-                    _buildDataCell(data['No']!),
-                    _buildDataCell(data['Date']!),
-                    _buildDataCell(data['Customer']!),
-                    _buildDataCell(data['Amount']!),
-                    _buildDataCell(data['Narration']!),
+                    _buildDataCell(data[PaymentDatabaseHelper.columnId]?.toString() ?? 'N/A'),
+                    _buildDataCell(data[PaymentDatabaseHelper.columnDate]?.toString() ?? 'N/A'),
+                    _buildDataCell(data[PaymentDatabaseHelper.columnLedgerName]?.toString() ?? 'N/A'),
+                    _buildDataCell(data[PaymentDatabaseHelper.columnTotal]?.toString() ?? 'N/A'),
+                    _buildDataCell(data[PaymentDatabaseHelper.columnNarration]?.toString() ?? 'N/A'),
                   ],
                 );
               }).toList(),
+              TableRow(
+                children: [
+                  _buildDataCell(''),
+                  _buildDataCell(''),
+                  _buildDataCell2('Total'),
+                  _buildDataCell2(totalAmount.toStringAsFixed(2)), 
+                  _buildDataCell(''),
+                ],
+              ),
             ],
           ),
         ),
@@ -116,11 +177,11 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
   Widget _buildHeaderCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
-      color: Colors.grey[200],
+      color: Colors.white,
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: TextStyle(fontWeight: FontWeight.bold),
+        style: getFonts(13, Colors.black),
       ),
     );
   }
@@ -130,6 +191,17 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
       padding: const EdgeInsets.all(8.0),
       child: Text(
         text,
+        style: getFonts(12, Colors.black),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+  Widget _buildDataCell2(String text) {
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        style: getFonts(12, Colors.red),
         textAlign: TextAlign.center,
       ),
     );

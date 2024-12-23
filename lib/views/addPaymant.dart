@@ -1,7 +1,11 @@
+import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sheraaccerpoff/models/salescredit_modal.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/sales.dart';
 
 class Addpaymant extends StatefulWidget {
   const Addpaymant({super.key});
@@ -11,6 +15,65 @@ class Addpaymant extends StatefulWidget {
 }
 
 class _AddpaymantState extends State<Addpaymant> {
+  final TextEditingController _itemnameController=TextEditingController();
+  final TextEditingController _qtyController=TextEditingController();
+  final TextEditingController _unitController=TextEditingController();
+  final TextEditingController _rateController=TextEditingController();
+  final TextEditingController _taxController=TextEditingController();
+  List<String> _itemSuggestions = [];
+  void _fetchItemNames() async {
+    List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
+    setState(() {
+      _itemSuggestions = items;
+    });
+  }
+ void _saveData() {
+  final itemName = _itemnameController.text.trim();
+  final unit = _unitController.text.trim();
+  final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
+  final rate = double.tryParse(_rateController.text.trim()) ?? 0.0;
+  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  final totalAmt = (rate * qty) + tax;
+
+  final creditsale = SalesCredit(
+    invoiceId: 0,
+    date: "", 
+    salesRate: 0.0,
+    customer: "",
+    phoneNo: "",
+    itemName: itemName,
+    qty: qty,
+    unit: unit,
+    rate: rate,
+    tax: tax,
+    totalAmt: totalAmt,
+  );
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) =>SalesOrder(salesCredit: creditsale,),
+    ),
+  );
+}
+
+@override
+  void initState() {
+    super.initState();
+    _fetchItemNames();  
+  }
+  void _onItemnameChanged(String value) async {
+  List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
+  setState(() {
+    _itemSuggestions = items.where((item) => item.contains(value)).toList();
+  });
+}
+ void _onItemnamecreateChanged(String value) async {
+    if (!_itemSuggestions.contains(value)) {
+      _showCreateItemDialog(value, _unitController.text.trim(), double.tryParse(_qtyController.text.trim()) ?? 0.0,
+          double.tryParse(_rateController.text.trim()) ?? 0.0, double.tryParse(_taxController.text.trim()) ?? 0.0,
+          (double.tryParse(_rateController.text.trim()) ?? 0.0) * (double.tryParse(_qtyController.text.trim()) ?? 0.0));
+    }
+  }
   @override
   Widget build(BuildContext context) {
      final screenWidth = MediaQuery.of(context).size.width;
@@ -57,7 +120,7 @@ class _AddpaymantState extends State<Addpaymant> {
         ],
       ),
       body: SingleChildScrollView(
-        physics: ScrollPhysics(),
+        physics: AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
             SizedBox(height: screenHeight * 0.02),
@@ -83,20 +146,25 @@ class _AddpaymantState extends State<Addpaymant> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: TextFormField(
-                       // controller: _salerateController,
-                        
-                        obscureText: false,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                      child: EasyAutocomplete(
+                          controller: _itemnameController,
+                          suggestions: _itemSuggestions,
+                             
+                          onSubmitted: (value) {
+                            _onItemnamecreateChanged(value);  
+                          },
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            
+                          ),
                         ),
-                      ),
+          
                     ),
                   ],
                 ),
               ),
             ),
+           
           ],
         ),
             ),
@@ -122,18 +190,15 @@ class _AddpaymantState extends State<Addpaymant> {
                 color: Colors.white,
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
-              // child: EasyAutocomplete(
-              //             controller: _InvoicenoController,
-              //             //suggestions: vamnes
-              //                 //.map((jobcard) => jobcard['VehicleName'].toString())
-              //                 //.toList(),
-              //             // onSubmitted: (value) {
-              //             //   onJobcardSelected(value);  // Handle selection
-              //             // },
-              //             decoration: InputDecoration(
-              //               border: InputBorder.none,
-              //             ),
-              //           ),
+               child: TextFormField(
+                       controller: _qtyController,
+                        
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                        ),
+                      ),
             ),
           ],
         ),
@@ -156,7 +221,15 @@ class _AddpaymantState extends State<Addpaymant> {
                 color: Colors.white,
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
-             
+              child: TextFormField(
+                       controller: _unitController,
+                        
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                        ),
+                      ),
             ),
           ],
         ),
@@ -187,18 +260,15 @@ class _AddpaymantState extends State<Addpaymant> {
                 color: Colors.white,
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
-              // child: EasyAutocomplete(
-              //             controller: _InvoicenoController,
-              //             //suggestions: vamnes
-              //                 //.map((jobcard) => jobcard['VehicleName'].toString())
-              //                 //.toList(),
-              //             // onSubmitted: (value) {
-              //             //   onJobcardSelected(value);  // Handle selection
-              //             // },
-              //             decoration: InputDecoration(
-              //               border: InputBorder.none,
-              //             ),
-              //           ),
+               child: TextFormField(
+                       controller: _rateController,
+                        
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                        ),
+                      ),
             ),
           ],
         ),
@@ -221,7 +291,15 @@ class _AddpaymantState extends State<Addpaymant> {
                 color: Colors.white,
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
-             
+              child: TextFormField(
+                       controller: _taxController,
+                        
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                        ),
+                      ),
             ),
           ],
         ),
@@ -248,7 +326,9 @@ class _AddpaymantState extends State<Addpaymant> {
             ),
           ),
           GestureDetector(
-            onTap: (){},
+            onTap: (){
+              _saveData();
+            },
             child: Container(
               width: 175,height: 53,
               decoration: BoxDecoration(
@@ -260,6 +340,48 @@ class _AddpaymantState extends State<Addpaymant> {
           )
         ],),
       ),  
+    );
+  }
+
+  void _showCreateItemDialog(String itemName, String unit, double qty, double rate, double tax, double totalAmt) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(backgroundColor: Appcolors().Scfold,
+          title: Text('Create a new item'),
+          content: Text('Item "$itemName" does not exist. Would you like to create it?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel',style: TextStyle(color: Appcolors().maincolor),),
+            ),
+            TextButton(
+              onPressed: () async {
+                final creditsale = SalesCredit(
+                  invoiceId: 0,
+                  date: "",
+                  salesRate: 0.0,
+                  customer: "",
+                  phoneNo: "",
+                  itemName: itemName,
+                  qty: qty,
+                  unit: unit,
+                  rate: rate,
+                  tax: tax,
+                  totalAmt: totalAmt,
+                );
+                await SaleDatabaseHelper.instance.insert(creditsale.toMap());
+                Navigator.of(context).pop();  
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Item created and saved')));
+                _fetchItemNames();
+              },
+              child: Text('Create',style: TextStyle(color: Appcolors().maincolor),),
+            ),
+          ],
+        );
+      },
     );
   }
 }

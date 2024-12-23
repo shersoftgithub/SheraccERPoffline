@@ -1,12 +1,10 @@
-import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-class PaymentDatabaseHelper {
-  static const _databaseName = "payment.db";
+class ReceiptDatabaseHelper {
+  static const _databaseName = "receipt.db";
   static const _databaseVersion = 1;
-
-  static const table = 'payment_table';
+  static const table = 'receipt_table';
 
   // Column names
   static const columnId = 'id';
@@ -19,12 +17,11 @@ class PaymentDatabaseHelper {
   static const columnTotal = 'total';
   static const columnNarration = 'narration';
 
-  // Singleton instance
-  static final PaymentDatabaseHelper instance =
-      PaymentDatabaseHelper._privateConstructor();
+  static final ReceiptDatabaseHelper instance =
+      ReceiptDatabaseHelper._privateConstructor();
   static Database? _database;
 
-  PaymentDatabaseHelper._privateConstructor();
+  ReceiptDatabaseHelper._privateConstructor();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -57,50 +54,56 @@ class PaymentDatabaseHelper {
     ''');
   }
 
-  // Insert a new row
   Future<int> insert(Map<String, dynamic> row) async {
     Database db = await instance.database;
     return await db.insert(table, row);
   }
 
-  // Query all rows
   Future<List<Map<String, dynamic>>> queryAllRows() async {
     Database db = await instance.database;
     return await db.query(table);
   }
 
-  // Update a row
-  Future<int> update(Map<String, dynamic> row) async {
+  Future<Map<String, dynamic>?> queryRowById(int id) async {
     Database db = await instance.database;
-    int id = row[columnId];
-    return await db.update(table, row, where: '$columnId = ?', whereArgs: [id]);
+    final result = await db.query(
+      table,
+      where: '$columnId = ?',
+      whereArgs: [id],
+    );
+    return result.isNotEmpty ? result.first : null;
   }
 
-  // Delete a row
+  Future<int> update(int id, Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.update(
+      table,
+      row,
+      where: '$columnId = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<int> delete(int id) async {
     Database db = await instance.database;
-    return await db.delete(table, where: '$columnId = ?', whereArgs: [id]);
+    return await db.delete(
+      table,
+      where: '$columnId = ?',
+      whereArgs: [id],
+    );
   }
 
-  // Retrieve distinct cash accounts
-  Future<List<String>> getAllUniqueCashAccounts() async {
+  Future<void> clearTable() async {
     Database db = await instance.database;
-    final List<Map<String, dynamic>> result = await db
-        .rawQuery('SELECT DISTINCT $columnCashAccount FROM $table');
-    return result.map((row) => row[columnCashAccount] as String).toList();
+    await db.delete(table);
   }
 
-  Future<List<Map<String, dynamic>>> getTotalBalancesByLedger() async {
-  Database db = await instance.database;
-  final List<Map<String, dynamic>> result = await db.rawQuery('''
-    SELECT $columnLedgerName, SUM($columnBalance) AS total_balance
-    FROM $table
-    GROUP BY $columnLedgerName
-  ''');
-  return result;
-}
+  Future<void> deleteDatabaseFile() async {
+    String path = join(await getDatabasesPath(), _databaseName);
+    await deleteDatabase(path);
+  }
 
-Future<List<Map<String, dynamic>>> queryFilteredRows(DateTime? fromDate, DateTime? toDate, String ledgerName) async {
+  Future<List<Map<String, dynamic>>> queryFilteredRows(DateTime? fromDate, DateTime? toDate, String ledgerName) async {
   Database db = await instance.database;
 
   String whereClause = '';
@@ -124,5 +127,4 @@ Future<List<Map<String, dynamic>>> queryFilteredRows(DateTime? fromDate, DateTim
     whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
   );
 }
-
 }
