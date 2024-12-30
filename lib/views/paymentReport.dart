@@ -18,7 +18,7 @@ class _PaymentreportState extends State<Paymentreport> {
   final  TextEditingController ledgernamesController=TextEditingController();
   DateTime? _fromDate;
   DateTime? _toDate;
-  final DateFormat _dateFormat = DateFormat('MM/dd/yyyy');
+  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
@@ -189,7 +189,9 @@ void _showLedgerWithFilters() {
              ),
                    SizedBox(height: screenHeight * 0.02),
                   GestureDetector(
-          onTap: _showLedgerWithFilters,
+          onTap: (){
+            _showLedgerWithFilters();
+          },
           child: Padding(
             padding: EdgeInsets.all(screenHeight * 0.03),
             child: Container(

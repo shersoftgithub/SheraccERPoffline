@@ -35,6 +35,8 @@ class _PaymentFormState extends State<PaymentForm> {
    _fetchLedgerBalances();
    _fetchLedgerNames();
    _fetchCashAcc();
+       _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+
   }
 
     
@@ -45,26 +47,19 @@ class _PaymentFormState extends State<PaymentForm> {
     _selectlnamesController.text = value;
   }
 
-  DateTime? _fromDate;
-  DateTime? _toDate;
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
-  Future<void> _selectDate(BuildContext context, bool isFromDate) async {
-    final DateTime? selectedDate = await showDatePicker(
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
 
-    if (selectedDate != null) {
+    if (picked != null && picked != DateTime.now()) {
       setState(() {
-        if (isFromDate) {
-          _fromDate = selectedDate;
-        } else {
-          _toDate = selectedDate;
-        }
+        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
       });
-     
     }
   }
   List <String>ledgerNames = [];
@@ -91,11 +86,12 @@ class _PaymentFormState extends State<PaymentForm> {
   );
 
   if (selectedLedger.isNotEmpty) {
-    double openingBalance = selectedLedger[DatabaseHelper.columnOpeningBalance] ?? 0.0;
+    double openingBalance = selectedLedger[DatabaseHelper.columnPayAmount] ?? 0.0;
     double receivedBalance = selectedLedger[DatabaseHelper.columnReceivedBalance] ?? 0.0;
-    double remainingBalance = openingBalance;
+    double balance = selectedLedger[DatabaseHelper.columnOpeningBalance] ?? 0.0;
+    double remainingBalance = openingBalance-receivedBalance;
     setState(() {
-      _balanceController.text = remainingBalance.toStringAsFixed(2);
+      _balanceController.text = balance.toStringAsFixed(2);
     });
   } else {
     setState(() {
@@ -119,6 +115,7 @@ void _saveData() async {
     discount: discount,
     total: total, 
     narration: _narrationController.text,
+    
   );
 
   await PaymentDatabaseHelper.instance.insert(payment.toMap());
@@ -234,48 +231,22 @@ double _TotalController=total;
               ),
           SizedBox(height: screenHeight * 0.01),
          Container(
+          padding: EdgeInsets.symmetric(vertical: 3),
                  height: 35,
                           width: 172,
                                     decoration: BoxDecoration(
+                                       border: Border.all(color: Appcolors().searchTextcolor),
                                       borderRadius: BorderRadius.circular(5),
                                     ),
-                                    child: TextField(
-                                      onTap: () async {
-                                        DateTime? selectedDate = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(1900), 
-                                          lastDate: DateTime(2100), 
-                                        );
-                                        if (selectedDate != null) {
-                                          String formattedDate = DateFormat('MM/dd/yyyy').format(selectedDate);
-                                          
-                                          _dateController.text = formattedDate;
-                                        }
-                                      },
-                                      controller: _dateController,
-                                      readOnly: true, 
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(5),
-                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(5),
-                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(5),
-                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
-                                        ),
-                                        hintStyle: TextStyle(color: Appcolors().searchTextcolor,fontSize: 12),
-                                        hintText: "Select Date",
-                                      ),
-                                      autofocus: true,
-                                    ),
+                                    child:  TextField(
+                                      style: getFontsinput(14, Colors.black),
+           readOnly: true,
+          controller: _dateController,
+           decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+              ),
+        ),
                                   ),
         
         ],
@@ -300,19 +271,22 @@ double _TotalController=total;
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
            child: SingleChildScrollView(
-             child: EasyAutocomplete(
-                 controller: _cashAccController,
-                 suggestions: _itemSuggestions,
-                    
-                 onSubmitted: (value) {
-                   _onItemnamecreateChanged(value);  
-                 },
-                 decoration: InputDecoration(
-                   border: InputBorder.none,
-                   contentPadding: EdgeInsets.only(bottom: 20)
+             child: Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 5),
+               child: EasyAutocomplete(
+                   controller: _cashAccController,
+                   suggestions: _itemSuggestions,
+                      inputTextStyle: getFontsinput(14, Colors.black),
+                   onSubmitted: (value) {
+                     _onItemnamecreateChanged(value);  
+                   },
+                   decoration: InputDecoration(
+                     border: InputBorder.none,
+                     contentPadding: EdgeInsets.only(bottom: 20)
+                   ),
+                   suggestionBackgroundColor: Appcolors().Scfold,
                  ),
-                 suggestionBackgroundColor: Appcolors().Scfold,
-               ),
+             ),
            ),
           ),
         ],
@@ -380,14 +354,16 @@ double _TotalController=total;
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: EasyAutocomplete(
+                      suggestionBackgroundColor: Appcolors().Scfold,
                         controller: _selectlnamesController,
                         suggestions: ledgerNames,
-                           
+                           inputTextStyle: getFontsinput(14, Colors.black),
                         onSubmitted: (value) {
                 _fetchBalanceForLedger(value); 
               },
                         decoration: InputDecoration(
                           border: InputBorder.none,
+                          
                         ),
                       ),
                   ),
@@ -468,6 +444,7 @@ double _TotalController=total;
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: TextFormField(
+                      style: getFontsinput(14, Colors.black),
                       controller: controller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -477,6 +454,7 @@ double _TotalController=total;
                       },
                       obscureText: false,
                       decoration: InputDecoration(
+                        
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
                       ),

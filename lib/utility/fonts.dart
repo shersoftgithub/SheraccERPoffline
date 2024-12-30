@@ -32,3 +32,6 @@ TextStyle drewerFonts (){
 TextStyle splash3Fonts (){
   return GoogleFonts.hahmlet(fontWeight: FontWeight.w700,fontSize: 20 ,color:Colors.black );
 }
+TextStyle getFontsinput (double fontsize,Color color){
+  return GoogleFonts.poppins(fontWeight: FontWeight.w500,fontSize: fontsize ,color:color );
+}

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/recieptreportShow.dart';
@@ -18,7 +19,7 @@ class _RecieptreportState extends State<Recieptreport> {
   final TextEditingController ledgernamesController=TextEditingController();
  DateTime? _fromDate;
   DateTime? _toDate;
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
@@ -47,7 +48,7 @@ class _RecieptreportState extends State<Recieptreport> {
   }
   List <String>ledgerNames = [];
   Future<void> _fetchLedgerNames() async {
-  List<String> names = await DatabaseHelper.instance.getAllLedgerNames();
+  List<String> names = await ReceiptDatabaseHelper.instance.getAllLedgerNames();
     setState(() {
     ledgerNames = names; 
     });
@@ -186,7 +187,7 @@ void _showLedgerWithFilters() {
                    SizedBox(height: screenHeight * 0.01),
                   GestureDetector(
           onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ShowRecieptReport()));                                                                                   
+            _showLedgerWithFilters();
           },
           child: Padding(
             padding: EdgeInsets.all(screenHeight * 0.03),

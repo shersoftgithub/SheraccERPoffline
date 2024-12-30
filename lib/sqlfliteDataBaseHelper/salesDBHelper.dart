@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -87,5 +88,124 @@ class SaleDatabaseHelper {
     List<String> uniqueUnder = result.map((row) => row[columnItemName] as String).toList();
 
     return uniqueUnder;
+  }
+
+ Future<List<Map<String, String>>> getAll() async {
+  Database db = await instance.database;
+  
+  final List<Map<String, dynamic>> result = await db.query(
+    table,
+    columns: [columnCustomer, columnItemName], 
+  );
+    List<Map<String, String>> ledgerNames = result.map((row) {
+    return {
+      'customer': row[columnCustomer] as String,
+      'item_name': row[columnItemName] as String,
+    };
+  }).toList();
+
+  return ledgerNames;
+}
+
+Future<Map<String, dynamic>?> getRowById(int id) async {
+  final db = await database;
+  final result = await db.query(
+    'salescredit_table', // Replace with your sales table name
+    where: 'invoice_id = ?', // Assuming 'id' is the column name for the primary key
+    whereArgs: [id],
+  );
+  return result.isNotEmpty ? result.first : null;
+}
+
+Future<List<Map<String, dynamic>>> queryFilteredRows({
+  DateTime? fromDate, 
+  DateTime? toDate, 
+  String? ledgerName,
+  String? customer,
+  String? itemName,
+}) async {
+  Database db = await instance.database;
+
+  List<String> whereClauses = [];
+  List<dynamic> whereArgs = [];
+
+  // Build the WHERE clause based on the provided filters
+  if (ledgerName != null && ledgerName.isNotEmpty) {
+    whereClauses.add('$columnCustomer LIKE ?');
+    whereArgs.add('%$ledgerName%');
+  }
+
+  if (customer != null && customer.isNotEmpty) {
+    whereClauses.add('$columnCustomer = ?');
+    whereArgs.add(customer);
+  }
+
+  if (fromDate != null) {
+    whereClauses.add('$columnDate >= ?');
+    whereArgs.add(DateFormat('dd-MM-yyyy').format(fromDate));
+  }
+
+  if (toDate != null) {
+    whereClauses.add('$columnDate <= ?');
+    whereArgs.add(DateFormat('dd-MM-yyyy').format(toDate));
+  }
+
+  if (itemName != null && itemName.isNotEmpty) {
+    whereClauses.add('$columnItemName = ?');
+    whereArgs.add(itemName);
+  }
+
+  String whereClause = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : '';
+
+  try {
+    return await db.query(
+      table,
+      where: whereClause.isNotEmpty ? whereClause : null,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+    );
+  } catch (e) {
+    print("Error fetching filtered data: $e");
+    rethrow;
+  }
+}
+
+  Future<List<Map<String, dynamic>>> queryFilteredRows2(String? fromDate, String? toDate, String ledgerName) async {
+  Database db = await instance.database;
+
+  String whereClause = '';
+  List<dynamic> whereArgs = [];
+
+  // Filter by ledger name if provided
+  if (ledgerName.isNotEmpty) {
+    whereClause = '$columnCustomer LIKE ?';
+    whereArgs.add('%$ledgerName%');
+  }
+
+  // Filter by date range if both fromDate and toDate are provided
+  if (fromDate != null && toDate != null) {
+    if (whereClause.isNotEmpty) whereClause += ' AND ';
+    whereClause += '$columnDate BETWEEN ? AND ?';
+    whereArgs.add(fromDate);  // Use formatted date
+    whereArgs.add(toDate);    // Use formatted date
+  }
+
+  return await db.query(
+    table,
+    where: whereClause.isNotEmpty ? whereClause : null,
+    whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+  );
+}
+
+Future<List<int>> getAllLedgerIds() async {
+    Database db = await instance.database;
+
+    final List<Map<String, dynamic>> result = await db.query(
+      table,
+      columns: [columnId], 
+    );
+
+    List<int> ledgerIds = result.map((row) => row[columnId] as int).toList();
+
+    return ledgerIds;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -36,7 +37,7 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
 
         if (dateString != null && dateString.isNotEmpty) {
           try {
-            ledgerDate = DateFormat('MM/dd/yyyy').parse(dateString);
+            ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
           } catch (e) {
             print("Error parsing date: $e");
             print("Invalid date string: $dateString");
@@ -57,22 +58,32 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
     });
   }
 
-  Future<void> _fetchLedgerData2() async {
-    List<Map<String, dynamic>> data = await PaymentDatabaseHelper.instance.queryFilteredRows(
-      widget.fromDate,
-      widget.toDate,
-      widget.ledgerName ?? "",
-    );
+ Future<void> _fetchLedgerData2() async {
+  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
 
-    setState(() {
-      paymentData = data;
+  
+  List<Map<String, dynamic>> data = await PaymentDatabaseHelper.instance.queryFilteredRows(
+    fromDateStr,  
+    toDateStr,    
+    widget.ledgerName ?? "",  
+  );
+
+  setState(() {
+    paymentData = data;
+        if (widget.ledgerName != null && widget.ledgerName!.isNotEmpty) {
       totalAmount = paymentData.fold(0.0, (sum, item) {
         double amount = double.tryParse(item[PaymentDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-        return  amount;
+        return sum + amount; 
       });
-    });
-  }
-
+    } else {
+      totalAmount = paymentData.fold(0.0, (sum, item) {
+        double amount = double.tryParse(item[PaymentDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
+        return sum + amount;  
+      });
+    }
+  });
+}
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -131,9 +142,12 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
             columnWidths: {
               0: FixedColumnWidth(60),
               1: FixedColumnWidth(100),
-              2: FixedColumnWidth(100),
+              2: FixedColumnWidth(150),
               3: FixedColumnWidth(100),
               4: FixedColumnWidth(100),
+              5: FixedColumnWidth(100),
+              6: FixedColumnWidth(100),
+              
             },
             children: [
               // Table header row
@@ -141,8 +155,10 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
                 children: [
                   _buildHeaderCell('No'),
                   _buildHeaderCell('Date'),
-                  _buildHeaderCell('Customer'),
-                  _buildHeaderCell('Amount'),
+                  _buildHeaderCell('opening Balance'),
+                  _buildHeaderCell('Debit'),
+                  _buildHeaderCell('Credit'),
+                  _buildHeaderCell('Balance'),
                   _buildHeaderCell('Narration'),
                 ],
               ),
@@ -153,6 +169,8 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
                     _buildDataCell(data[PaymentDatabaseHelper.columnId]?.toString() ?? 'N/A'),
                     _buildDataCell(data[PaymentDatabaseHelper.columnDate]?.toString() ?? 'N/A'),
                     _buildDataCell(data[PaymentDatabaseHelper.columnLedgerName]?.toString() ?? 'N/A'),
+                     _buildDataCell(data[PaymentDatabaseHelper.columnAmount]?.toString() ?? 'N/A'),
+                      _buildDataCell(data[PaymentDatabaseHelper.columnBalance]?.toString() ?? 'N/A'),
                     _buildDataCell(data[PaymentDatabaseHelper.columnTotal]?.toString() ?? 'N/A'),
                     _buildDataCell(data[PaymentDatabaseHelper.columnNarration]?.toString() ?? 'N/A'),
                   ],
@@ -162,8 +180,10 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
                 children: [
                   _buildDataCell(''),
                   _buildDataCell(''),
-                  _buildDataCell2('Total'),
+                  _buildDataCell2('Closing Balance'),
+                  _buildDataCell(''),
                   _buildDataCell2(totalAmount.toStringAsFixed(2)), 
+                  _buildDataCell(''),
                   _buildDataCell(''),
                 ],
               ),

@@ -56,10 +56,40 @@ class _AddpaymantState extends State<Addpaymant> {
   );
 }
 
+void _saveDataCash() {
+  final itemName = _itemnameController.text.trim();
+  final unit = _unitController.text.trim();
+  final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
+  final rate = double.tryParse(_rateController.text.trim()) ?? 0.0;
+  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  final totalAmt = (rate * qty) + tax;
+
+  final Cashcreditsale = SalesCredit(
+    invoiceId: 0,
+    date: "", 
+    salesRate: 0.0,
+    customer: "",
+    phoneNo: "",
+    itemName: itemName,
+    qty: qty,
+    unit: unit,
+    rate: rate,
+    tax: tax,
+    totalAmt: totalAmt,
+  );
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) =>SalesOrder(salesDebit: Cashcreditsale,),
+    ),
+  );
+}
+
 @override
   void initState() {
     super.initState();
-    _fetchItemNames();  
+    _fetchItemNames(); 
+     
   }
   void _onItemnameChanged(String value) async {
   List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
@@ -141,27 +171,20 @@ class _AddpaymantState extends State<Addpaymant> {
                 color: Colors.white,
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: EasyAutocomplete(
-                          controller: _itemnameController,
-                          suggestions: _itemSuggestions,
-                             
-                          onSubmitted: (value) {
-                            _onItemnamecreateChanged(value);  
-                          },
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            
-                          ),
-                        ),
-          
+              child: SingleChildScrollView(
+                child: EasyAutocomplete(
+                  suggestionBackgroundColor: Appcolors().Scfold,
+                    controller: _itemnameController,
+                    suggestions: _itemSuggestions,
+                       
+                    onSubmitted: (value) {
+                      _onItemnamecreateChanged(value);  
+                    },
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 5)
                     ),
-                  ],
-                ),
+                  ),
               ),
             ),
            
@@ -178,7 +201,7 @@ class _AddpaymantState extends State<Addpaymant> {
           children: [
           Text(
                   
-                  'Qyantity',
+                  'Quantity',
                   style: formFonts(14, Colors.black),
                 ),
             SizedBox(height: screenHeight * 0.01),
@@ -192,11 +215,11 @@ class _AddpaymantState extends State<Addpaymant> {
               ),
                child: TextFormField(
                        controller: _qtyController,
-                        
+                        keyboardType: TextInputType.number,
                         obscureText: false,
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                          contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
                         ),
                       ),
             ),
@@ -227,7 +250,7 @@ class _AddpaymantState extends State<Addpaymant> {
                         obscureText: false,
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                          contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
                         ),
                       ),
             ),
@@ -262,11 +285,11 @@ class _AddpaymantState extends State<Addpaymant> {
               ),
                child: TextFormField(
                        controller: _rateController,
-                        
+                        keyboardType: TextInputType.number,
                         obscureText: false,
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                          contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
                         ),
                       ),
             ),
@@ -297,7 +320,7 @@ class _AddpaymantState extends State<Addpaymant> {
                         obscureText: false,
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                          contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
                         ),
                       ),
             ),
@@ -328,6 +351,7 @@ class _AddpaymantState extends State<Addpaymant> {
           GestureDetector(
             onTap: (){
               _saveData();
+              _saveDataCash();
             },
             child: Container(
               width: 175,height: 53,

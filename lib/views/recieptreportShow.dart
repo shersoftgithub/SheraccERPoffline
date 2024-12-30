@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -37,7 +38,7 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
 
         if (dateString != null && dateString.isNotEmpty) {
           try {
-            ledgerDate = DateFormat('MM/dd/yyyy').parse(dateString);
+            ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
           } catch (e) {
             print("Error parsing date: $e");
             print("Invalid date string: $dateString");
@@ -58,21 +59,36 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
     });
   }
 
-  Future<void> _fetchLedgerData2() async {
-    List<Map<String, dynamic>> data = await ReceiptDatabaseHelper.instance.queryFilteredRows(
-      widget.fromDate,
-      widget.toDate,
-      widget.ledgerName ?? "",
-    );
+Future<void> _fetchLedgerData2() async {
+  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
 
-    setState(() {
-      recieptdata = data;
+  
+  List<Map<String, dynamic>> data = await ReceiptDatabaseHelper.instance.queryFilteredRows(
+    fromDateStr,  
+    toDateStr,    
+    widget.ledgerName ?? "",  
+  );
+
+  setState(() {
+    recieptdata = data;
+        if (widget.ledgerName != null && widget.ledgerName!.isNotEmpty) {
       totalAmount = recieptdata.fold(0.0, (sum, item) {
         double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-        return sum - amount;
+        return sum + amount; 
       });
-    });
-  }
+    } else {
+      totalAmount = recieptdata.fold(0.0, (sum, item) {
+        double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
+        return sum + amount;  
+      });
+    }
+  });
+}
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -163,8 +179,8 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
                 children: [
                   _buildDataCell(''),
                   _buildDataCell(''),
-                  _buildDataCell2('Total'),
-                  _buildDataCell2(totalAmount.toStringAsFixed(2)), 
+                  _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? 'Closing Balance' : 'Closing Balance'),
+                _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? totalAmount.toStringAsFixed(2) : totalAmount.toStringAsFixed(2)),
                   _buildDataCell(''),
                 ],
               ),
@@ -189,14 +205,13 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
     );
   }
 
-  Widget _buildDataCell(String text) {
+    Widget _buildDataCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
       child: Text(
         text,
+        style: getFonts(12, Colors.black),
         textAlign: TextAlign.center,
-        overflow: TextOverflow.ellipsis,  // Ensures text does not wrap, uses ellipsis if it's too long
-        softWrap: false,  // Ensures no wrapping
       ),
     );
   }

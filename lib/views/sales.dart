@@ -9,11 +9,14 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/Home.dart';
 import 'package:sheraaccerpoff/views/addPaymant.dart';
+import 'package:sheraaccerpoff/views/newLedger.dart';
 
 class SalesOrder extends StatefulWidget {
   final SalesCredit? salesCredit;
-  const SalesOrder({super.key, this.salesCredit});
+  final SalesCredit? salesDebit;
+  const SalesOrder({super.key, this.salesCredit,this.salesDebit});
 
   @override
   State<SalesOrder> createState() => _SalesOrderState();
@@ -26,35 +29,37 @@ class _SalesOrderState extends State<SalesOrder> {
   final TextEditingController _phonenoController = TextEditingController();
   final TextEditingController _totalamtController = TextEditingController();
   final TextEditingController _salerateController = TextEditingController();
+
+  final TextEditingController _CashphonenoController = TextEditingController();
+  final TextEditingController _CashtotalamtController = TextEditingController();
+  final TextEditingController _CashsalerateController = TextEditingController();
   final TextEditingController _billnameController = TextEditingController();
   bool isCreditSelected = true;
-  DateTime? _fromDate;
-  DateTime? _toDate;
-  int? amount;
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
-  Future<void> _selectDate(BuildContext context, bool isFromDate) async {
-    final DateTime? selectedDate = await showDatePicker(
+ Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
 
-    if (selectedDate != null) {
+    if (picked != null && picked != DateTime.now()) {
       setState(() {
-        if (isFromDate) {
-          _fromDate = selectedDate;
-        } else {
-          _toDate = selectedDate;
-        }
-      });
+        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
      
-    }}
+      });
+    }
+  }
     @override
   void initState() {
     super.initState();
     fetch_options();
     _fetchLedgerIds();
+    _fetchLastInvoiceId();
+   _InvoicenoController.text;
+   _CustomerController.text;
+   _phonenoController.text;
+    _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
   }
     optionsDBHelper dbHelper = optionsDBHelper();
     List<String> salesrate = [];
@@ -65,11 +70,26 @@ class _SalesOrderState extends State<SalesOrder> {
       });
     }
    List<int> ledgerIds = [];
+   List <String> names=[];
 
 Future<void> _fetchLedgerIds() async {
   List<int> ids = await DatabaseHelper.instance.getAllLedgerIds();
+    List<String> cname = await DatabaseHelper.instance.getAllLedgerNames();
+
   setState(() {
     ledgerIds = ids;
+    names=cname;
+  });
+}
+int nextInvoiceId = 0; 
+Future<void> _fetchLastInvoiceId() async {
+  List<int> ledgerIds = await SaleDatabaseHelper.instance.getAllLedgerIds();
+  setState(() {
+    if (ledgerIds.isNotEmpty) {
+      nextInvoiceId = ledgerIds.last + 1;  
+    } else {
+      nextInvoiceId = 1;  
+    }
   });
 }
   void onSaleRateSelected(String value) {
@@ -101,14 +121,31 @@ void _fetchInvoiceData(int ledgerId) async {
     });
   }
 }
+void _fetchName_Data(String name) async {
+  DatabaseHelper dbHelper = DatabaseHelper.instance;
+  
+  List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
+  
+  var selectedLedger = ledgerData.firstWhere(
+    (row) => row[DatabaseHelper.columnLedgerName] == name,
+    orElse: () => {},
+  );
+  
+  if (selectedLedger.isNotEmpty) {
+    setState(() {
+            _InvoicenoController.text = selectedLedger[DatabaseHelper.columnId].toString();
 
+      _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
+    });
+  }
+}
 void _saveData()async{
   
   final creditsale=SalesCredit(
     
     invoiceId: int.parse(_InvoicenoController.text),
     date: _dateController.text, 
-    salesRate: double.parse(_salerateController.text),
+    salesRate: double.tryParse(_salerateController.text)??0.0,
      customer: _CustomerController.text,
       phoneNo: _phonenoController.text,
        itemName:widget.salesCredit!.itemName,
@@ -117,10 +154,80 @@ void _saveData()async{
           rate: widget.salesCredit!.rate,
            tax: widget.salesCredit!.tax, 
            totalAmt:double.parse(_totalamtController.text));
-           await SaleDatabaseHelper.instance.insert(creditsale.toMap());
+          int lastInsertedId= await SaleDatabaseHelper.instance.insert(creditsale.toMap());
+            await _saveLastInsertedIdToPayments(lastInsertedId, creditsale.customer);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('saved successfully')));
-   
+   await syncOpeningBalances(lastInsertedId);
 }
+
+void _saveDataCash()async{
+  
+  final Cashcreditsale=SalesCredit(
+    
+    invoiceId: nextInvoiceId,
+    date: _dateController.text, 
+    salesRate: double.tryParse(_CashsalerateController.text)??0.0,
+     customer: _billnameController.text,
+      phoneNo: _CashphonenoController.text,
+       itemName:widget.salesDebit!.itemName,
+        qty: widget.salesDebit!.qty,
+         unit: widget.salesDebit!.unit,
+          rate: widget.salesDebit!.rate,
+           tax: widget.salesDebit!.tax, 
+           totalAmt:double.parse(_CashtotalamtController.text));
+          int lastInsertedId= await SaleDatabaseHelper.instance.insert(Cashcreditsale.toMap());
+            await _saveLastInsertedIdToPayments(lastInsertedId, Cashcreditsale.customer);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('saved successfully')));
+  // await syncOpeningBalances(lastInsertedId);
+}
+
+Future<void> _saveLastInsertedIdToPayments(int lastInsertedId, String customer) async {
+  final ledgerHelper = DatabaseHelper.instance;
+
+  Map<String, dynamic>? ledger = await ledgerHelper.getLedgerByName(customer);
+
+  if (ledger != null) {
+    await ledgerHelper.updateLedgerBalance(customer, lastInsertedId.toDouble());
+  } else {
+    print("Ledger not found for customer: $customer");
+  }
+}
+
+Future<void> syncOpeningBalances(int lastInsertedId) async {
+  final paymentHelper = SaleDatabaseHelper.instance;
+  final ledgerHelper = DatabaseHelper.instance;
+
+  Map<String, dynamic>? payment = await paymentHelper.getRowById(lastInsertedId);
+
+  if (payment != null) {
+    String ledgerName = payment['customer'];
+    double saleTotal = payment['total_amt'] ?? 0.0;
+
+    Map<String, dynamic>? ledger = await ledgerHelper.getLedgerByName(ledgerName);
+
+    if (ledger != null) {
+      double receivedBalance = ledger[DatabaseHelper.columnReceivedBalance] ?? 0.0;
+      double payAmount = ledger[DatabaseHelper.columnPayAmount] ?? 0.0;
+      double openingBalance=payAmount-receivedBalance;
+      double updatedSaleTotal = (openingBalance - saleTotal).abs();
+
+      await ledgerHelper.updateLedgerBalance(ledgerName, updatedSaleTotal);
+
+      print("Updated ledger balance for $ledgerName: $updatedSaleTotal");
+    } else {
+      print("Ledger not found for customer: $ledgerName");
+    }
+  } else {
+    print("No payment found for ID: $lastInsertedId");
+  }
+
+  print("Opening balance synced for the last record.");
+}
+
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +242,16 @@ void _saveData()async{
         _totalamtController.text = totalAmt.toStringAsFixed(2);
   }
   _salerateController.addListener(updateTotalAmount);
+
+   void CashupdateTotalAmount() {
+    double qty = widget.salesDebit?.qty ?? 0.0;
+    double rate = widget.salesDebit?.rate ?? 0.0;
+    double tax = widget.salesDebit?.tax ?? 0.0;
+    double saleRate = double.tryParse(_CashsalerateController.text) ?? 0.0;
+        double totalAmt = (qty * rate) + tax + ((saleRate - rate) * qty);
+        _CashtotalamtController.text = totalAmt.toStringAsFixed(2);
+  }
+  _CashsalerateController.addListener(CashupdateTotalAmount);
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -144,7 +261,7 @@ void _saveData()async{
           padding: const EdgeInsets.only(top: 20),
           child: IconButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.of(context).push(MaterialPageRoute(builder: (context)=>HomePageERP()));
             },
             icon: Icon(
               Icons.arrow_back_ios_new_sharp,
@@ -261,7 +378,9 @@ void _saveData()async{
           ),
           GestureDetector(
             onTap: (){
+              _saveDataCash();
               _saveData();
+              
               },
             child: Container(
               width: 175,height: 53,
@@ -277,6 +396,8 @@ void _saveData()async{
     );
   }
 Widget _CreditScreenContent(double screenHeight,double screenWidth) {
+
+  
   List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
    double additem_total=widget.salesCredit?.totalAmt??0.0;
 
@@ -305,21 +426,23 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
     border: Border.all(color: Appcolors().searchTextcolor),
   ),
   child: SingleChildScrollView(
-                    child: EasyAutocomplete(
-                        controller: _InvoicenoController,
-                        suggestions: ledgerNamesAsString,
-                           
-                        onSubmitted: (value) {
-                          int selectedId = ledgerIds[ledgerNamesAsString.indexOf(value)];
-                        _fetchInvoiceData(selectedId);  // Handle selection
-                        },
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          
-                        ),
-                        suggestionBackgroundColor: Appcolors().Scfold,
-                      ),
-                  ),
+    physics: NeverScrollableScrollPhysics(),
+    child: EasyAutocomplete(
+        controller: _InvoicenoController,
+        suggestions: ledgerNamesAsString,
+           inputTextStyle: getFontsinput(14, Colors.black),
+        onSubmitted: (value) {
+          int selectedId = ledgerIds[ledgerNamesAsString.indexOf(value)];
+        _fetchInvoiceData(selectedId);  
+        },
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.only(bottom: 23,left: 5),
+        ),
+      
+        suggestionBackgroundColor: Appcolors().Scfold,
+      ),
+  ),
 )
 ,
         ],
@@ -339,45 +462,19 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                                     height: 26,
                           width: 172,
                                     decoration: BoxDecoration(
+                                      border: Border.all(color: Appcolors().searchTextcolor),
                                       borderRadius: BorderRadius.circular(5),
                                     ),
-                                    child: TextField(
-                                      onTap: () async {
-                                        DateTime? selectedDate = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(1900), 
-                                          lastDate: DateTime(2100), 
-                                        );
-                                        if (selectedDate != null) {
-                                          String formattedDate = DateFormat('MM/dd/yyyy').format(selectedDate);
-                                          
-                                          _dateController.text = formattedDate;
-                                        }
-                                      },
-                                      controller: _dateController,
-                                      readOnly: true, 
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(5),
-                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(5),
-                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(5),
-                                          borderSide: BorderSide(color: Appcolors().searchTextcolor),
-                                        ),
-                                        hintStyle: TextStyle(color: Appcolors().searchTextcolor,fontSize: 12),
-                                        hintText: "Select Date",
-                                      ),
-                                      autofocus: true,
-                                    ),
+                                    child:TextField(
+                                      style: getFontsinput(14, Colors.black),
+           readOnly: true,
+          controller: _dateController,
+           decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 11, horizontal: 10),
+                
+              ),
+        ),
                                   ),
         ],
       ),
@@ -413,7 +510,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                   Expanded(
                     child: TextFormField(
                       controller: _salerateController,
-                      
+                      style: getFontsinput(14, Colors.black),
                       obscureText: false,
                       decoration: InputDecoration(
                         border: InputBorder.none,
@@ -439,6 +536,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
             ),
         SizedBox(height: screenHeight * 0.01),
         Container(
+          
                     height: screenHeight * 0.05,
                     width: screenWidth * 0.9,
                     decoration: BoxDecoration(
@@ -447,22 +545,26 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                       border: Border.all(color: Appcolors().searchTextcolor),
                     ),
                     child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _CustomerController,
-                      
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+              padding: EdgeInsets.only(left: 10,bottom: 10),
+              child: SingleChildScrollView(
+                    child: EasyAutocomplete(
+                        controller: _CustomerController,
+                        suggestions: names,
+                        inputTextStyle: getFontsinput(14, Colors.black),
+                        onSubmitted: (value) {
+    if (!names.contains(value)) {
+      _showCreateItemDialog(value);  
+    } else {
+      _fetchName_Data(value);  
+    }
+  },
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          
+                        ),
+                        suggestionBackgroundColor: Appcolors().Scfold,
                       ),
-                    ),
                   ),
-                ],
-              ),
             )
                   ),
       ],
@@ -474,7 +576,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
              GestureDetector(
         onTap: () {
           Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => Addpaymant()));
+                        context, MaterialPageRoute(builder: (_) => Addpaymant(
+                        )));
         },
         child: Padding(
           padding: EdgeInsets.all(screenHeight * 0.03),
@@ -528,7 +631,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                         style: getFonts(14, Colors.red),
                       ),                  ],
                 ),
-                Text("...........................",style: getFonts(14, Colors.black)),
+                //Text("...........................",style: getFonts(14, Colors.black)),
                 // Text(".......................",style: getFonts(10, Colors.black),)
               ],)
             ],
@@ -541,6 +644,9 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
 
   // Cash Screen Content
   Widget _CashScreenContent(double screenHeight,double screenWidth) {
+      List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
+   double additem_total=widget.salesDebit?.totalAmt??0.0;
+   
     return Column(
       children: [
         SizedBox(height: screenHeight*0.02,),
@@ -558,6 +664,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
+            padding: EdgeInsets.symmetric(horizontal: 7,vertical: 2),
              height: 26, 
             width: 172,
             decoration: BoxDecoration(
@@ -565,18 +672,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
-            // child: EasyAutocomplete(
-            //             controller: _InvoicenoController,
-            //             //suggestions: vamnes
-            //                 //.map((jobcard) => jobcard['VehicleName'].toString())
-            //                 //.toList(),
-            //             // onSubmitted: (value) {
-            //             //   onJobcardSelected(value);  // Handle selection
-            //             // },
-            //             decoration: InputDecoration(
-            //               border: InputBorder.none,
-            //             ),
-            //           ),
+           child: Text("$nextInvoiceId",style: getFontsinput(14, Colors.black),),
           ),
         ],
       ),
@@ -599,21 +695,15 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
-            child: GestureDetector(
-                       onTap: () => _selectDate(context, false),
-                       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                         children: [
-                           
-                           Text(
-                             _toDate != null ? _dateFormat.format(_toDate!) : "",
-                             style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                           ),
-                           
-                           SizedBox(width: 5),
-                           Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor,size: 17,),
-                         ],
-                       ),
-                     ),
+            child:TextField(
+              style: getFontsinput(14, Colors.black),
+           readOnly: true,
+          controller: _dateController,
+           decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 11, horizontal: 10),
+              ),
+        ),
           ),
         ],
       ),
@@ -648,8 +738,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 children: [
                   Expanded(
                     child: TextFormField(
-                      controller: _salerateController,
-                      
+                      controller: _CashsalerateController,
+                      style: getFontsinput(14, Colors.black),
                       obscureText: false,
                       decoration: InputDecoration(
                         border: InputBorder.none,
@@ -667,7 +757,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
     SizedBox(height: screenHeight*0.03,),
             _field("Billing Name", _billnameController, screenWidth, screenHeight),
             SizedBox(height: screenHeight*0.03,),
-             _field("Phone Number", _phonenoController, screenWidth, screenHeight),
+             _field("Phone Number", _CashphonenoController, screenWidth, screenHeight),
              SizedBox(height: screenHeight*0.001,),
              GestureDetector(
         onTap: () {
@@ -711,7 +801,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
        Padding(
          padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.03),
          child: Container(
-          child: Row(
+          child:  Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Total Amount",style: getFonts(14, Colors.black),),
@@ -719,13 +809,17 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 Row(
                   children: [
                     Text("₹",style: getFonts(14, Colors.black)),
-                    Text("...........................",style: getFonts(14, Colors.black))
-                  ],
+ Text(
+                        _CashtotalamtController.text.isEmpty
+                            ? additem_total.toString()
+                            : _CashtotalamtController.text,
+                        style: getFonts(14, Colors.red),
+                      ),                  ],
                 ),
-                // Text(".......................",style: getFonts(10, Colors.black),)
+                
               ],)
             ],
-          ),
+          )
          ),
        )
       ],
@@ -756,6 +850,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 children: [
                   Expanded(
                     child: TextFormField(
+                      style: getFontsinput(14, Colors.black),
                       controller: controller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -778,4 +873,36 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
       ),
     );
   }
+  void _showCreateItemDialog(String CassAcc) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Appcolors().Scfold,
+        title: Text('Create new one'),
+        content: Text('Item "${_CustomerController.text}" does not exist. Would you like to create it?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Appcolors().maincolor),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).push(MaterialPageRoute(builder: (context)=>Newledger()));
+            },
+            child: Text(
+              'Create',
+              style: TextStyle(color: Appcolors().maincolor),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
 }

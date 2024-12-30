@@ -11,7 +11,7 @@ class Ledger {
   final double openingBalance;  // New field for opening balance
   final double receivedBalance; // New field for received balance
   final double payAmount;       // New field for pay amount
-
+  final String date;  
   Ledger({
     this.id,
     required this.ledgerName,
@@ -24,7 +24,8 @@ class Ledger {
     required this.balance,
     required this.openingBalance, // Initialize opening balance
     required this.receivedBalance, // Initialize received balance
-    required this.payAmount,       // Initialize pay amount
+    required this.payAmount,  
+    required this.date,     // Initialize pay amount
   });
 
   // Convert Ledger object to a Map for inserting into the database
@@ -40,7 +41,8 @@ class Ledger {
       'balance': balance,
       'opening_balance': openingBalance,  // Add opening balance to the map
       'received_balance': receivedBalance, // Add received balance to the map
-      'pay_amount': payAmount,            // Add pay amount to the map
+      'pay_amount': payAmount, 
+      'date': date,           // Add pay amount to the map
     };
   }
 
@@ -58,7 +60,8 @@ class Ledger {
       balance: map['balance'],
       openingBalance: map['opening_balance'] ?? 0.0,  // Default to 0.0 if not available
       receivedBalance: map['received_balance'] ?? 0.0, // Default to 0.0 if not available
-      payAmount: map['pay_amount'] ?? 0.0,            // Default to 0.0 if not available
+      payAmount: map['pay_amount'] ?? 0.0, 
+      date: map['date'],           // Default to 0.0 if not available
     );
   }
 }

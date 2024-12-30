@@ -5,7 +5,7 @@ import 'dart:async';
 
 class DatabaseHelper {
   static const _databaseName = "ledger.db";
-  static const _databaseVersion = 2; 
+  static const _databaseVersion = 3; 
 
   static const table = 'ledger_table';
   static const columnId = 'id';
@@ -20,6 +20,7 @@ class DatabaseHelper {
   static const columnOpeningBalance = 'opening_balance';
   static const columnReceivedBalance = 'received_balance';
   static const columnPayAmount = 'pay_amount';
+  static const columnDate = 'date';
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -59,12 +60,13 @@ class DatabaseHelper {
         $columnOpeningBalance REAL DEFAULT 0.0,
         $columnReceivedBalance REAL DEFAULT 0.0,
         $columnPayAmount REAL DEFAULT 0.0
+        $columnDate TEXT NOT NULL
       )
     ''');
   }
 
  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-  if (oldVersion < 2) {
+  if (oldVersion < 3) {
     final existingColumns = await _getTableColumns(db, table);
 
     if (!existingColumns.contains(columnOpeningBalance)) {
@@ -85,6 +87,12 @@ class DatabaseHelper {
       await db.execute('''
         ALTER TABLE $table
         ADD COLUMN $columnPayAmount REAL DEFAULT 0.0
+      ''');
+    }
+     if (!existingColumns.contains(columnDate)) {
+      await db.execute('''
+        ALTER TABLE $table
+        ADD COLUMN $columnDate TEXT DEFAULT ''
       ''');
     }
   }
@@ -211,16 +219,45 @@ Future<List<Map<String, dynamic>>> queryFilteredRows(DateTime? fromDate, DateTim
   String whereClause = '';
   List<dynamic> whereArgs = [];
 
+  // Check if ledgerName is provided
   if (ledgerName.isNotEmpty) {
     whereClause = '$columnLedgerName LIKE ?';
     whereArgs.add('%$ledgerName%');
   }
 
+  // Check if both fromDate and toDate are provided
   if (fromDate != null && toDate != null) {
     if (whereClause.isNotEmpty) whereClause += ' AND ';
-    // whereClause += '$columnDate BETWEEN ? AND ?';
+    whereClause += '$columnDate BETWEEN ? AND ?';
     whereArgs.add(fromDate.toIso8601String());
     whereArgs.add(toDate.toIso8601String());
+  }
+
+  // Perform the query with the whereClause and whereArgs
+  return await db.query(
+    table,
+    where: whereClause.isNotEmpty ? whereClause : null,
+    whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+  );
+}
+Future<List<Map<String, dynamic>>> queryFilteredRows2(String? fromDate, String? toDate, String ledgerName) async {
+  Database db = await instance.database;
+
+  String whereClause = '';
+  List<dynamic> whereArgs = [];
+
+  // Filter by ledger name if provided
+  if (ledgerName.isNotEmpty) {
+    whereClause = '$columnLedgerName LIKE ?';
+    whereArgs.add('%$ledgerName%');
+  }
+
+  // Filter by date range if both fromDate and toDate are provided
+  if (fromDate != null && toDate != null) {
+    if (whereClause.isNotEmpty) whereClause += ' AND ';
+    whereClause += '$columnDate BETWEEN ? AND ?';
+    whereArgs.add(fromDate);  // Use formatted date
+    whereArgs.add(toDate);    // Use formatted date
   }
 
   return await db.query(
@@ -230,5 +267,53 @@ Future<List<Map<String, dynamic>>> queryFilteredRows(DateTime? fromDate, DateTim
   );
 }
 
+Future<void> updateLedgerBalance22(String ledgerName, double newBalance) async {
+  final db = await database;
+  await db.update(
+    'ledger_table', // The ledger table name
+    {'opening_balance': newBalance}, // Update the opening balance
+    where: 'ledger_name = ?', // Condition to match the correct ledger
+    whereArgs: [ledgerName],
+  );
+}
+
+Future<int?> getLedgerIdByName(String ledgerName) async {
+  final db = await database; // Assuming database is your instance of SQLite
+  var result = await db.query(
+    'ledger',  // Your ledger table name
+    where: 'ledgerName = ?',  // Adjust based on your column name
+    whereArgs: [ledgerName],
+  );
+
+  if (result.isNotEmpty) {
+    return result.first['id'] as int?; // Assuming 'id' is the column name for ledgerId
+  }
+  return null;  // Return null if no matching ledger is found
+}
+
+
+  Future<Map<String, dynamic>?> getLedgerById(int ledgerId) async {
+    final db = await database;
+    var result = await db.query(
+      'ledger', // Adjust based on your table name
+      where: 'id = ?', // Assuming 'id' is the column name for ledgerId
+      whereArgs: [ledgerId],
+    );
+    
+    if (result.isNotEmpty) {
+      return result.first; // Return the ledger details as a Map
+    }
+    return null; // Return null if no matching ledger is found
+  }
+
+  Future<void> saleupdateLedgerBalance(int ledgerId, double newBalance) async {
+    final db = await database;
+    await db.update(
+      'ledger', // Adjust based on your table name
+      {'openingBalance': newBalance}, // Assuming you are updating the 'openingBalance' column
+      where: 'id = ?',
+      whereArgs: [ledgerId],
+    );
+  }
 
 }

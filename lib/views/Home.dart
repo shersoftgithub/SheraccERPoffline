@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/Ledgerreport.dart';
@@ -29,7 +30,7 @@ class _HomePageERPState extends State<HomePageERP> {
     "Ledger",
     "Payment Report",
     "Receipt Report",
-    "purchase Report",
+    "Exit",
     "Stock Report"
   ];
 
@@ -43,10 +44,43 @@ class _HomePageERPState extends State<HomePageERP> {
     "assets/images/payment report.png",
     "assets/images/reciept report.png"
 
-    ,"assets/images/purchase reports.png",
+    ,"assets/images/logout.png",
     "assets/images/stock report.png"
   ];
-
+ List<String> menuItems = [
+  "Company","configure","settings","sync Data","Backup","Export Backup","Clear Data",
+ ];
+ void navigateToPage(BuildContext context, String item) {
+    switch (item) {
+      case "Company":
+        //Navigator.push(context, MaterialPageRoute(builder: (context) => CompanyPage()));
+        break;
+      case "Configure":
+       // Navigator.push(context, MaterialPageRoute(builder: (context) => ConfigurePage()));
+        break;
+      case "Settings":
+       // Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+        break;
+      case "Sync Data":
+        // Handle sync data logic here
+        print("Syncing data...");
+        break;
+      case "Backup":
+        // Handle backup logic here
+        print("Backup...");
+        break;
+      case "Export Backup":
+        // Handle export backup logic here
+        print("Exporting backup...");
+        break;
+      case "Clear Data":
+        // Handle clear data logic here
+        print("Clearing data...");
+        break;
+      default:
+        print("Unknown option selected: $item");
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -60,6 +94,7 @@ class _HomePageERPState extends State<HomePageERP> {
       appBar: AppBar(
         toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
+        leading: Text(""),
         title: Center(
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
@@ -71,36 +106,22 @@ class _HomePageERPState extends State<HomePageERP> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(top: 20),
+            padding: EdgeInsets.only(top: 20,right: 10),
             child: PopupMenuButton<String>(
-              onSelected: (value) {
-                // Handle the selected value (optional)
-                print("Selected: $value");
-              },
-              icon: Icon(
-                Icons.more_vert,
-                color: Colors.white,
-              ),
-              itemBuilder: (BuildContext context) {
-                List<String> menuItems = List.generate(14, (index) => 'Item ${index + 1}');
-
-                return menuItems.map((String item) {
-                  return PopupMenuItem<String>(
-                    value: item,
-                    child: TextButton(
-                      onPressed: () {
-                        // Handle navigation based on the item
-                        navigateToPage(context, item);
-                      },
-                      child: Text(
-                        item,
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  );
-                }).toList();
-              },
-            ),
+          onSelected: (String selectedItem) {
+            // Call navigation function when a menu item is selected
+            navigateToPage(context, selectedItem);
+          },
+          itemBuilder: (BuildContext context) {
+            return menuItems.map((String item) {
+              return PopupMenuItem<String>(
+                value: item,
+                child: Text(item),
+              );
+            }).toList();
+          },
+          child: Icon( Icons.more_vert,color: Colors.white,),
+        ),
           ),
         ],
       ),
@@ -144,8 +165,7 @@ class _HomePageERPState extends State<HomePageERP> {
                     Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Recieptreport()));
                   }else if(index==8){
-                    Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => Purcahsereport()));
+                    exit();
                   }else if(index==9){
                     Navigator.push(
                         context, MaterialPageRoute(builder: (_) => StockReport()));
@@ -201,34 +221,61 @@ class _HomePageERPState extends State<HomePageERP> {
       ),
     );
   }
-  void navigateToPage(BuildContext context, String item) {
-    // Navigate to a different page based on the selected item
-    switch (item) {
-      case 'Item 1':
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => Page1()),
-        // );
-        break;
-      case 'Item 2':
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => Page2()),
-        // );
-        break;
-      case 'Item 3':
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => Page3()),
-        // );
-        break;
-      // Add more cases for the remaining items
-      // default:
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => DefaultPage()),
-      //   );
-    }
+  // void navigateToPage(BuildContext context, String item) {
+  //   // Navigate to a different page based on the selected item
+  //   switch (item) {
+  //     case 'Item 1':
+  //       // Navigator.push(
+  //       //   context,
+  //       //   MaterialPageRoute(builder: (context) => Page1()),
+  //       // );
+  //       break;
+  //     case 'Item 2':
+  //       // Navigator.push(
+  //       //   context,
+  //       //   MaterialPageRoute(builder: (context) => Page2()),
+  //       // );
+  //       break;
+  //     case 'Item 3':
+  //       // Navigator.push(
+  //       //   context,
+  //       //   MaterialPageRoute(builder: (context) => Page3()),
+  //       // );
+  //       break;
+  //     // Add more cases for the remaining items
+  //     // default:
+  //     //   Navigator.push(
+  //     //     context,
+  //     //     MaterialPageRoute(builder: (context) => DefaultPage()),
+  //     //   );
+  //   }
+  // }
+  void exit() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(backgroundColor: Appcolors().Scfold,
+         
+          content: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Text('Are you confirm To Exit App?',style: getFonts(14, Colors.black),),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel',style: getFonts(15, Appcolors().maincolor)),
+            ),
+            TextButton(
+              onPressed: () async {
+              SystemNavigator.pop();
+              },
+              child: Text('Yes',style: getFonts(15, Appcolors().maincolor),),
+            ),
+          ],
+        );
+      },
+    );
   }
-
 }

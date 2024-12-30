@@ -8,7 +8,7 @@ class PaymentModel {
   final double discount;
   final double total;
   final String narration;
-
+  
   PaymentModel({
     this.id,
     required this.date,

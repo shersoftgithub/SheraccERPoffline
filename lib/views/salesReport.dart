@@ -1,7 +1,9 @@
+import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/salesreportShow.dart';
@@ -24,7 +26,7 @@ class _SalesReportState extends State<SalesReport> {
  final TextEditingController _salesmanController=TextEditingController();
   DateTime? _fromDate;
   DateTime? _toDate;
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
@@ -48,19 +50,29 @@ class _SalesReportState extends State<SalesReport> {
    bool _isCheckedd = false;
   String selectedValue = "Report Type";
   bool isExpanded = false; 
-  final List<String> reportTypes = [
-    "Report 1",
-    "Report 2",
-    "Report 3",
-    "Report 4",
-    "Report 5",
-  ];
+  
+
+  @override
+  void initState() {
+    super.initState();
+  _fetchCustomerItemData();
+
+  }
 final GlobalKey _arrowKey = GlobalKey();
 optionsDBHelper dbHelper=optionsDBHelper();
 List salieretype=[];
 Future<void> salesreporttype()async{
   salieretype=await dbHelper.getOptionsByType("sales_reporttype");
 }
+List<Map<String, String>> ItemList = [];
+List<Map<String, String>> customer = [];
+Future<void> _fetchCustomerItemData() async {
+    List<Map<String, String>> data = await SaleDatabaseHelper.instance.getAll();
+    setState(() {
+      customer = data;  
+      ItemList=data;
+    });
+  }
   @override
   
   Widget build(BuildContext context) {
@@ -162,7 +174,13 @@ Future<void> salesreporttype()async{
              SizedBox(height: screenHeight * 0.0002),
               GestureDetector(
           onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ShowSalesReport()));
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => ShowSalesReport(
+                          customerName: _selectSupplierController.text,
+                          itemName: _selectItemnameController.text,
+                          fromDate: _fromDate,
+                          toDate: _toDate,
+                        )));
           },
           child: Padding(
             padding: EdgeInsets.all(screenHeight * 0.03),
@@ -187,14 +205,56 @@ Future<void> salesreporttype()async{
           child: Container(
             child: Column(
               children: [
-                _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
+                SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: EasyAutocomplete(
+                      controller: _selectSupplierController,
+                      suggestions: customer
+                          .map((item) => item['customer']!) 
+                          .toList(),
+                         
+                      onSubmitted: (value) {
+                                },
+                                    decoration: InputDecoration(
+                  border: UnderlineInputBorder(),
+                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  hintText: "Select Supplier",
+                  hintStyle: TextStyle(fontSize: 14)
+                                ),
+                  suggestionBackgroundColor: Appcolors().Scfold,
+                    ),
+                ),
+              ),
+                //_salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
                 SizedBox(height: screenHeight * 0.0002),
-                _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Manufacture", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Category", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Group", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Salesman", _selectSupplierController, screenWidth, screenHeight)
+                _salefield("Select Item Code", _selectItemcodeController, screenWidth, screenHeight),
+                 SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: EasyAutocomplete(
+                      controller: _selectItemnameController,
+                      suggestions: ItemList
+                          .map((item) => item['item_name']!)  
+                          .toList(),
+                         
+                      onSubmitted: (value) {
+                                },
+                      decoration: InputDecoration(
+                  border: UnderlineInputBorder(),
+                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  hintText: "Select Item Name",
+                  hintStyle: TextStyle(fontSize: 14)
+                                ),
+                                suggestionBackgroundColor: Appcolors().Scfold,
+                    ),
+                ),
+              ),
+                //_salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Manufacture", _manufactureController, screenWidth, screenHeight),
+                _salefield("Category", _categoryController, screenWidth, screenHeight),
+                _salefield("Group", _groupController, screenWidth, screenHeight),
+                _salefield("Salesman", _salesmanController, screenWidth, screenHeight)
           
               ],
             ),
@@ -396,16 +456,14 @@ void _showPopupMenu() async {
     );
   }
 
-  // This function builds each row with a checkbox and its text.
   Widget buildCheckboxRow(int index, String text, double screenHeight) {
     return Row(
       children: [
         SizedBox(height: screenHeight * 0.02),
         Checkbox(
-          value: selectedIndex == index, // Only check the checkbox if the index matches
+          value: selectedIndex == index, 
           onChanged: (bool? value) {
             setState(() {
-              // If the value is true, select the checkbox, else deselect it.
               selectedIndex = value! ? index : null;
             });
           },

@@ -1,6 +1,7 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/newLedger.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
@@ -8,6 +9,7 @@ import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
 class Newledger extends StatefulWidget {
+  
   const Newledger({super.key});
 
   @override
@@ -24,7 +26,7 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
   final TextEditingController _balanceController = TextEditingController();
   final TextEditingController _LedgernameController = TextEditingController();
   final TextEditingController _underController = TextEditingController();
-  final TextEditingController _selectSupplierController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
   final TextEditingController _openingBalanceController = TextEditingController();
   final TextEditingController _reievedAmtController = TextEditingController();
   final TextEditingController _PayAmtController = TextEditingController();
@@ -34,6 +36,7 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
     _tabController = TabController(length: 3, vsync: this);
     fetch_options();
     _loadUnderSuggestions();
+    _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
   }
 
   @override
@@ -54,55 +57,35 @@ bool isBasicDataSaved = false;
 Ledger? tempLedger;  
 void _saveData() async {
   try {
-    if (!isBasicDataSaved) {
-      tempLedger = Ledger(
-        ledgerName: _LedgernameController.text, 
-      under: _underController.text, 
-      address: '', 
-      contact: '',
-      mail: '',
-      taxNo: '',
-      priceLevel: '',
-      balance: 0.0,
-      openingBalance: 0.0,
-      receivedBalance: 0.0,
-      payAmount: 0.0
-      );
-      isBasicDataSaved = true;
+    double receivedBalance = double.tryParse(_reievedAmtController.text) ?? 0.0;
+    double payAmount = double.tryParse(_PayAmtController.text) ?? 0.0;
+    double openingBalance = (receivedBalance - payAmount).abs();
+    final ledger = Ledger(
+      ledgerName: _LedgernameController.text,
+      under: _underController.text,
+      address: _adressController.text,
+      contact: _contactController.text,
+      mail: _mailController.text,
+      taxNo: _taxnoController.text,
+      priceLevel: _pricelevelController.text,
+      balance: double.tryParse(_balanceController.text) ?? 0.0,
+      openingBalance: openingBalance,
+      receivedBalance: receivedBalance,
+      payAmount: payAmount,
+      date: _dateController.text,
+    );
+
+    int id = await DatabaseHelper.instance.insert(ledger.toMap());
+    print('Inserted ledger with ID: $id'); 
+
+    if (id > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Basic data saved temporarily')),
+        SnackBar(content: Text('saved successfully ')),
       );
     } else {
-      final ledger = Ledger(
-        ledgerName: tempLedger!.ledgerName,
-        under: tempLedger!.under,
-        address: _adressController.text,
-        contact: _contactController.text,
-        mail: _mailController.text,
-        taxNo: _taxnoController.text,
-        priceLevel: _pricelevelController.text,
-        balance: double.tryParse(_balanceController.text) ?? 0.0,
-        openingBalance: double.tryParse(_openingBalanceController.text) ?? 0.0,
-        receivedBalance: double.tryParse(_reievedAmtController.text) ?? 0.0,
-        payAmount: double.tryParse(_PayAmtController.text) ?? 0.0,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save data')),
       );
-
-      // Insert the ledger and capture the inserted ID
-      int id = await DatabaseHelper.instance.insert(ledger.toMap());
-      print('Inserted ledger with ID: $id'); // Debug output
-
-      if (id != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Full data saved successfully with ID $id')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save data')),
-        );
-      }
-
-      isBasicDataSaved = false;
-      tempLedger = null;
     }
   } catch (e) {
     print('Error while saving data: $e');
@@ -111,6 +94,8 @@ void _saveData() async {
     );
   }
 }
+
+
 
 // void _saveData() async {
 //   try {
@@ -196,6 +181,21 @@ optionsDBHelper dbHelper = optionsDBHelper();
           .where((item) => item.toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
+  }
+
+   Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (picked != null && picked != DateTime.now()) {
+      setState(() {
+        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+      });
+    }
   }
   @override
   Widget build(BuildContext context) {
@@ -341,56 +341,59 @@ optionsDBHelper dbHelper = optionsDBHelper();
   Widget _AccountTab(double screenHeight,double screenWidth) {
     return Column(
       children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: screenHeight * .02),
-          child: Column(
-            children: [
-              SizedBox(height: screenHeight * 0.05),
-              _accfield(
-                screenHeight,
-                screenWidth,
-                "Ledger Name",
-                _LedgernameController,
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: screenHeight * .02),
+            child: Column(
+              children: [
+                SizedBox(height: screenHeight * 0.05),
+                _accfield(
+                  screenHeight,
+                  screenWidth,
+                  "Ledger Name",
+                  _LedgernameController,
+                ),
+                SizedBox(height: screenHeight * 0.03),
+                Container(
+                child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  
+                  'Under',
+                  style: formFonts(14, Colors.black),
+                ),
+            SizedBox(height: screenHeight * 0.01),
+            Container(padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02,vertical: screenWidth * 0.02),
+               height: screenHeight * 0.06,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
               ),
-              SizedBox(height: screenHeight * 0.03),
-              Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-        Text(
-                
-                'Under',
-                style: formFonts(14, Colors.black),
-              ),
-          SizedBox(height: screenHeight * 0.01),
-          Container(
-             height: screenHeight * 0.06,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-           child: SingleChildScrollView(
-             child: EasyAutocomplete(
-                 controller: _underController,
-                 suggestions: _underSuggestions,
-                    
-                 onSubmitted: (value) {
-                   _onUnderTextChanged(value);  
-                 },
-                 decoration: InputDecoration(
-                   border: InputBorder.none,
-                   contentPadding: EdgeInsets.only(bottom: 20)
+             child: SingleChildScrollView(
+               child: EasyAutocomplete(
+                   controller: _underController,
+                   suggestions: _underSuggestions,
+                     inputTextStyle: getFontsinput(14, Colors.black), 
+                   onSubmitted: (value) {
+                     _onUnderTextChanged(value);  
+                   },
+                   decoration: InputDecoration(
+                     border: InputBorder.none,
+                     contentPadding: EdgeInsets.only(bottom: 20)
+                   ),
+                   suggestionBackgroundColor: Appcolors().Scfold,
                  ),
-                 suggestionBackgroundColor: Appcolors().Scfold,
-               ),
-           ),
-          ),
-        ],
-      ),
-    )
-            ],
+             ),
+            ),
+          ],
+                ),
+              )
+              ],
+            ),
           ),
         ),
       ],
@@ -416,12 +419,12 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
             children: [
               Text(
                 label,
-                style: getFonts(14, Colors.black),
+                style: formFonts(14, Colors.black),
               ),
             ],
           ),
           SizedBox(height: screenHeight * 0.01),
-          Container(
+          Container(padding: EdgeInsets.symmetric(vertical: screenHeight*0.025),
             height: screenHeight * 0.06,
             width: screenWidth * 0.9,
             decoration: BoxDecoration(
@@ -436,6 +439,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: TextFormField(
+                      style: getFontsinput(14, Colors.black),
                       controller: controller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -490,7 +494,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
             ],
           ),
           SizedBox(height: screenHeight * 0.01),
-          Container(
+          Container(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01,vertical: screenHeight*0.01),
             height: screenHeight * 0.06,
             width: screenWidth * 0.9,
             decoration: BoxDecoration(
@@ -499,47 +503,20 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
             child: 
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                      child: Autocomplete<String>(
-                        optionsBuilder: (TextEditingValue textEditingValue) {
-                          return salesrate.where((String option) {
-                            return option
-                                .toLowerCase()
-                                .contains(textEditingValue.text.toLowerCase());
-                          }).toList();
-                        },
-                        onSelected: (value) {
-                          onSaleRateSelected(value); 
-                        },
-                        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                          return TextField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            onEditingComplete: onEditingComplete,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                            
-                            ),
-                            keyboardType: TextInputType.none,
-                          );
-                        },
-                        optionsViewBuilder: (context, onSelected, options) {
-                          return Container(
-                            color: Appcolors().Scfold,
-                            height: screenHeight * 0.2, 
-                            child: ListView(
-                              children: options
-                                  .map((e) => ListTile(
-                                        title: Text(e),
-                                        onTap: () => onSelected(e),
-                                      ))
-                                  .toList(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                    SingleChildScrollView(
+             child: EasyAutocomplete(
+                 controller: _pricelevelController,
+                 suggestions: salesrate,
+                 inputTextStyle: getFontsinput(14, Colors.black),    
+                 onSubmitted: (value) {
+                 },
+                 decoration: InputDecoration(
+                   border: InputBorder.none,
+                   contentPadding: EdgeInsets.only(bottom: 20)
+                 ),
+                 suggestionBackgroundColor: Appcolors().Scfold,
+               ),
+           ),
           ),
         ],
       ),
@@ -556,59 +533,66 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
   }
 
   Widget _OpeningBalanceTab(double screenHeight,double screenWidth) {
-    return Column(
-      children: [
-         SizedBox(height: screenHeight * 0.03),
-        Center(
-          child: Text("Opening Balance",style: getFonts(16, Color(0xFF0008B4)),),
+    return SingleChildScrollView(
+      physics: ScrollPhysics(),
+      child: Column(
+        children: [
+           SizedBox(height: screenHeight * 0.03),
+      
+          Center(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: screenHeight*0.024),
+        height: screenHeight * 0.04,
+        width: screenWidth * 0.4,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: Colors.grey.shade600)
         ),
-         SizedBox(height: screenHeight * 0.01),
-        Center(
-          child: Container(
-      height: screenHeight * 0.04,
-      width: screenWidth * 0.4,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: Colors.grey.shade600)
-      ),
-      child: TextField(
-        controller: _openingBalanceController,
-      ),
-    ),
+        child: TextField(
+          style: getFontsinput(14, Colors.black),
+           readOnly: true,
+          controller: _dateController,
+           decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+              ),
         ),
-        SizedBox(height: screenHeight * 0.04),
-        Padding(
-          padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.03),
-          child: Container(
-            
-            child: Column(
-              children: [
-                Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _field("Recieve Amount", screenWidth, screenHeight,_reievedAmtController),
-              _field("Pay Amount", screenWidth, screenHeight,_PayAmtController)
-            ],
+      ),
           ),
-          SizedBox(height: screenHeight * 0.03),
-                   Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buttonOB(screenHeight, screenWidth, "Active"),
-                   _buttonOB(screenHeight, screenWidth, "Cost Center"),
-          ],
-                   ),
-                   SizedBox(height: screenHeight * 0.02),
-                   Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buttonOB(screenHeight, screenWidth, "Franchise"),
-                   _buttonOB(screenHeight, screenWidth, "Bill Wise")
-          ],
-                   )
+          SizedBox(height: screenHeight * 0.04),
+          Padding(
+            padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.03),
+            child: Container(
+              
+              child: Column(
+                children: [
+                  Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _field("Recieve Amount(Dr)", screenWidth, screenHeight,_reievedAmtController),
+                _field("Pay Amount(Cr)", screenWidth, screenHeight,_PayAmtController)
               ],
             ),
-          ),
-        )
-      ],
+            SizedBox(height: screenHeight * 0.03),
+                     Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buttonOB(screenHeight, screenWidth, "Active"),
+                     _buttonOB(screenHeight, screenWidth, "Cost Center"),
+            ],
+                     ),
+                     SizedBox(height: screenHeight * 0.02),
+                     Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buttonOB(screenHeight, screenWidth, "Franchise"),
+                     _buttonOB(screenHeight, screenWidth, "Bill Wise")
+            ],
+                     )
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
     );
   }
 
@@ -627,7 +611,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
             ],
           ),
           SizedBox(height: screenHeight * 0.01),
-          Container(
+          Container(padding: EdgeInsets.symmetric(vertical: screenHeight*0.024),
             height: screenHeight * 0.06,
             width: screenWidth * 0.9,
             decoration: BoxDecoration(
@@ -635,29 +619,27 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: Row(
-                children: [
-                  SizedBox(width: screenWidth * 0.02),
-                  Expanded(
-                    child: TextFormField(
-                      controller: controller,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter $label';
-                        }
-                        return null;
-                      },
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
-                      ),
+            child: Row(
+              children: [
+                SizedBox(width: screenWidth * 0.02),
+                Expanded(
+                  child: TextFormField(
+                    style: getFontsinput(14, Colors.black),
+                    controller: controller,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter $label';
+                      }
+                      return null;
+                    },
+                    obscureText: false,
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -687,12 +669,13 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.01,vertical: screenHeight*0.014),
               child: Row(
                 children: [
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: TextFormField(
+                      style: getFontsinput(14, Colors.black),
                       controller: controller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -700,11 +683,13 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
                         }
                         return null;
                       },
+                      textAlign: TextAlign.right,
                       obscureText: false,
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
                       ),
+                    keyboardType: TextInputType.number,
                     ),
                   ),
                 ],

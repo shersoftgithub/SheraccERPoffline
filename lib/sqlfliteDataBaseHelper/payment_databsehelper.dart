@@ -100,22 +100,24 @@ class PaymentDatabaseHelper {
   return result;
 }
 
-Future<List<Map<String, dynamic>>> queryFilteredRows(DateTime? fromDate, DateTime? toDate, String ledgerName) async {
+Future<List<Map<String, dynamic>>> queryFilteredRows(String? fromDate, String? toDate, String ledgerName) async {
   Database db = await instance.database;
 
   String whereClause = '';
   List<dynamic> whereArgs = [];
 
+  // Filter by ledger name if provided
   if (ledgerName.isNotEmpty) {
     whereClause = '$columnLedgerName LIKE ?';
     whereArgs.add('%$ledgerName%');
   }
 
+  // Filter by date range if both fromDate and toDate are provided
   if (fromDate != null && toDate != null) {
     if (whereClause.isNotEmpty) whereClause += ' AND ';
-     whereClause += '$columnDate BETWEEN ? AND ?';
-    whereArgs.add(fromDate.toIso8601String());
-    whereArgs.add(toDate.toIso8601String());
+    whereClause += '$columnDate BETWEEN ? AND ?';
+    whereArgs.add(fromDate);  // Use formatted date
+    whereArgs.add(toDate);    // Use formatted date
   }
 
   return await db.query(

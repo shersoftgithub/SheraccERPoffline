@@ -18,7 +18,7 @@ class _LedgerReportState extends State<LedgerReport> {
   final TextEditingController ledgernamesController=TextEditingController();
 DateTime? _fromDate;
   DateTime? _toDate;
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
@@ -71,6 +71,7 @@ void _showLedgerWithFilters() {
         fromDate: _fromDate,
         toDate: _toDate,
         ledgerName: ledgernamesController.text,
+        showOpeningBalance: _isChecked,
       ),
     ),
   );
