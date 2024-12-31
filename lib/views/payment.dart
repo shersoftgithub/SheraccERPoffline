@@ -36,9 +36,20 @@ class _PaymentFormState extends State<PaymentForm> {
    _fetchLedgerNames();
    _fetchCashAcc();
        _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
-
+   _DiscountController.addListener(_calculateTotal);
+    _amountController.addListener(_calculateTotal);
+    _balanceController.addListener(_calculateTotal);
   }
+  double _total = 0.0; 
+ void _calculateTotal() {
+    final double amount = double.tryParse(_amountController.text) ?? 0.0;
+    final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
+    final double balance = double.tryParse(_balanceController.text) ?? 0.0;
 
+    setState(() {
+      _total = balance - amount - discount;
+    });
+  }
     
 
   void onJobcardSelected(String value) {
@@ -88,7 +99,7 @@ class _PaymentFormState extends State<PaymentForm> {
   if (selectedLedger.isNotEmpty) {
     double openingBalance = selectedLedger[DatabaseHelper.columnPayAmount] ?? 0.0;
     double receivedBalance = selectedLedger[DatabaseHelper.columnReceivedBalance] ?? 0.0;
-    double balance = selectedLedger[DatabaseHelper.columnOpeningBalance] ?? 0.0;
+    double balance = (selectedLedger[DatabaseHelper.columnOpeningBalance] ?? 0.0).abs();
     double remainingBalance = openingBalance-receivedBalance;
     setState(() {
       _balanceController.text = balance.toStringAsFixed(2);
@@ -104,7 +115,7 @@ void _saveData() async {
   final double amount = double.tryParse(_amountController.text) ?? 0.0;
   final double balance = double.tryParse(_balanceController.text) ?? 0.0;
   final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
-  final double total = balance - amount; 
+  final double total = balance - amount - discount;
 
   final payment = PaymentModel(
     date: _dateController.text,
@@ -113,17 +124,36 @@ void _saveData() async {
     balance: balance,
     amount: amount,
     discount: discount,
-    total: total, 
+    total: total,
     narration: _narrationController.text,
-    
   );
 
-  await PaymentDatabaseHelper.instance.insert(payment.toMap());
+  bool ledgerExists = await PaymentDatabaseHelper.instance.doesLedgerExist(payment.ledgerName);
 
+  if (ledgerExists) {
+    await PaymentDatabaseHelper.instance.updatePaymentBalance(
+      payment.ledgerName,
+      payment.total.toString(),
+      payment.amount.toString(),
+      payment.balance,
+    );
+  } else {
+    await PaymentDatabaseHelper.instance.insert(payment.toMap());
+  }
   await syncOpeningBalances();
-
+  await syncOpeningBalances2();
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved successfully')));
+  setState(() {
+    _amountController.clear();
+    _balanceController.clear();
+    _DiscountController.clear();
+    _dateController.clear();
+    _cashAccController.clear();
+    _selectlnamesController.clear();
+    _narrationController.clear();
+  });
 }
+
 
 
 
@@ -161,13 +191,51 @@ void _onItemnamecreateChanged(String value) async {
   print("Opening balances updated successfully!");
 }
 
+Future<void> syncOpeningBalances2() async {
+  final paymentHelper = PaymentDatabaseHelper.instance;
+  List<Map<String, dynamic>> payments = await paymentHelper.queryAllRows();
+
+  for (var payment in payments) {
+    String ledgerName = payment['ledgerName'];
+    double paymentTotal = payment['total'] ?? 0.0; 
+    double amount = payment['amount'] ?? 0.0; 
+    bool ledgerExists = await paymentHelper.doesLedgerExist(ledgerName);
+
+    if (ledgerExists) {
+      Map<String, dynamic>? ledger = await paymentHelper.getLedgerByName(ledgerName);
+      
+      if (ledger != null) {
+        double newBalance = ledger['balance'] ?? 0.0; 
+        await paymentHelper.updatePaymentBalance(
+          ledgerName, 
+          paymentTotal.toString(), 
+          amount.toString(),
+          newBalance,
+        );
+      }
+    } else {
+     
+    }
+  }
+
+  print("updated successfully!");
+}
+
+
+
+
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-double total = (double.tryParse(_balanceController.text) ?? 0.0) - (double.tryParse(_amountController.text) ?? 0.0);
+double total = ((double.tryParse(_balanceController.text) ?? 0.0) - (double.tryParse(_amountController.text) ?? 0.0))-(double.tryParse(_DiscountController.toString()) ?? 0.0);
+
 print('Total: $total');
-double _TotalController=total;
+double _TotalController=_total;
+
+
+
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -220,39 +288,7 @@ double _TotalController=total;
         Container(
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-        Text(
-                
-                'Date',
-                style: formFonts(14, Colors.black),
-              ),
-          SizedBox(height: screenHeight * 0.01),
-         Container(
-          padding: EdgeInsets.symmetric(vertical: 3),
-                 height: 35,
-                          width: 172,
-                                    decoration: BoxDecoration(
-                                       border: Border.all(color: Appcolors().searchTextcolor),
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                    child:  TextField(
-                                      style: getFontsinput(14, Colors.black),
-           readOnly: true,
-          controller: _dateController,
-           decoration: InputDecoration(
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-              ),
-        ),
-                                  ),
-        
-        ],
-      ),
-    ),
-              Container(
+                      Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -263,8 +299,8 @@ double _TotalController=total;
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-             height: 35, 
-            width: 172,
+              height: screenHeight * 0.042, 
+              width: screenWidth * 0.42,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
               color: Colors.white,
@@ -292,39 +328,44 @@ double _TotalController=total;
         ],
       ),
     ),
+              Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Text(
+                
+                'Date',
+                style: formFonts(14, Colors.black),
+              ),
+          SizedBox(height: screenHeight * 0.01),
+         Container(
+          padding: EdgeInsets.symmetric(vertical: 3),
+                 height: screenHeight * 0.042, 
+              width: screenWidth * 0.42,
+                                    decoration: BoxDecoration(
+                                       border: Border.all(color: Appcolors().searchTextcolor),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child:  TextField(
+                                      style: getFontsinput(14, Colors.black),
+           readOnly: true,
+          controller: _dateController,
+           decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+              ),
+        ),
+                                  ),
+        
+        ],
+      ),
+    ),
+      
      
             ],
           ),
         ),
-        GestureDetector(
-        onTap: () {
-          Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => Newledger()));
-        },
-        child: Padding(
-          padding: EdgeInsets.all(screenHeight * 0.03),
-          child: Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.8,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Color(0xFF0A1EBE),
-            ),
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add,color: Colors.white,size: 17,),
-                  Text(
-                    "Add New Ledger",
-                    style: getFonts(14, Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+       SizedBox(height: screenHeight * 0.02),
       Container(
         padding: EdgeInsets.symmetric(horizontal: screenHeight*0.025),
       child: Column(
@@ -374,7 +415,36 @@ double _TotalController=total;
         ],
       ),
     ),
-    SizedBox(height: screenHeight * 0.02),
+     GestureDetector(
+        onTap: () {
+          Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Newledger()));
+        },
+        child: Padding(
+          padding: EdgeInsets.all(screenHeight * 0.03),
+          child: Container(
+            height: screenHeight * 0.05,
+            width: screenWidth * 0.8,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Color(0xFF0A1EBE),
+            ),
+            child: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add,color: Colors.white,size: 17,),
+                  Text(
+                    "Add New Ledger",
+                    style: getFonts(14, Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    
     Padding(
       padding: const EdgeInsets.only(right: 190),
       child: Container(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
@@ -397,8 +467,8 @@ double _TotalController=total;
       child: Container(
         child: Row(
           children: [
-            Text("Total : ",style: getFonts(14, Appcolors().maincolor),),
-            Text("${_TotalController.toString()}",style: getFonts(14, Colors.black),)
+            Text("Total : ",style: getFonts(16, Appcolors().maincolor),),
+            Text("${_TotalController.toString()}",style: getFonts(16, Colors.black),)
           ],
         ),
       ),
@@ -444,6 +514,7 @@ double _TotalController=total;
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: TextFormField(
+                      textAlign: TextAlign.right,
                       style: getFontsinput(14, Colors.black),
                       controller: controller,
                       validator: (value) {

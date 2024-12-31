@@ -113,6 +113,12 @@ Future<List<String>> getAllLedgerNames() async {
     String path = join(await getDatabasesPath(), _databaseName);
     await deleteDatabase(path);
   }
+  
+  Future<void> clearAllReceipts() async {
+  Database db = await instance.database;
+  await db.delete(table);
+}
+
 
 Future<List<Map<String, dynamic>>> queryFilteredRows(String? fromDate, String? toDate, String ledgerName) async {
   Database db = await instance.database;
@@ -141,7 +147,38 @@ Future<List<Map<String, dynamic>>> queryFilteredRows(String? fromDate, String? t
   );
 }
 
+Future<bool> doesLedgerExist(String ledgerName) async {
+  Database db = await instance.database;
+  var result = await db.query(
+    table,
+    where: '$columnLedgerName = ?',
+    whereArgs: [ledgerName],
+  );
+  return result.isNotEmpty;
+}
 
+Future<void> updatePaymentBalance(String ledgerName,String total,String amt, double newBalance) async {
+  final db = await database;
+  await db.update(
+    'receipt_table', 
+    {'balance': newBalance,
+    'total':total,
+    'amount':amt
+    }, 
+    where: 'ledgerName = ?', 
+    whereArgs: [ledgerName],
+  );
+}
+
+Future<Map<String, dynamic>?> getLedgerByName(String ledgerName) async {
+  final db = await instance.database;
+  final result = await db.query(
+    'receipt_table', 
+    where: 'ledgerName = ?', 
+    whereArgs: [ledgerName],
+  );
+  return result.isNotEmpty ? result.first : null;
+}
 
 
 }

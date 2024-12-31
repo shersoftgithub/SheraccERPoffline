@@ -82,6 +82,11 @@ class PaymentDatabaseHelper {
     return await db.delete(table, where: '$columnId = ?', whereArgs: [id]);
   }
 
+Future<void> clearAllPayments() async {
+  Database db = await instance.database;
+  await db.delete(table);
+}
+
   // Retrieve distinct cash accounts
   Future<List<String>> getAllUniqueCashAccounts() async {
     Database db = await instance.database;
@@ -127,4 +132,36 @@ Future<List<Map<String, dynamic>>> queryFilteredRows(String? fromDate, String? t
   );
 }
 
+Future<bool> doesLedgerExist(String ledgerName) async {
+  Database db = await instance.database;
+  var result = await db.query(
+    table,
+    where: '$columnLedgerName = ?',
+    whereArgs: [ledgerName],
+  );
+  return result.isNotEmpty;
+}
+
+Future<void> updatePaymentBalance(String ledgerName,String total,String amt, double newBalance) async {
+  final db = await database;
+  await db.update(
+    'payment_table', 
+    {'balance': newBalance,
+    'total':total,
+    'amount':amt
+    }, 
+    where: 'ledgerName = ?', 
+    whereArgs: [ledgerName],
+  );
+}
+
+Future<Map<String, dynamic>?> getLedgerByName(String ledgerName) async {
+  final db = await instance.database;
+  final result = await db.query(
+    'payment_table', 
+    where: 'ledgerName = ?', 
+    whereArgs: [ledgerName],
+  );
+  return result.isNotEmpty ? result.first : null;
+}
 }

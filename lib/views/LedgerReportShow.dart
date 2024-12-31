@@ -251,7 +251,7 @@ Future<void> _exportToExcel() async {
           _buildDataCell(data['balance']?.toString() ?? 'N/A'),
           widget.showOpeningBalance! 
             ? _buildDataCell(data['opening_balance']?.toString() ?? '0') 
-            : _buildDataCell(''), 
+            : _buildDataCell(data['opening_balance']?.toString() ?? '0'), 
           _buildDataCell(data['received_balance']?.toString() ?? '0') ,
           _buildDataCell(data['pay_amount']?.toString() ?? '0'),
           _buildDataCell(data['under'] ?? 'N/A'),

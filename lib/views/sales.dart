@@ -418,8 +418,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-   height: 26, 
-            width: 172,
+   height: screenHeight * 0.032, 
+              width: screenWidth * 0.43,
   decoration: BoxDecoration(
     borderRadius: BorderRadius.circular(5),
     color: Colors.white,
@@ -459,8 +459,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-                                    height: 26,
-                          width: 172,
+                                  height: screenHeight * 0.032, 
+              width: screenWidth * 0.43,
                                     decoration: BoxDecoration(
                                       border: Border.all(color: Appcolors().searchTextcolor),
                                       borderRadius: BorderRadius.circular(5),
@@ -665,8 +665,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
           SizedBox(height: screenHeight * 0.01),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 7,vertical: 2),
-             height: 26, 
-            width: 172,
+             height: screenHeight * 0.032, 
+              width: screenWidth * 0.43,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
               color: Colors.white,
@@ -688,8 +688,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-             height: 26, 
-            width: 172,
+             height: screenHeight * 0.032, 
+              width: screenWidth * 0.43,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
               color: Colors.white,

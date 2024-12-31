@@ -21,10 +21,11 @@ class _SalesReportState extends State<StockReport> {
  final TextEditingController _categoryController=TextEditingController();
  final TextEditingController _groupController=TextEditingController();
  final TextEditingController _salesmanController=TextEditingController();
-  DateTime? _fromDate;
+  final TextEditingController _dateController=TextEditingController();
+
+ DateTime? _fromDate;
   DateTime? _toDate;
-  bool _isChecked = false;
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
@@ -44,7 +45,6 @@ class _SalesReportState extends State<StockReport> {
      
     }
   }
-
   String selectedValue = "Report Type";
   bool isExpanded = false; 
   optionsDBHelper dbHelper=optionsDBHelper();
@@ -52,6 +52,12 @@ List Stock_reportType=[];
 Future<void> StockreportType()async{
   Stock_reportType=await dbHelper.getOptionsByType("Stock_reportType");
 }
+
+@override
+  void initState() {
+  _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+      super.initState();
+  }
 final GlobalKey _arrowKey = GlobalKey();
   @override
   
@@ -151,43 +157,22 @@ final GlobalKey _arrowKey = GlobalKey();
                  ),
                ),
              ),
-             SizedBox(height: screenHeight * 0.0002),
-              GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ShowStockReport()));
-          },
-          child: Padding(
-            padding: EdgeInsets.all(screenHeight * 0.03),
-            child: Container(
-              height: screenHeight * 0.05,
-              width: screenWidth * 0.9,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
-                color: Color(0xFF0A1EBE),
-              ),
-              child: Center(
-                child: Text(
-                  "Show",
-                  style: getFonts(screenHeight * 0.02, Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ),
+            
         Padding(
           padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
           child: Container(
             child: Column(
               children: [
-                _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
-                SizedBox(height: screenHeight * 0.0002),
-                _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
+                  _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
                 _salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
                 _salefield("Manufacture", _selectSupplierController, screenWidth, screenHeight),
                 _salefield("Category", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Group", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Salesman", _selectSupplierController, screenWidth, screenHeight)
-          
+                
+                _salefield("Salesman", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
+                SizedBox(height: screenHeight * 0.0002),
+              
+          _salefield("Group", _selectSupplierController, screenWidth, screenHeight),
               ],
             ),
           ),
@@ -228,7 +213,30 @@ final GlobalKey _arrowKey = GlobalKey();
                 ),
                 ],
               ),
-        )
+        ),
+         SizedBox(height: screenHeight * 0.0002),
+              GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ShowStockReport()));
+          },
+          child: Padding(
+            padding: EdgeInsets.all(screenHeight * 0.03),
+            child: Container(
+              height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Color(0xFF0A1EBE),
+              ),
+              child: Center(
+                child: Text(
+                  "Show",
+                  style: getFonts(screenHeight * 0.02, Colors.white),
+                ),
+              ),
+            ),
+          ),
+        ),
           ],
         ),
       ),
@@ -262,6 +270,7 @@ final GlobalKey _arrowKey = GlobalKey();
       ),
     );
   }
+   bool _isChecked = false;
    Widget _buttonOB(double screenHeight,double screenWidth){
      
     return Row(

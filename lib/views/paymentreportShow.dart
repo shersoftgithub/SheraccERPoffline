@@ -134,60 +134,67 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
         scrollDirection: Axis.horizontal,
         child: Padding(
           padding: const EdgeInsets.only(top: 10),
-          child: Table(
-            border: TableBorder.all(
-              color: Colors.black,
-              width: 1.0,
-            ),
-            columnWidths: {
-              0: FixedColumnWidth(60),
-              1: FixedColumnWidth(100),
-              2: FixedColumnWidth(150),
-              3: FixedColumnWidth(100),
-              4: FixedColumnWidth(100),
-              5: FixedColumnWidth(100),
-              6: FixedColumnWidth(100),
-              
-            },
-            children: [
-              // Table header row
-              TableRow(
-                children: [
-                  _buildHeaderCell('No'),
-                  _buildHeaderCell('Date'),
-                  _buildHeaderCell('opening Balance'),
-                  _buildHeaderCell('Debit'),
-                  _buildHeaderCell('Credit'),
-                  _buildHeaderCell('Balance'),
-                  _buildHeaderCell('Narration'),
-                ],
+          child: SingleChildScrollView(
+            child: Table(
+              border: TableBorder.all(
+                color: Colors.black,
+                width: 1.0,
               ),
-              // Table data rows
-              ...paymentData.map((data) {
-                return TableRow(
+              columnWidths: {
+                0: FixedColumnWidth(60),
+                1: FixedColumnWidth(100),
+                2: FixedColumnWidth(150),
+                3: FixedColumnWidth(100),
+                4: FixedColumnWidth(100),
+                5: FixedColumnWidth(100),
+                6: FixedColumnWidth(100),
+                7: FixedColumnWidth(100),
+              },
+              children: [
+                // Table header row
+                TableRow(
                   children: [
-                    _buildDataCell(data[PaymentDatabaseHelper.columnId]?.toString() ?? 'N/A'),
-                    _buildDataCell(data[PaymentDatabaseHelper.columnDate]?.toString() ?? 'N/A'),
-                    _buildDataCell(data[PaymentDatabaseHelper.columnLedgerName]?.toString() ?? 'N/A'),
-                     _buildDataCell(data[PaymentDatabaseHelper.columnAmount]?.toString() ?? 'N/A'),
-                      _buildDataCell(data[PaymentDatabaseHelper.columnBalance]?.toString() ?? 'N/A'),
-                    _buildDataCell(data[PaymentDatabaseHelper.columnTotal]?.toString() ?? 'N/A'),
-                    _buildDataCell(data[PaymentDatabaseHelper.columnNarration]?.toString() ?? 'N/A'),
+                    _buildHeaderCell('No'),
+                    _buildHeaderCell('Date'),
+                    _buildHeaderCell('Customer'),
+                    _buildHeaderCell('opening Balance'),
+                    _buildHeaderCell('Debit'),
+                    _buildHeaderCell('Credit'),
+                    _buildHeaderCell('Narration'),
+                    _buildHeaderCell('Balance'),
+                    
                   ],
-                );
-              }).toList(),
-              TableRow(
-                children: [
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                  _buildDataCell2('Closing Balance'),
-                  _buildDataCell(''),
-                  _buildDataCell2(totalAmount.toStringAsFixed(2)), 
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                ],
-              ),
-            ],
+                ),
+                // Table data rows
+                ...paymentData.map((data) {
+                  return TableRow(
+                    children: [
+                      _buildDataCell(data[PaymentDatabaseHelper.columnId]?.toString() ?? 'N/A'),
+                      _buildDataCell(data[PaymentDatabaseHelper.columnDate]?.toString() ?? 'N/A'),
+                      _buildDataCell(data[PaymentDatabaseHelper.columnLedgerName]?.toString() ?? 'N/A'),
+                      _buildDataCell(""),
+                       _buildDataCell(data[PaymentDatabaseHelper.columnAmount]?.toString() ?? 'N/A'),
+                        _buildDataCell(data[PaymentDatabaseHelper.columnBalance]?.toString() ?? 'N/A'),
+                         _buildDataCell(data[PaymentDatabaseHelper.columnNarration]?.toString() ?? 'N/A'),
+                      _buildDataCell(data[PaymentDatabaseHelper.columnTotal]?.toString() ?? 'N/A'),
+                     
+                    ],
+                  );
+                }).toList(),
+                TableRow(
+                  children: [
+                    _buildDataCell(''),
+                    _buildDataCell(''),
+                    _buildDataCell(''),
+                    _buildDataCell2('Closing Balance'),
+                    _buildDataCell(''),
+                    _buildDataCell2(totalAmount.toStringAsFixed(2)), 
+                    _buildDataCell(''),
+                    _buildDataCell(''),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

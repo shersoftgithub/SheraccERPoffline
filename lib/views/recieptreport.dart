@@ -17,13 +17,14 @@ class Recieptreport extends StatefulWidget {
 
 class _RecieptreportState extends State<Recieptreport> {
   final TextEditingController ledgernamesController=TextEditingController();
- DateTime? _fromDate;
-  DateTime? _toDate;
+ DateTime? _fromDate = DateTime.now();
+  DateTime? _toDate = DateTime.now();
+
   final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: isFromDate ? _fromDate ?? DateTime.now() : _toDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
@@ -36,7 +37,6 @@ class _RecieptreportState extends State<Recieptreport> {
           _toDate = selectedDate;
         }
       });
-     
     }
   }
 
@@ -147,38 +147,36 @@ void _showLedgerWithFilters() {
                  ),
                  child: Padding(
                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                   child: Row(
+                   child:  Row(
                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                      children: [
-                       GestureDetector(
-                         onTap: () => _selectDate(context, true),
-                         child: Row(
-                           children: [
-                            
-                             Text(
-                               _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
-                               style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
-                             ),
-                              SizedBox(width: 5),
-                                                        Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-        
-                           ],
-                         ),
-                       ),
+                        GestureDetector(
+                onTap: () => _selectDate(context, true),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor ), // Adjust color as needed
+                    SizedBox(width: 5),
+                    Text(
+                      _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
+                      style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
                        Text("-", style: TextStyle(color: Appcolors().maincolor)),
-                       GestureDetector(
-                         onTap: () => _selectDate(context, false),
-                         child: Row(
-                           children: [
-                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                             SizedBox(width: 5),
-                             Text(
-                               _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
-                               style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                             ),
-                           ],
-                         ),
-                       ),
+                      GestureDetector(
+                onTap: () => _selectDate(context, false),
+                child: Row(
+                  children: [
+                    Text(
+                      _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
+                      style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                    ),
+                    SizedBox(width: 5),
+                    Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor ), 
+                  ],
+                ),
+              ),
                      ],
                    ),
                  ),

@@ -141,7 +141,7 @@ Future<List<String>> _getTableColumns(Database db, String tableName) async {
     Database db = await instance.database;
     final List<Map<String, dynamic>> result = await db.query(
       table,
-      columns: [columnLedgerName],
+      columns: [columnLedgerName,],
     );
     List<String> ledgerNames = result.map((row) => row[columnLedgerName] as String).toList();
 

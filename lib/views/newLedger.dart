@@ -59,7 +59,7 @@ void _saveData() async {
   try {
     double receivedBalance = double.tryParse(_reievedAmtController.text) ?? 0.0;
     double payAmount = double.tryParse(_PayAmtController.text) ?? 0.0;
-    double openingBalance = (receivedBalance - payAmount).abs();
+    double openingBalance = (payAmount - receivedBalance).clamp(0, double.infinity);
     final ledger = Ledger(
       ledgerName: _LedgernameController.text,
       under: _underController.text,
@@ -81,7 +81,19 @@ void _saveData() async {
     if (id > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('saved successfully ')),
+        
       );
+      _reievedAmtController.clear();
+      _PayAmtController.clear();
+      _LedgernameController.clear();
+      _underController.clear();
+      _adressController.clear();
+      _contactController.clear();
+      _mailController.clear();
+      _taxnoController.clear();
+      _pricelevelController.clear();
+      _balanceController.clear();
+      _dateController.clear();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to save data')),

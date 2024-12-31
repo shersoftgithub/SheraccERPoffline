@@ -16,13 +16,17 @@ class Paymentreport extends StatefulWidget {
 
 class _PaymentreportState extends State<Paymentreport> {
   final  TextEditingController ledgernamesController=TextEditingController();
-  DateTime? _fromDate;
-  DateTime? _toDate;
+  final  TextEditingController selectledgernamesController=TextEditingController();
+  final  TextEditingController selectsalesmanController=TextEditingController();
+  final  TextEditingController selectgroupController=TextEditingController();
+  DateTime? _fromDate = DateTime.now();
+  DateTime? _toDate = DateTime.now();
+
   final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: isFromDate ? _fromDate ?? DateTime.now() : _toDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
@@ -35,7 +39,6 @@ class _PaymentreportState extends State<Paymentreport> {
           _toDate = selectedDate;
         }
       });
-     
     }
   }
 
@@ -112,29 +115,36 @@ void _showLedgerWithFilters() {
             SizedBox(height: screenHeight * 0.02),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: screenHeight * 0.03),
-              child: Container(
-                height: screenHeight * 0.05,
-                width: screenWidth * 0.9,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.white,
-                  border: Border.all(color: Appcolors().searchTextcolor),
-                ),
-                child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: SingleChildScrollView(
-                child: EasyAutocomplete(
-                    controller: ledgernamesController,
-                    suggestions: ledgerNames,
-                       
-                    onSubmitted: (value) {
-                              },
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("select ",style: formFonts(13, Colors.black),),
+                  SizedBox(height: screenHeight * 0.01),
+                  Container(
+                    height: screenHeight * 0.05,
+                    width: screenWidth * 0.9,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5),
+                      color: Colors.white,
+                      border: Border.all(color: Appcolors().searchTextcolor),
                     ),
+                    child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                  child: SingleChildScrollView(
+                    child: EasyAutocomplete(
+                        controller: ledgernamesController,
+                        suggestions: ledgerNames,
+                           
+                        onSubmitted: (value) {
+                                  },
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                      ),
                   ),
-              ),
-            ),
+                              ),
+                  ),
+                ],
               ),
             ),
          SizedBox(height: screenHeight * 0.02),
@@ -153,40 +163,48 @@ void _showLedgerWithFilters() {
                    child: Row(
                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                      children: [
-                       GestureDetector(
-                         onTap: () => _selectDate(context, true),
-                         child: Row(
-                           children: [
-                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                             SizedBox(width: 5),
-                             Text(
-                               _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
-                               style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
-                             ),
-                           ],
-                         ),
-                       ),
+                        GestureDetector(
+                onTap: () => _selectDate(context, true),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor ), // Adjust color as needed
+                    SizedBox(width: 5),
+                    Text(
+                      _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
+                      style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
                        Text("-", style: TextStyle(color: Appcolors().maincolor)),
-                       GestureDetector(
-                         onTap: () => _selectDate(context, false),
-                         child: Row(
-                           children: [
-                             
-                             Text(
-                               _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
-                               style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                             ),
-                             SizedBox(width: 5),
-                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                             
-                           ],
-                         ),
-                       ),
+                      GestureDetector(
+                onTap: () => _selectDate(context, false),
+                child: Row(
+                  children: [
+                    Text(
+                      _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
+                      style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                    ),
+                    SizedBox(width: 5),
+                    Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor ), 
+                  ],
+                ),
+              ),
                      ],
                    ),
                  ),
                ),
              ),
+             SizedBox(height: screenHeight * 0.02),
+            Container(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.017),
+              child: Column(
+                children: [
+                   _paymentfield("select Ledger Name", selectledgernamesController, screenWidth, screenHeight),
+             _paymentfield("select Salesman", selectsalesmanController, screenWidth, screenHeight),
+             _paymentfield("select Group", selectgroupController, screenWidth, screenHeight),
+                ],
+              ),
+            ),
                    SizedBox(height: screenHeight * 0.02),
                   GestureDetector(
           onTap: (){
@@ -212,6 +230,33 @@ void _showLedgerWithFilters() {
         )
           ],
         ),
+      ),
+    );
+  }
+   Widget _paymentfield(String txt,TextEditingController controller,double screenWidth, double screenHeight){
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: controller,
+              // validator: (value) {
+              //   if (value == null || value.isEmpty) {
+              //     return 'Please enter $textrow';
+              //   }
+              //   return null;
+              // },
+              obscureText: false,
+              decoration: InputDecoration(
+                border: UnderlineInputBorder(),
+                contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                hintText: "$txt",
+                hintStyle: TextStyle(fontSize: 14)
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

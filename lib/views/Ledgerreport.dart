@@ -120,30 +120,72 @@ void _showLedgerWithFilters() {
         physics: ScrollPhysics(),
         child: Column(
           children: [
-            SizedBox(height: screenHeight * 0.02),
-            Container(
-              height: screenHeight * 0.05,
-              width: screenWidth * 0.9,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
-                color: Colors.white,
-                border: Border.all(color: Appcolors().searchTextcolor),
-              ),
-              child:  Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: SingleChildScrollView(
-                child: EasyAutocomplete(
-                    controller: ledgernamesController,
-                    suggestions: ledgerNames,
-                       
-                    onSubmitted: (value) {
-                              },
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
+             SizedBox(height: screenHeight * 0.02),
+          Container(
+            height: screenHeight * 0.05,
+                width: screenWidth * 0.9,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Appcolors().searchTextcolor)
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+          SizedBox(width: screenHeight*0.01,),
+          Text("Report Type",style: getFonts(12, Colors.black),),
+          SizedBox(width: screenHeight*0.02,),
+          Expanded(
+                  child: GestureDetector(
+                    child: Text(
+                      selectedValue,
+                      style: getFonts(12, Colors.black),
                     ),
                   ),
-              ),
-            ),
+                ),
+                GestureDetector(
+                  key: _arrowKey,
+                  onTap: () {
+                    setState(() {
+                      isExpanded = !isExpanded;
+                    });
+                    _showPopupMenu();
+                  },
+                  child: Icon(
+                    isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    color: Colors.black,
+                  ),
+                ),
+                  ],
+                ),
+          ),
+            SizedBox(height: screenHeight * 0.02),
+            Column(crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("select Ledger Name",style: formFonts(12, Colors.black),),
+                 SizedBox(height: screenHeight * 0.01),
+                Container(
+                  height: screenHeight * 0.05,
+                  width: screenWidth * 0.9,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    color: Colors.white,
+                    border: Border.all(color: Appcolors().searchTextcolor),
+                  ),
+                  child:  Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                  child: SingleChildScrollView(
+                    child: EasyAutocomplete(
+                        controller: ledgernamesController,
+                        suggestions: ledgerNames,
+                           
+                        onSubmitted: (value) {
+                                  },
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                      ),
+                  ),
+                ),
+                ),
+              ],
             ),
          SizedBox(height: screenHeight * 0.02),
              Padding(
@@ -195,42 +237,7 @@ void _showLedgerWithFilters() {
                  ),
                ),
              ),
-             SizedBox(height: screenHeight * 0.02),
-          Container(
-            height: screenHeight * 0.05,
-                width: screenWidth * 0.9,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Appcolors().searchTextcolor)
-                ),
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-          SizedBox(width: screenHeight*0.01,),
-          Text("Report Type",style: getFonts(12, Colors.black),),
-          SizedBox(width: screenHeight*0.02,),
-          Expanded(
-                  child: GestureDetector(
-                    child: Text(
-                      selectedValue,
-                      style: getFonts(12, Colors.black),
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  key: _arrowKey,
-                  onTap: () {
-                    setState(() {
-                      isExpanded = !isExpanded;
-                    });
-                    _showPopupMenu();
-                  },
-                  child: Icon(
-                    isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                    color: Colors.black,
-                  ),
-                ),
-                  ],
-                ),
-          ),
+            
                    SizedBox(height: screenHeight * 0.01),
                    Padding(
                      padding: const EdgeInsets.symmetric(horizontal: 5),
