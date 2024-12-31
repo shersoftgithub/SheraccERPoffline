@@ -183,3 +183,99 @@
 //   }
 // }
 
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // To format date
+
+class YourWidget extends StatefulWidget {
+  @override
+  _YourWidgetState createState() => _YourWidgetState();
+}
+
+class _YourWidgetState extends State<YourWidget> {
+  // Initialize dates to current date
+  DateTime? _fromDate = DateTime.now();
+  DateTime? _toDate = DateTime.now();
+
+  // Date format for displaying date in the required format
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+
+  // Date picker function
+  Future<void> _selectDate(BuildContext context, bool isFromDate) async {
+    final DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: isFromDate ? _fromDate ?? DateTime.now() : _toDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (selectedDate != null) {
+      setState(() {
+        if (isFromDate) {
+          _fromDate = selectedDate;
+        } else {
+          _toDate = selectedDate;
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenHeight * 0.03),
+      child: Container(
+        height: 39,
+        width: screenWidth * 0.9,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          color: Colors.white,
+          border: Border.all(color: Colors.grey), // Adjust the border color as needed
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () => _selectDate(context, true),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_outlined, color: Colors.blue), // Adjust color as needed
+                    SizedBox(width: 5),
+                    Text(
+                      _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _fromDate != null ? Colors.blue : Colors.grey, // Adjust colors as needed
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text("-", style: TextStyle(color: Colors.blue)), // Adjust the color as needed
+              GestureDetector(
+                onTap: () => _selectDate(context, false),
+                child: Row(
+                  children: [
+                    Text(
+                      _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _toDate != null ? Colors.blue : Colors.grey, // Adjust colors as needed
+                      ),
+                    ),
+                    SizedBox(width: 5),
+                    Icon(Icons.calendar_month_outlined, color: Colors.blue), // Adjust color as needed
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

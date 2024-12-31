@@ -24,13 +24,15 @@ class _SalesReportState extends State<SalesReport> {
  final TextEditingController _categoryController=TextEditingController();
  final TextEditingController _groupController=TextEditingController();
  final TextEditingController _salesmanController=TextEditingController();
-  DateTime? _fromDate;
-  DateTime? _toDate;
+ final TextEditingController _dateController=TextEditingController();
+ 
   final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
+  DateTime? _fromDate = DateTime.now();
+  DateTime? _toDate = DateTime.now();
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: isFromDate ? _fromDate ?? DateTime.now() : _toDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
@@ -43,11 +45,10 @@ class _SalesReportState extends State<SalesReport> {
           _toDate = selectedDate;
         }
       });
-     
     }
   }
+
    bool _isChecked = false;
-   bool _isCheckedd = false;
   String selectedValue = "Report Type";
   bool isExpanded = false; 
   
@@ -56,7 +57,6 @@ class _SalesReportState extends State<SalesReport> {
   void initState() {
     super.initState();
   _fetchCustomerItemData();
-
   }
 final GlobalKey _arrowKey = GlobalKey();
 optionsDBHelper dbHelper=optionsDBHelper();
@@ -139,95 +139,45 @@ Future<void> _fetchCustomerItemData() async {
                    child: Row(
                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                      children: [
-                       GestureDetector(
-                         onTap: () => _selectDate(context, true),
-                         child: Row(
-                           children: [
-                             Icon(Icons.calendar_month_outlined, color: Appcolors().searchTextcolor),
-                             SizedBox(width: 5),
-                             Text(
-                               _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
-                               style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
-                             ),
-                           ],
-                         ),
-                       ),
-                       Text("-", style: TextStyle(color: Appcolors().maincolor,fontSize: 14)),
-                       GestureDetector(
-                         onTap: () => _selectDate(context, false),
-                         child: Row(
-                           children: [
-                             Text(
-                               _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
-                               style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                             ),
-                             SizedBox(width: 5),
-                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                           ],
-                         ),
-                       ),
+                        GestureDetector(
+                onTap: () => _selectDate(context, true),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor ), // Adjust color as needed
+                    SizedBox(width: 5),
+                    Text(
+                      _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
+                      style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+                       Text("-", style: TextStyle(color: Appcolors().maincolor)),
+                      GestureDetector(
+                onTap: () => _selectDate(context, false),
+                child: Row(
+                  children: [
+                    Text(
+                      _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
+                      style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                    ),
+                    SizedBox(width: 5),
+                    Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor ), 
+                  ],
+                ),
+              ),
                      ],
                    ),
                  ),
                ),
              ),
-             SizedBox(height: screenHeight * 0.0002),
-              GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => ShowSalesReport(
-                          customerName: _selectSupplierController.text,
-                          itemName: _selectItemnameController.text,
-                          fromDate: _fromDate,
-                          toDate: _toDate,
-                        )));
-          },
-          child: Padding(
-            padding: EdgeInsets.all(screenHeight * 0.03),
-            child: Container(
-              height: screenHeight * 0.05,
-              width: screenWidth * 0.9,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
-                color: Color(0xFF0A1EBE),
-              ),
-              child: Center(
-                child: Text(
-                  "Show",
-                  style: getFonts(screenHeight * 0.02, Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ),
+                     SizedBox(height: screenHeight * 0.0002),
+
         Padding(
           padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
           child: Container(
             child: Column(
               children: [
-                SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 7),
-                  child: EasyAutocomplete(
-                      controller: _selectSupplierController,
-                      suggestions: customer
-                          .map((item) => item['customer']!) 
-                          .toList(),
-                         
-                      onSubmitted: (value) {
-                                },
-                                    decoration: InputDecoration(
-                  border: UnderlineInputBorder(),
-                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
-                  hintText: "Select Supplier",
-                  hintStyle: TextStyle(fontSize: 14)
-                                ),
-                  suggestionBackgroundColor: Appcolors().Scfold,
-                    ),
-                ),
-              ),
-                //_salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
-                SizedBox(height: screenHeight * 0.0002),
                 _salefield("Select Item Code", _selectItemcodeController, screenWidth, screenHeight),
                  SingleChildScrollView(
                 child: Padding(
@@ -253,8 +203,33 @@ Future<void> _fetchCustomerItemData() async {
                 //_salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
                 _salefield("Manufacture", _manufactureController, screenWidth, screenHeight),
                 _salefield("Category", _categoryController, screenWidth, screenHeight),
+                                _salefield("Salesman", _salesmanController, screenWidth, screenHeight),
+
+                SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: EasyAutocomplete(
+                      controller: _selectSupplierController,
+                      suggestions: customer
+                          .map((item) => item['customer']!) 
+                          .toList(),
+                         
+                      onSubmitted: (value) {
+                                },
+                                    decoration: InputDecoration(
+                  border: UnderlineInputBorder(),
+                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  hintText: "Select Supplier",
+                  hintStyle: TextStyle(fontSize: 14)
+                                ),
+                  suggestionBackgroundColor: Appcolors().Scfold,
+                    ),
+                ),
+              ),
+                //_salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
+                SizedBox(height: screenHeight * 0.0002),
+                
                 _salefield("Group", _groupController, screenWidth, screenHeight),
-                _salefield("Salesman", _salesmanController, screenWidth, screenHeight)
           
               ],
             ),
@@ -316,7 +291,36 @@ Future<void> _fetchCustomerItemData() async {
               ),
                 ],
               ),
-        )
+        ),
+         SizedBox(height: screenHeight * 0.0002),
+              GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => ShowSalesReport(
+                          customerName: _selectSupplierController.text,
+                          itemName: _selectItemnameController.text,
+                          fromDate: _fromDate,
+                          toDate: _toDate,
+                        )));
+          },
+          child: Padding(
+            padding: EdgeInsets.all(screenHeight * 0.03),
+            child: Container(
+              height: screenHeight * 0.05,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Color(0xFF0A1EBE),
+              ),
+              child: Center(
+                child: Text(
+                  "Show",
+                  style: getFonts(screenHeight * 0.02, Colors.white),
+                ),
+              ),
+            ),
+          ),
+        ),
           ],
         ),
       ),
