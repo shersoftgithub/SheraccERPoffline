@@ -153,11 +153,18 @@ void _saveData()async{
          unit: widget.salesCredit!.unit,
           rate: widget.salesCredit!.rate,
            tax: widget.salesCredit!.tax, 
-           totalAmt:double.parse(_totalamtController.text));
+           totalAmt:double.tryParse(_totalamtController.text)??0.0);
           int lastInsertedId= await SaleDatabaseHelper.instance.insert(creditsale.toMap());
             await _saveLastInsertedIdToPayments(lastInsertedId, creditsale.customer);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('saved successfully')));
    await syncOpeningBalances(lastInsertedId);
+   setState(() {
+        _InvoicenoController.clear();
+        _salerateController.clear();
+        _CustomerController.clear();
+        _phonenoController.clear();
+        _totalamtController.clear();      
+            });
 }
 
 void _saveDataCash()async{
@@ -169,18 +176,36 @@ void _saveDataCash()async{
     salesRate: double.tryParse(_CashsalerateController.text)??0.0,
      customer: _billnameController.text,
       phoneNo: _CashphonenoController.text,
-       itemName:widget.salesDebit!.itemName,
+      itemName: widget.salesDebit?.itemName ?? '',
         qty: widget.salesDebit!.qty,
          unit: widget.salesDebit!.unit,
           rate: widget.salesDebit!.rate,
            tax: widget.salesDebit!.tax, 
            totalAmt:double.parse(_CashtotalamtController.text));
-          int lastInsertedId= await SaleDatabaseHelper.instance.insert(Cashcreditsale.toMap());
-            await _saveLastInsertedIdToPayments(lastInsertedId, Cashcreditsale.customer);
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('saved successfully')));
-  // await syncOpeningBalances(lastInsertedId);
+          await SaleDatabaseHelper.instance.insert(Cashcreditsale.toMap());
+           
+   await syncOpeningBalancesCash();
+    
 }
+ syncOpeningBalancesCash() async {
+  final paymentHelper = SaleDatabaseHelper.instance;
+  final ledgerHelper = DatabaseHelper.instance;
+  List<Map<String, dynamic>> payments = await paymentHelper.queryAllRows();
 
+  for (var payment in payments) {
+    String ledgerName = payment['ledgerName'];
+    double saleTotal = payment['total_amt'] ?? 0.0;
+
+    Map<String, dynamic>? ledger =
+        await ledgerHelper.getLedgerByName(ledgerName);
+
+    if (ledger != null) {
+      await ledgerHelper.updateLedgerBalance(ledgerName, saleTotal);
+    }
+  }
+
+  print("Opening balances updated successfully!");
+}
 Future<void> _saveLastInsertedIdToPayments(int lastInsertedId, String customer) async {
   final ledgerHelper = DatabaseHelper.instance;
 
@@ -379,7 +404,7 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
           GestureDetector(
             onTap: (){
               _saveDataCash();
-              _saveData();
+             // _saveData();
               
               },
             child: Container(
@@ -577,7 +602,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
         onTap: () {
           Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Addpaymant(
-                        )));
+                          salesCredit: widget.salesCredit,
+)));
         },
         child: Padding(
           padding: EdgeInsets.all(screenHeight * 0.03),

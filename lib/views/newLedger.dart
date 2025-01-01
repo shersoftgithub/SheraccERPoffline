@@ -588,7 +588,40 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
             SizedBox(height: screenHeight * 0.03),
                      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buttonOB(screenHeight, screenWidth, "Active"),
+           Container(
+  height: 35,
+  width: 170,
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(8),
+    color: Color(0xFF0A1EBE),
+  ),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Text(
+          "Active", // This is your dynamic text
+          style: getFonts(14, Colors.white),
+        ),
+      ),
+     Checkbox(
+                  side: BorderSide(color: Colors.white),
+                value: true,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _checkboxStates['Active'] = value!;
+                  });
+                },
+                
+                checkColor: Appcolors().maincolor,
+                activeColor: Colors.white, 
+              ),
+    ],
+  ),
+),
+
+
                      _buttonOB(screenHeight, screenWidth, "Cost Center"),
             ],
                      ),

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/Ledgerreport.dart';
 import 'package:sheraaccerpoff/views/more_home/company.dart';
+import 'package:sheraaccerpoff/views/more_home/export.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
 import 'package:sheraaccerpoff/views/payment.dart';
 import 'package:sheraaccerpoff/views/paymentReport.dart';
@@ -15,6 +17,7 @@ import 'package:sheraaccerpoff/views/recieptreport.dart';
 import 'package:sheraaccerpoff/views/sales.dart';
 import 'package:sheraaccerpoff/views/salesReport.dart';
 import 'package:sheraaccerpoff/views/stockreport.dart';
+import 'package:sqflite/sqflite.dart';
 
 class HomePageERP extends StatefulWidget {
   const HomePageERP({super.key});
@@ -65,6 +68,7 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
         print("Backup...");
         break;
       case "Export Backup":
+      _showClearDataDialog2();
         print("Exporting backup...");
         break;
       case "Clear Data":
@@ -89,6 +93,41 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
       );
     }
   }
+
+   bool isExporting = false;
+
+  Future<void> exportData() async {
+    setState(() {
+      isExporting = true;
+    });
+
+    // Show progress dialog
+    showProgressDialog(context);
+
+    // Get ledger data from the database
+    List<Map<String, dynamic>> ledgerData = await getLedgerData();
+
+    // Create CSV file
+    String filePath = await createCsvFile(ledgerData);
+
+    // Here you can transfer the file to USB if needed (implement USB transfer logic).
+
+    // Close the progress dialog and show a completion message
+    Navigator.pop(context); // Close progress dialog
+    setState(() {
+      isExporting = false;
+    });
+
+    // Optionally, show a snackbar or another dialog to notify the user.
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Complete! File saved at $filePath')));
+  }
+
+  // Fetch all ledger data
+Future<List<Map<String, dynamic>>> getLedgerData() async {
+  Database db = await DatabaseHelper.instance.database;
+  return await db.query(DatabaseHelper.table); // Assuming you want all rows from the ledger_table
+}
+
 
   Widget _buildTabContent(List<String> names, List<String> images) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -362,6 +401,55 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
                 'Confirm',
                 style: getFonts(14, Appcolors().maincolor),
               ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showProgressDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Exporting Data"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text("Export in Progress..."),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+ Future<bool?> _showClearDataDialog2() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Text(
+            '                  Are you sure \n   you want to clear all data?',
+            style: getFonts(13, Colors.black),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: Text(
+                'Cancel',
+                style: getFonts(14, Appcolors().maincolor),
+              ),
+            ),
+            TextButton(
+                onPressed: isExporting ? null : exportData, // Disable button while exporting
+      child: isExporting ? CircularProgressIndicator() : Text('Export Data'),
+              
             ),
           ],
         );

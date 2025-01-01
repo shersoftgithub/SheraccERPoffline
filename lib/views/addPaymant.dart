@@ -8,7 +8,9 @@ import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/sales.dart';
 
 class Addpaymant extends StatefulWidget {
-  const Addpaymant({super.key});
+  final SalesCredit? salesCredit;
+  final SalesCredit? salesdebit;
+  const Addpaymant({super.key,this.salesCredit,this.salesdebit});
 
   @override
   State<Addpaymant> createState() => _AddpaymantState();
@@ -350,8 +352,9 @@ void _saveDataCash() {
           ),
           GestureDetector(
             onTap: (){
-              _saveData();
               _saveDataCash();
+              _saveData();
+              
             },
             child: Container(
               width: 175,height: 53,
