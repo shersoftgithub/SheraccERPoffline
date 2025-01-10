@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mssql_connection/mssql_connection.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/checkdatabse.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/syncDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/Ledgerreport.dart';
+import 'package:sheraaccerpoff/views/more_home/backupdata.dart';
 import 'package:sheraaccerpoff/views/more_home/company.dart';
+import 'package:sheraaccerpoff/views/more_home/configServer.dart';
 import 'package:sheraaccerpoff/views/more_home/export.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
 import 'package:sheraaccerpoff/views/payment.dart';
@@ -58,13 +63,22 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
                         context, MaterialPageRoute(builder: (_) => Company()));
         break;
       case "Configure":
+      Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => ServerConfig()));
         break;
       case "Settings":
+      Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => CheckDatabaseScreen()));
         break;
       case "Sync Data":
+      var connection = MssqlConnection.getInstance();
+       Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => SyncDataServer(connection: connection,)));
         print("Syncing data...");
         break;
       case "Backup":
+      Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => Backupdata()));
         print("Backup...");
         break;
       case "Export Backup":
@@ -317,7 +331,7 @@ Future<List<Map<String, dynamic>>> getLedgerData() async {
             indicatorColor: Appcolors().maincolor,
             tabs: const [
               Tab(text: "Master"),
-              Tab(text: "Action"),
+              Tab(text: "Entry"),
               Tab(text: "Reports"),
             ],
           ),

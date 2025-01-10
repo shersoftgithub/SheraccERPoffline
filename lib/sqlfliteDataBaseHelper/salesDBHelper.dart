@@ -90,22 +90,39 @@ class SaleDatabaseHelper {
     return uniqueUnder;
   }
 
- Future<List<Map<String, String>>> getAll() async {
+Future<List<Map<String, String>>> getAll() async {
   Database db = await instance.database;
-  
+
+  // Query the database, selecting the necessary columns
   final List<Map<String, dynamic>> result = await db.query(
     table,
-    columns: [columnCustomer, columnItemName], 
+    columns: [columnCustomer, columnItemName],
   );
-    List<Map<String, String>> ledgerNames = result.map((row) {
-    return {
-      'customer': row[columnCustomer] as String,
-      'item_name': row[columnItemName] as String,
-    };
-  }).toList();
 
-  return ledgerNames;
+  // Create a list to store unique customers
+  Set<String> seenCustomers = Set();
+  List<Map<String, String>> uniqueLedgerNames = [];
+
+  // Loop through the result and add only unique customer-item pairs
+  for (var row in result) {
+    String customer = row[columnCustomer] as String;
+    String itemName = row[columnItemName] as String;
+
+    if (!seenCustomers.contains(customer)) {
+      // Add this customer to the set (it will only be added once)
+      seenCustomers.add(customer);
+
+      // Add the unique customer-item pair to the list
+      uniqueLedgerNames.add({
+        'customer': customer,
+        'item_name': itemName,
+      });
+    }
+  }
+
+  return uniqueLedgerNames;
 }
+
 
 Future<Map<String, dynamic>?> getRowById(int id) async {
   final db = await database;
@@ -208,4 +225,17 @@ Future<List<int>> getAllLedgerIds() async {
 
     return ledgerIds;
   }
+  Future<List<Map<String, dynamic>>> queryTodayRows() async {
+  Database db = await instance.database;
+
+  // Get today's date in the format stored in your database
+  String today = DateFormat('dd-MM-yyyy').format(DateTime.now());
+
+  return await db.query(
+    table,
+    where: '$columnDate = ?',
+    whereArgs: [today],
+  );
+}
+
 }

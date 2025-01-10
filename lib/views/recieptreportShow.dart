@@ -151,6 +151,7 @@ Future<void> _fetchLedgerData2() async {
               2: FixedColumnWidth(120),
               3: FixedColumnWidth(100),
               4: FixedColumnWidth(160), 
+              5: FixedColumnWidth(160), 
             },
             children: [
               // Table header row
@@ -158,7 +159,8 @@ Future<void> _fetchLedgerData2() async {
                 children: [
                   _buildHeaderCell('No'),
                   _buildHeaderCell('Date'),
-                  _buildHeaderCell('Customer'),
+                  _buildHeaderCell('Name'),
+                  _buildHeaderCell('Discount'),
                   _buildHeaderCell('Amount'),
                   _buildHeaderCell('Narration'),
                 ],
@@ -170,20 +172,21 @@ Future<void> _fetchLedgerData2() async {
                     _buildDataCell(data[ReceiptDatabaseHelper.columnId].toString()),
                     _buildDataCell(data[ReceiptDatabaseHelper.columnDate].toString()),
                     _buildDataCell(data[ReceiptDatabaseHelper.columnLedgerName].toString()),
+                    _buildDataCell(data[ReceiptDatabaseHelper.columnDiscount].toString()),
                     _buildDataCell(data[ReceiptDatabaseHelper.columnTotal].toString()),
                     _buildDataCell(data[ReceiptDatabaseHelper.columnNarration].toString()),
                   ],
                 );
               }).toList(),
-              TableRow(
-                children: [
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                  _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? 'Closing Balance' : 'Closing Balance'),
-                _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? totalAmount.toStringAsFixed(2) : totalAmount.toStringAsFixed(2)),
-                  _buildDataCell(''),
-                ],
-              ),
+              // TableRow(
+              //   children: [
+              //     _buildDataCell(''),
+              //     _buildDataCell(''),
+              //     _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? 'Closing Balance' : 'Closing Balance'),
+              //   _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? totalAmount.toStringAsFixed(2) : totalAmount.toStringAsFixed(2)),
+              //     _buildDataCell(''),
+              //   ],
+              // ),
             ],
           ),
         ),
@@ -194,7 +197,7 @@ Future<void> _fetchLedgerData2() async {
   Widget _buildHeaderCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
-      color: Colors.grey[200],
+      color: Colors.white,
       child: Text(
         text,
         textAlign: TextAlign.center,

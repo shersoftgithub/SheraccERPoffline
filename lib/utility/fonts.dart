@@ -19,19 +19,34 @@ TextStyle DrewerFonts (){
 TextStyle filedFonts (){
   return GoogleFonts.poppins(fontWeight: FontWeight.w400,fontSize: 14 ,color:Colors.black );
 }
-TextStyle splashFonts (){
-  return GoogleFonts.hahmlet(fontWeight: FontWeight.w700,fontSize: 30 ,color:Colors.white );
+TextStyle splashFonts(double fontSize) {
+  return GoogleFonts.hahmlet(
+    fontWeight: FontWeight.w700,
+    fontSize: fontSize, // Adjust font size dynamically
+    color: Colors.white,
+  );
 }
-TextStyle splash2Fonts (){
-  return GoogleFonts.poppins(fontWeight: FontWeight.w400,fontSize: 14 ,color:Colors.white );
+
+TextStyle splash2Fonts(double fontSize) {
+  return GoogleFonts.poppins(
+    fontWeight: FontWeight.w400,
+    fontSize: fontSize, // Adjust font size dynamically
+    color: Colors.white,
+  );
 }
+
 TextStyle drewerFonts (){
   return GoogleFonts.poppins(fontWeight: FontWeight.w500,fontSize: 14 ,color:Color(0xFF8A8C91)
  );
 }
-TextStyle splash3Fonts (){
-  return GoogleFonts.hahmlet(fontWeight: FontWeight.w700,fontSize: 20 ,color:Colors.black );
+TextStyle splash3Fonts(double fontSize) {
+  return GoogleFonts.hahmlet(
+    fontWeight: FontWeight.w700,
+    fontSize: fontSize, // Adjust font size dynamically
+    color: Colors.black,
+  );
 }
+
 TextStyle getFontsinput (double fontsize,Color color){
   return GoogleFonts.poppins(fontWeight: FontWeight.w500,fontSize: fontsize ,color:color );
 }

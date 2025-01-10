@@ -212,20 +212,22 @@ Future<void> _exportToExcel() async {
   ),
   columnWidths: {
     0: FixedColumnWidth(120), 
-    1: FixedColumnWidth(120), 
-    2: FixedColumnWidth(120),
+    1: FixedColumnWidth(120),
+    2: FixedColumnWidth(120), 
     3: FixedColumnWidth(120),
-    4: FixedColumnWidth(120),
+    4: FixedColumnWidth(190),
     5: FixedColumnWidth(120),
-    6: FixedColumnWidth(140),
+    6: FixedColumnWidth(120),
     7: FixedColumnWidth(140),
     8: FixedColumnWidth(140),
-    9: FixedColumnWidth(120),
+    9: FixedColumnWidth(140),
     10: FixedColumnWidth(120),
+    11: FixedColumnWidth(120),
   },
   children: [
     TableRow(
       children: [
+        _buildHeaderCell('Date'),
         _buildHeaderCell('Ledger Name'),
         _buildHeaderCell('Address'),
         _buildHeaderCell('Contact'),
@@ -242,6 +244,7 @@ Future<void> _exportToExcel() async {
     ...ledgerData.map((data) {
       return TableRow(
         children: [
+          _buildDataCell(data['date'] ?? 'N/A'),
           _buildDataCell(data['ledger_name'] ?? 'N/A'),
           _buildDataCell(data['address'] ?? 'N/A'),
           _buildDataCell(data['contact'] ?? 'N/A'),
@@ -266,6 +269,7 @@ Future<void> _exportToExcel() async {
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),
+        _buildDataCell(''),
         _buildDataCell2('Closing Balance'),
         _buildDataCell2(totalOpeningBalance.toStringAsFixed(2)), // Display total opening balance
         _buildDataCell(''),
@@ -281,11 +285,12 @@ Future<void> _exportToExcel() async {
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),
+        _buildDataCell(''),
         widget.showOpeningBalance!?
         _buildDataCell2('Opening Balance'): _buildDataCell(''),
         widget.showOpeningBalance!
-          ? _buildDataCell2(OpeningBalance.toStringAsFixed(2)) // Display total opening balance
-          : _buildDataCell(''), // If not shown, leave it empty
+          ? _buildDataCell2(OpeningBalance.toStringAsFixed(2)) 
+          : _buildDataCell(''), 
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),

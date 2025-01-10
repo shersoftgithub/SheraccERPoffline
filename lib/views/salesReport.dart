@@ -57,6 +57,7 @@ class _SalesReportState extends State<SalesReport> {
   void initState() {
     super.initState();
   _fetchCustomerItemData();
+  _fetchItemNames();
   }
 final GlobalKey _arrowKey = GlobalKey();
 optionsDBHelper dbHelper=optionsDBHelper();
@@ -64,15 +65,26 @@ List salieretype=[];
 Future<void> salesreporttype()async{
   salieretype=await dbHelper.getOptionsByType("sales_reporttype");
 }
-List<Map<String, String>> ItemList = [];
+List<String> ItemList = [];
 List<Map<String, String>> customer = [];
 Future<void> _fetchCustomerItemData() async {
     List<Map<String, String>> data = await SaleDatabaseHelper.instance.getAll();
     setState(() {
       customer = data;  
-      ItemList=data;
     });
   }
+  void _fetchItemNames() async {
+    List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
+    setState(() {
+      items=ItemList;
+    });
+  }
+    void _onItemnameChanged(String value) async {
+  List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
+  setState(() {
+    ItemList = items.where((item) => item.contains(value)).toList();
+  });
+}
   @override
   
   Widget build(BuildContext context) {
@@ -184,11 +196,11 @@ Future<void> _fetchCustomerItemData() async {
                   padding: const EdgeInsets.symmetric(horizontal: 7),
                   child: EasyAutocomplete(
                       controller: _selectItemnameController,
-                      suggestions: ItemList
-                          .map((item) => item['item_name']!)  
-                          .toList(),
+                      suggestions: ItemList,
+                          
                          
                       onSubmitted: (value) {
+
                                 },
                       decoration: InputDecoration(
                   border: UnderlineInputBorder(),
@@ -213,7 +225,9 @@ Future<void> _fetchCustomerItemData() async {
                       suggestions: customer
                           .map((item) => item['customer']!) 
                           .toList(),
-                         
+                           onChanged: (value) {
+                _onItemnameChanged(value); // Update the list based on input
+              },
                       onSubmitted: (value) {
                                 },
                                     decoration: InputDecoration(

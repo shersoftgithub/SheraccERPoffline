@@ -23,67 +23,28 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
   @override
   void initState() {
     super.initState();
-    _fetchLedgerData();
     _fetchLedgerData2();
   }
 
-  Future<void> _fetchLedgerData() async {
-    List<Map<String, dynamic>> data = await PaymentDatabaseHelper.instance.queryAllRows();
+  Future<void> _fetchLedgerData2() async {
+    String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
+    String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
+
+    List<Map<String, dynamic>> data = await PaymentDatabaseHelper.instance.queryFilteredRows(
+      fromDateStr,  
+      toDateStr,    
+      widget.ledgerName ?? "",  
+    );
 
     setState(() {
-      paymentData = data.map((ledger) {
-        String? dateString = ledger['date'];
-        DateTime? ledgerDate;
-
-        if (dateString != null && dateString.isNotEmpty) {
-          try {
-            ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
-          } catch (e) {
-            print("Error parsing date: $e");
-            print("Invalid date string: $dateString");
-
-            ledgerDate = DateTime.now();
-          }
-        } else {
-          print("Date string is empty or null for ledger: $ledger");
-          ledgerDate = DateTime.now();
-        }
-
-        return {...ledger, 'date': ledgerDate};
-      }).toList();
-      totalAmount = paymentData.fold(0.0, (sum, item) {
-        double amount = double.tryParse(item[PaymentDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-        return amount;
-      });
-    });
-  }
-
- Future<void> _fetchLedgerData2() async {
-  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
-
-  
-  List<Map<String, dynamic>> data = await PaymentDatabaseHelper.instance.queryFilteredRows(
-    fromDateStr,  
-    toDateStr,    
-    widget.ledgerName ?? "",  
-  );
-
-  setState(() {
-    paymentData = data;
-        if (widget.ledgerName != null && widget.ledgerName!.isNotEmpty) {
-      totalAmount = paymentData.fold(0.0, (sum, item) {
-        double amount = double.tryParse(item[PaymentDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-        return sum + amount; 
-      });
-    } else {
+      paymentData = data;
       totalAmount = paymentData.fold(0.0, (sum, item) {
         double amount = double.tryParse(item[PaymentDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
         return sum + amount;  
       });
-    }
-  });
-}
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -156,49 +117,73 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
                   children: [
                     _buildHeaderCell('No'),
                     _buildHeaderCell('Date'),
-                    _buildHeaderCell('Customer'),
-                    _buildHeaderCell('opening Balance'),
-                    _buildHeaderCell('Debit'),
-                    _buildHeaderCell('Credit'),
+                    _buildHeaderCell('Name'),
+                    _buildHeaderCell('amount'),
+                    // _buildHeaderCell('Debit'),
+                    // _buildHeaderCell('Credit'),
+                     _buildHeaderCell('Discount'),
+                     _buildHeaderCell('Total'),
                     _buildHeaderCell('Narration'),
-                    _buildHeaderCell('Balance'),
-                    
+                   
                   ],
                 ),
                 // Table data rows
                 ...paymentData.map((data) {
                   return TableRow(
-                    children: [
+                     children: [
                       _buildDataCell(data[PaymentDatabaseHelper.columnId]?.toString() ?? 'N/A'),
                       _buildDataCell(data[PaymentDatabaseHelper.columnDate]?.toString() ?? 'N/A'),
                       _buildDataCell(data[PaymentDatabaseHelper.columnLedgerName]?.toString() ?? 'N/A'),
-                      _buildDataCell(""),
+                      //_buildDataCell(""),
                        _buildDataCell(data[PaymentDatabaseHelper.columnAmount]?.toString() ?? 'N/A'),
-                        _buildDataCell(data[PaymentDatabaseHelper.columnBalance]?.toString() ?? 'N/A'),
-                         _buildDataCell(data[PaymentDatabaseHelper.columnNarration]?.toString() ?? 'N/A'),
-                      _buildDataCell(data[PaymentDatabaseHelper.columnTotal]?.toString() ?? 'N/A'),
+                        _buildDataCell(data[PaymentDatabaseHelper.columnDiscount]?.toString() ?? 'N/A'),
+                         _buildDataCell(data[PaymentDatabaseHelper.columnTotal]?.toString() ?? 'N/A'),
+                      _buildDataCell(data[PaymentDatabaseHelper.columnNarration]?.toString() ?? 'N/A'),
                      
                     ],
                   );
                 }).toList(),
-                TableRow(
-                  children: [
-                    _buildDataCell(''),
-                    _buildDataCell(''),
-                    _buildDataCell(''),
-                    _buildDataCell2('Closing Balance'),
-                    _buildDataCell(''),
-                    _buildDataCell2(totalAmount.toStringAsFixed(2)), 
-                    _buildDataCell(''),
-                    _buildDataCell(''),
-                  ],
-                ),
+                // Closing balance row
+                // TableRow(
+                //   children: [
+                //     _buildDataCell(''),
+                //     _buildDataCell(''),
+                //     _buildDataCell(''),
+                //     _buildDataCell2('Closing Balance'),
+                //     _buildDataCell(''),
+                //     _buildDataCell2(totalAmount.toStringAsFixed(2)), 
+                //     _buildDataCell(''),
+                //     _buildDataCell(''),
+                //   ],
+                // ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  // Format the date as needed
+  String _formatDate(String? dateString) {
+    if (dateString != null && dateString.isNotEmpty) {
+      try {
+        DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateString);
+        return DateFormat('dd-MM-yyyy').format(parsedDate);
+      } catch (e) {
+        return "Invalid Date";
+      }
+    }
+    return "N/A";
+  }
+
+  // Format the amount with two decimal places
+  String _formatAmount(dynamic amount) {
+    if (amount != null) {
+      double parsedAmount = double.tryParse(amount.toString()) ?? 0.0;
+      return parsedAmount.toStringAsFixed(2);
+    }
+    return "0.00";
   }
 
   Widget _buildHeaderCell(String text) {
@@ -223,6 +208,7 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
       ),
     );
   }
+
   Widget _buildDataCell2(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),

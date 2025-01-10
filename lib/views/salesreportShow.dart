@@ -181,17 +181,17 @@ Future<void> _fetchLedgerDataForCustomer(String customerName) async {
                 width: 1.0,
               ),
               columnWidths: {
-                0: FixedColumnWidth(60),
-                1: FixedColumnWidth(80),
-                2: FixedColumnWidth(80),
-                3: FixedColumnWidth(80),
-                4: FixedColumnWidth(80),
-                5: FixedColumnWidth(80),
-                6: FixedColumnWidth(80),
-                7: FixedColumnWidth(80),
-                8: FixedColumnWidth(80),
-                9: FixedColumnWidth(80),
-                10: FixedColumnWidth(80),
+                0: FixedColumnWidth(100),
+                1: FixedColumnWidth(100),
+                2: FixedColumnWidth(100),
+                3: FixedColumnWidth(100),
+                4: FixedColumnWidth(100),
+                5: FixedColumnWidth(100),
+                6: FixedColumnWidth(100),
+                7: FixedColumnWidth(100),
+                8: FixedColumnWidth(100),
+                9: FixedColumnWidth(100),
+                10: FixedColumnWidth(100),
               },
               children: [
                 TableRow(
@@ -256,7 +256,7 @@ Future<void> _fetchLedgerDataForCustomer(String customerName) async {
       padding: const EdgeInsets.all(8.0),
       child: Text(
         text,
-        style: getFonts(12, Colors.black),
+        style: getFonts(13, Colors.black),
         textAlign: TextAlign.center,
       ),
     );
@@ -267,6 +267,7 @@ Future<void> _fetchLedgerDataForCustomer(String customerName) async {
       padding: const EdgeInsets.all(8.0),
       child: Text(
         text,
+        style: getFonts(12, Colors.black),
         textAlign: TextAlign.center,
       ),
     );

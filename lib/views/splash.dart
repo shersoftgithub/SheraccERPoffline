@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
-
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/Home.dart';
 
@@ -12,8 +11,7 @@ class Splash extends StatefulWidget {
 }
 
 class _SplashState extends State<Splash> {
-
-  
+  @override
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 4), () {
@@ -21,75 +19,92 @@ class _SplashState extends State<Splash> {
           context, MaterialPageRoute(builder: (context) => HomePageERP()));
     });
   }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
+    // Adjust font sizes, padding, and spacing based on screen size
+    double fontSize1 = screenWidth * 0.07;
+    double fontSize2 = screenWidth * 0.06;
+    double fontSize3 = screenWidth * 0.03;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-          Color(0xFF0616BA),
-        Color(0xFF387FE9),])
-      ),
-      child: Column(
-  mainAxisAlignment: MainAxisAlignment.center, 
-  crossAxisAlignment: CrossAxisAlignment.center,
-  children: [
-    SizedBox(height: 300,),
-    Container(
-      child: Image.asset("assets/images/launch 1.png"),
-    ),
-    SizedBox(height: 10,),
-    Center(
-      child: Row(
-        children: [
-          SizedBox(width: screenHeight*0.12,),
-          Text(
-            "SherAcc", 
-            style: splashFonts( ),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0616BA),
+              Color(0xFF387FE9),
+            ],
           ),
-          SizedBox(width: 3,),
-          ClipPath(
-            clipper: SlantedContainerClipper(),
-            child: Container(
-              height: 30,
-              color: Colors.white,
-             
-              child: Center(child: Text("  ERP",style: splash3Fonts(),)),
-            ),
-          ),
-        ],
-      ),
-    ),
-    Expanded(
-      child: Align(
-        alignment: Alignment.bottomCenter, 
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center, 
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              "offline", 
-              style: splash2Fonts(),
+            SizedBox(height: screenHeight * 0.2),
+            Container(
+              child: Image.asset(
+                "assets/images/launch 1.png",
+                height: screenHeight * 0.25, // Adjust image height for responsiveness
+              ),
             ),
-            SizedBox(width: 7,),
-            Icon(Icons.cloud_off_outlined,color: Colors.white,)
+            Center(
+              child: Row(mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "SherAcc",
+                    style: splashFonts(fontSize1), // Adjust font size
+                  ),
+                  SizedBox(width: 3),
+                  ClipPath(
+                    clipper: SlantedContainerClipper(),
+                    child: Container(
+                      height: screenHeight * 0.04, // Adjust height of the ERP text container
+                      color: Colors.white,
+                      child: Center(
+                        child: Text(
+                          "  ERP",
+                          style: splash3Fonts(fontSize2), // Adjust ERP font size
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "offline",
+                      style: splash2Fonts(fontSize3), // Adjust offline font size
+                    ),
+                    SizedBox(width: 7),
+                    Icon(
+                      Icons.cloud_off_outlined,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.03),
           ],
         ),
       ),
-    ),
-    SizedBox(height: 20,)
-  ],
-)
-
-      ),
     );
   }
+}
 
-}class SlantedContainerClipper extends CustomClipper<Path> {
+class SlantedContainerClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     Path path = Path();
@@ -109,4 +124,3 @@ class _SplashState extends State<Splash> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
-

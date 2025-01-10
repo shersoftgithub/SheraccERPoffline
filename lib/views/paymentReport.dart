@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/paymentreportShow.dart';
@@ -46,13 +47,20 @@ class _PaymentreportState extends State<Paymentreport> {
   void initState() {
     super.initState();
    _fetchLedgerNames();
-   
+   _fetchCash();
   }
   List <String>ledgerNames = [];
   Future<void> _fetchLedgerNames() async {
   List<String> names = await DatabaseHelper.instance.getAllLedgerNames();
     setState(() {
     ledgerNames = names; 
+    });
+  }
+  List <String>CashAcclist = [];
+  Future<void> _fetchCash() async {
+  List<String> names = await PaymentDatabaseHelper.instance.getAllUniqueCashAccounts();
+    setState(() {
+    CashAcclist = names; 
     });
   }
 
@@ -166,7 +174,7 @@ void _showLedgerWithFilters() {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("select ",style: formFonts(13, Colors.black),),
+                  Text("Select Cash",style: formFonts(13, Colors.black),),
                   SizedBox(height: screenHeight * 0.01),
                   Container(
                     height: screenHeight * 0.05,
@@ -180,8 +188,9 @@ void _showLedgerWithFilters() {
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
                   child: SingleChildScrollView(
                     child: EasyAutocomplete(
+                      suggestionBackgroundColor: Appcolors().Scfold,
                         controller: ledgernamesController,
-                        suggestions: ledgerNames,
+                        suggestions: CashAcclist,
                            
                         onSubmitted: (value) {
                                   },
@@ -201,7 +210,25 @@ void _showLedgerWithFilters() {
             Container(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.017),
               child: Column(
                 children: [
-                   _paymentfield("select Ledger Name", selectledgernamesController, screenWidth, screenHeight),
+                  SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: EasyAutocomplete(
+                      controller: selectledgernamesController,
+                      suggestions:ledgerNames,
+                      onSubmitted: (value) {
+                                },
+                                    decoration: InputDecoration(
+                  border: UnderlineInputBorder(),
+                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  hintText: "Select Ledger Name",
+                  hintStyle: TextStyle(fontSize: 14)
+                                ),
+                  suggestionBackgroundColor: Appcolors().Scfold,
+                    ),
+                ),
+              ),
+                  // _paymentfield("select Ledger Name", selectledgernamesController, screenWidth, screenHeight),
              _paymentfield("select Salesman", selectsalesmanController, screenWidth, screenHeight),
              _paymentfield("select Group", selectgroupController, screenWidth, screenHeight),
                 ],

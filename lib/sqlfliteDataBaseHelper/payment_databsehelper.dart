@@ -117,7 +117,6 @@ Future<List<Map<String, dynamic>>> queryFilteredRows(String? fromDate, String? t
     whereArgs.add('%$ledgerName%');
   }
 
-  // Filter by date range if both fromDate and toDate are provided
   if (fromDate != null && toDate != null) {
     if (whereClause.isNotEmpty) whereClause += ' AND ';
     whereClause += '$columnDate BETWEEN ? AND ?';
@@ -148,7 +147,7 @@ Future<void> updatePaymentBalance(String ledgerName,String total,String amt, dou
     'payment_table', 
     {'balance': newBalance,
     'total':total,
-    'amount':amt
+    'amount':amt,
     }, 
     where: 'ledgerName = ?', 
     whereArgs: [ledgerName],
@@ -164,4 +163,14 @@ Future<Map<String, dynamic>?> getLedgerByName(String ledgerName) async {
   );
   return result.isNotEmpty ? result.first : null;
 }
+Future<List<String>> getAllCashAcc() async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> result = await db.query(
+      table,
+      columns: [columnCashAccount,],
+    );
+    List<String> ledgerNames = result.map((row) => row[columnCashAccount] as String).toList();
+
+    return ledgerNames;
+  }
 }

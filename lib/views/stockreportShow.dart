@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stocklocalDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -10,17 +12,38 @@ class ShowStockReport extends StatefulWidget {
 }
 
 class _ShowStockReportState extends State<ShowStockReport> {
-  // Stock data with correct keys
-  List<Map<String, String>> stockData = [
-    {
-      'SlNo': '1',
-      'Itemcode': '12345',
-      'ItemName': 'Product A',
-      'Qty': '10',
-      'Rate': '50',
-      'Total': '500',
-    },
-  ];
+  // Stock data will be fetched from the database
+  List<Map<String, dynamic>> stockData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStockData();
+    _fetchStockData2();
+  }
+
+  Future<void> _fetchStockData() async {
+  try {
+    List<Map<String, dynamic>> data = await StockDatabaseHelper.instance.getAllProductRegistration();
+    print('Fetched stock data: $data'); // Debug fetched data
+    setState(() {
+      stockData = data;
+    });
+  } catch (e) {
+    print('Error fetching stock data: $e');
+  }
+}
+Future<void> _fetchStockData2() async {
+  try {
+    List<Map<String, dynamic>> data = await StockDatabaseHelper.instance.getAllProducts();
+    print('Fetched stock data: $data'); // Debug fetched data
+    setState(() {
+      stockData = data;
+    });
+  } catch (e) {
+    print('Error fetching stock data: $e');
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -72,51 +95,54 @@ class _ShowStockReportState extends State<ShowStockReport> {
         scrollDirection: Axis.horizontal,
         child: Padding(
           padding: const EdgeInsets.only(top: 10),
-          child: Table(
-            border: TableBorder.all(
-              color: Colors.black,
-              width: 1.0,
-            ),
-            columnWidths: {
-              0: FixedColumnWidth(60), // Adjust the first column width (SlNo)
-              1: FixedColumnWidth(80), // Adjust other column widths
-              2: FixedColumnWidth(120),
-              3: FixedColumnWidth(80),
-              4: FixedColumnWidth(80),
-              5: FixedColumnWidth(80),
-            },
-            children: [
-              // Table header row
-              TableRow(
-                children: [
-                  _buildHeaderCell('SlNo'),
-                  _buildHeaderCell('Item Code'),
-                  _buildHeaderCell('Item Name'),
-                  _buildHeaderCell('Qty'),
-                  _buildHeaderCell('Rate'),
-                  _buildHeaderCell('Total'),
-                ],
+          child: SingleChildScrollView(
+            child: Table(
+              border: TableBorder.all(
+                color: Colors.black,
+                width: 1.0,
               ),
-              // Table data rows
-              ...stockData.map((data) {
-                return TableRow(
+              columnWidths: {
+                0: FixedColumnWidth(60), // Adjust the first column width (SlNo)
+                1: FixedColumnWidth(80), // Adjust other column widths
+                2: FixedColumnWidth(120),
+                3: FixedColumnWidth(80),
+                4: FixedColumnWidth(80),
+                5: FixedColumnWidth(80),
+              },
+              children: [
+                // Table header row
+                TableRow(
                   children: [
-                    _buildDataCell(data['SlNo']!),
-                    _buildDataCell(data['Itemcode']!),
-                    _buildDataCell(data['ItemName']!),
-                    _buildDataCell(data['Qty']!),
-                    _buildDataCell(data['Rate']!),
-                    _buildDataCell(data['Total']!),
+                    _buildHeaderCell('SlNo'),
+                    _buildHeaderCell('ItemId'),
+                    _buildHeaderCell('supplier'),
+                    _buildHeaderCell('Qty'),
+                    _buildHeaderCell('Disc'),
+                    _buildHeaderCell('Amount'),
                   ],
-                );
-              }).toList(),
-            ],
+                ),
+                // Table data rows
+                ...stockData.map((data) {
+                  return TableRow(
+                    children: [
+                      _buildDataCell(data['id'].toString()), // Assuming id is present in the database
+                      _buildDataCell(data['itemcode'] ?? 'N/A'), // Adjust as needed based on your DB schema
+                      _buildDataCell(data['itemname'] ?? 'N/A'), // Assuming column name is `item_name`
+                      _buildDataCell(data['Qty'].toString() ?? '0'), // Assuming column name is `quantity`
+                      _buildDataCell(data['Disc'].toString() ?? '0'), // Assuming column name is `rate`
+                      _buildDataCell(data['Amount'].toString() ?? '0'), // Assuming column name is `total`
+                    ],
+                  );
+                }).toList(),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  // Header cell builder
   Widget _buildHeaderCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
@@ -129,6 +155,7 @@ class _ShowStockReportState extends State<ShowStockReport> {
     );
   }
 
+  // Data cell builder
   Widget _buildDataCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),

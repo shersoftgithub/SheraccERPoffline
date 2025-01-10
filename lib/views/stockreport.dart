@@ -1,7 +1,9 @@
+import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/stockreportShow.dart';
@@ -57,8 +59,22 @@ Future<void> StockreportType()async{
   void initState() {
   _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
       super.initState();
+      _fetchLedgerIds();
   }
 final GlobalKey _arrowKey = GlobalKey();
+
+  List<String> items = [];
+   List <String> suppliers=[];
+
+Future<void> _fetchLedgerIds() async {
+  List<String> itemids = await StockDatabaseHelper.instance.getAllItemcode();
+    List<String> cname = await StockDatabaseHelper.instance.getAllsupplier(); 
+
+  setState(() {
+    items = itemids;
+    suppliers=cname;
+  });
+}
   @override
   
   Widget build(BuildContext context) {
@@ -163,16 +179,53 @@ final GlobalKey _arrowKey = GlobalKey();
           child: Container(
             child: Column(
               children: [
-                  _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Manufacture", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Category", _selectSupplierController, screenWidth, screenHeight),
+                SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: EasyAutocomplete(
+                      controller: _selectItemcodeController,
+                      suggestions: items,
+                        onSubmitted: (value) {
+                                },
+                                    decoration: InputDecoration(
+                  border: UnderlineInputBorder(),
+                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  hintText: "Select Item Code",
+                  hintStyle: TextStyle(fontSize: 14)
+                                ),
+                  suggestionBackgroundColor: Appcolors().Scfold,
+                    ),
+                ),
+              ),
+                //  _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Select Item Name", _selectItemnameController, screenWidth, screenHeight),
+                _salefield("Manufacture", _manufactureController, screenWidth, screenHeight),
+                _salefield("Category", _categoryController, screenWidth, screenHeight),
                 
-                _salefield("Salesman", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Salesman", _salesmanController, screenWidth, screenHeight),
+                SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: EasyAutocomplete(
+                      controller: _selectSupplierController,
+                      suggestions: suppliers,
+                     
+                      onSubmitted: (value) {
+                                },
+                                    decoration: InputDecoration(
+                  border: UnderlineInputBorder(),
+                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  hintText: "Select Supplier",
+                  hintStyle: TextStyle(fontSize: 14)
+                                ),
+                  suggestionBackgroundColor: Appcolors().Scfold,
+                    ),
+                ),
+              ),
+               // _salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
                 SizedBox(height: screenHeight * 0.0002),
               
-          _salefield("Group", _selectSupplierController, screenWidth, screenHeight),
+          _salefield("Group", _groupController, screenWidth, screenHeight),
               ],
             ),
           ),
