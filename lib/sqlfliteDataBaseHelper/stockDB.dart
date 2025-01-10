@@ -19,7 +19,7 @@ class StockDatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, // Increment version to handle DB changes
+      version: 3, 
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );

@@ -4,6 +4,7 @@ import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/salescredit_modal.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
@@ -56,7 +57,7 @@ class _SalesOrderState extends State<SalesOrder> {
   void initState() {
     super.initState();
     fetch_options();
-    _fetchLedgerIds();
+    _fetchLedger();
     _fetchLastInvoiceId();
     _fetchTodayItems();
    _InvoicenoController.text = ''; // set the default value or from your data
@@ -95,15 +96,34 @@ class _SalesOrderState extends State<SalesOrder> {
    List<int> ledgerIds = [];
    List <String> names=[];
 
-Future<void> _fetchLedgerIds() async {
-  List<int> ids = await DatabaseHelper.instance.getAllLedgerIds();
-    List<String> cname = await DatabaseHelper.instance.getAllLedgerNames();
+Future<void> _fetchLedger() async {
+    List<String> cname = await CompanyLEdgerDatabaseHelper.instance.getAllNames();
 
   setState(() {
-    ledgerIds = ids;
     names=cname;
   });
 }
+
+Future<void> _fetchLedgerDetails(String ledgerName) async {
+  if (ledgerName.isNotEmpty) {
+    Map<String, dynamic>? ledgerDetails = await CompanyLEdgerDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
+
+    if (ledgerDetails != null) {
+      setState(() {
+        _InvoicenoController.text = ledgerDetails['LedId'] ?? '';
+        _phonenoController.text = ledgerDetails['Mobile'] ?? '';
+      });
+    } else {
+      // Optionally clear the fields if no data found
+      setState(() {
+        _InvoicenoController.clear();
+        _phonenoController.clear();
+      });
+    }
+  }
+}
+
+
 int nextInvoiceId = 0; 
 Future<void> _fetchLastInvoiceId() async {
   List<int> ledgerIds = await SaleDatabaseHelper.instance.getAllLedgerIds();
@@ -330,8 +350,9 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
     double qty = widget.salesCredit?.qty ?? 0.0;
     double rate = widget.salesCredit?.rate ?? 0.0;
     double tax = widget.salesCredit?.tax ?? 0.0;
+    double finalamt=widget.salesCredit?.totalAmt??0.0;
     double saleRate = double.tryParse(_salerateController.text) ?? 0.0;
-        double totalAmt = (qty * rate) + tax + ((saleRate - rate) * qty);
+        double totalAmt = finalamt + ((saleRate - rate) * qty);
         _totalamtController.text = totalAmt.toStringAsFixed(2);
   }
   _salerateController.addListener(updateTotalAmount);
@@ -651,12 +672,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                         controller: _CustomerController,
                         suggestions: names,
                         inputTextStyle: getFontsinput(14, Colors.black),
-                        onSubmitted: (value) {
-    if (!names.contains(value)) {
-      _showCreateItemDialog(value);  
-    } else {
-      _fetchName_Data(value);  
-    }
+                        onSubmitted: (value)async {
+   await _fetchLedgerDetails(value);
   },
                         decoration: InputDecoration(
                           border: InputBorder.none,

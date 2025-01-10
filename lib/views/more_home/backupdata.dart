@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -57,7 +58,26 @@ Future<List<Map<String, dynamic>>> fetchProductDataFromMSSQL() async {
     }
 }
 
+Future<List<Map<String, dynamic>>> fetchDataFromMSSQLCompany() async {
+    try {
+      final query = 'SELECT  Ledcode,LedName,lh_id,add1,add2,add3,add4,city,route,state,Mobile,pan,Email,gstno,CAmount,Active,SalesMan,Location,OrderDate,DeliveryDate,CPerson,CostCenter,Franchisee,SalesRate,SubGroup,SecondName,UserName,Password,CustomerType,OTP,maxDiscount FROM LedgerNames';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
+    
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for LedgerNames data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for LedgerNames: $rawData');
+    } catch (e) {
+      print('Error fetching data from LedgerNames: $e');
+      rethrow;
+    }
+  }
 
 
   // Backup both Stock and Product_Registration to local SQLite database
@@ -188,6 +208,55 @@ Future<List<Map<String, dynamic>>> fetchProductDataFromMSSQL() async {
         };
         await dbHelper.insertProductRegistrationData(productRowData);
       }
+
+      final CompanyLedgerData = await fetchDataFromMSSQLCompany();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelper = CompanyLEdgerDatabaseHelper.instance;
+for (var row in CompanyLedgerData) {
+  Map<String, dynamic> rowData = {
+    'Ledcode': row['Ledcode']?.toString() ?? '', // Default empty string for null values
+    'LedName': row['LedName']?.toString() ?? 'Unknown',
+    'lh_id': row['lh_id']?.toString() ?? '',
+    'add1': row['add1']?.toString() ?? 'Default Address',
+    'add2': row['add2']?.toString() ?? 'Default Address',
+    'add3': row['add3']?.toString() ?? 'Default Address',
+    'add4': row['add4']?.toString() ?? 'Default Address',
+    'city': row['city']?.toString() ?? 'Default City',
+    'route': row['route']?.toString() ?? 'Default Route',
+    'state': row['state']?.toString() ?? 'Default State',
+    'Mobile': row['Mobile']?.toString() ?? '',
+    'pan': row['pan']?.toString() ?? '',
+    'Email': row['Email']?.toString() ?? '',
+    'gstno': row['gstno']?.toString() ?? '',
+    'CAmount': row['CAmount'] != null ? row['CAmount'].toString() : '0.0',
+    'Active': row['Active'] != null ? row['Active'].toString() : '1',
+    'SalesMan': row['SalesMan']?.toString() ?? 'Unknown',
+    'Location': row['Location']?.toString() ?? '',
+    'OrderDate': row['OrderDate']?.toString() ?? '',
+    'DeliveryDate': row['DeliveryDate']?.toString() ?? '',
+    'CPerson': row['CPerson']?.toString() ?? 'Unknown',
+    'CostCenter': row['CostCenter']?.toString() ?? 'Default Center',
+    'Franchisee': row['Franchisee']?.toString() ?? 'Unknown',
+    'SalesRate': row['SalesRate']?.toString() ?? '',
+    'SubGroup': row['SubGroup']?.toString() ?? 'Unknown SubGroup',
+    'SecondName': row['SecondName']?.toString() ?? 'Unknown',
+    'UserName': row['UserName']?.toString() ?? 'Unknown',
+    'Password': row['Password']?.toString() ?? 'Unknown',
+    'CustomerType': row['CustomerType']?.toString() ?? 'Regular',
+    'OTP': row['OTP']?.toString() ?? '',
+    'maxDiscount': row['maxDiscount'] != null ? row['maxDiscount'].toString() : '0.0',
+  };
+
+  await DbHelper.insertLedgerData(rowData);
+}
+
+
+
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(

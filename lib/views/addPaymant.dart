@@ -23,6 +23,8 @@ class _AddpaymantState extends State<Addpaymant> {
   final TextEditingController _unitController=TextEditingController();
   final TextEditingController _rateController=TextEditingController();
   final TextEditingController _taxController=TextEditingController();
+  final TextEditingController _DiscountController=TextEditingController();
+  final TextEditingController _Discpercentroller=TextEditingController();
   List<String> _itemSuggestions = [];
     bool isCashSave = false;
 
@@ -46,8 +48,12 @@ class _AddpaymantState extends State<Addpaymant> {
   final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
   final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
   final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  final totalAmt = (rate * qty) + (tax * qty);
-
+  final DiscPerc = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
+  final totalAmt = (rate * qty) ;
+      final taxvalue= (totalAmt*tax)/100;
+final netamt=(totalAmt - taxvalue);
+final PercenDisc = (totalAmt * DiscPerc)/100;
+final finalAmt=(totalAmt - PercenDisc);
   final creditsale = SalesCredit(
     invoiceId: 0,
     date: "", 
@@ -59,7 +65,7 @@ class _AddpaymantState extends State<Addpaymant> {
     unit: unit,
     rate: rate,
     tax: tax,
-    totalAmt: totalAmt,
+    totalAmt: finalAmt,
   );
   Navigator.push(
     context,
@@ -103,7 +109,8 @@ void _saveDataCash() {
     super.initState();
     _fetchItemNames(); 
      _fetchProductNames();
-    
+    _DiscountController.addListener(_onDiscountChanged);
+    _Discpercentroller.addListener(_onPercentChanged);
   }
   void _onItemnameChanged(String value) async {
   List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
@@ -133,12 +140,10 @@ void _saveDataCash() {
 
   setState(() {
     itemDetails = details.isNotEmpty ? details : [];
-    _selectedRate = null; // Reset selected rate when a new item is selected
+    _selectedRate = null; 
   });
-
-  // Update the tax field in the controller
   if (details.isNotEmpty) {
-    _taxController.text = details[0]["tax"] ?? "N/A"; // Set tax value into controller
+    _taxController.text = details[0]["tax"] ?? "N/A"; 
   }
 
   // Handle no data case
@@ -159,11 +164,53 @@ void _saveDataCash() {
   });
 }
  bool _isDropdownVisible = false;
+bool _isUpdating = false;
+ void _onPercentChanged() {
+    if (_isUpdating) return;
+final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
+    final qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
+    final totalAmt = rate * qty;
+
+    double percValue = double.tryParse(_Discpercentroller.text.trim()) ?? 0.0;
+
+    setState(() {
+      _isUpdating = true;
+      final discountAmt = (totalAmt * percValue) / 100;
+      _DiscountController.text = discountAmt.toStringAsFixed(2);
+      _isUpdating = false;
+    });
+  }
+   void _onDiscountChanged() {
+    if (_isUpdating) return;
+final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
+    final qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
+    final totalAmt = rate * qty;
+
+    double discountAmt = double.tryParse(_DiscountController.text.trim()) ?? 0.0;
+
+    setState(() {
+      _isUpdating = true;
+      final percValue = (discountAmt / totalAmt) * 100;
+      _Discpercentroller.text = percValue.toStringAsFixed(2);
+      _isUpdating = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
      final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
+ final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
+  final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
+  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  final DiscPerc = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
+  final totalAmt = (rate * qty) ;
+      final taxvalue= (totalAmt*tax)/100;
+final netamt=(totalAmt - taxvalue);
+final PercenDisc = (totalAmt * DiscPerc)/100;
+//_Discpercentroller.text = PercenDisc.toStringAsFixed(2);
+final finalAmt=(totalAmt - PercenDisc);
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -408,15 +455,7 @@ void _saveDataCash() {
                   color: Colors.white,
                   border: Border.all(color: Appcolors().searchTextcolor),
                 ),
-                child: TextFormField(
-                         controller: _taxController,
-                          
-                          obscureText: false,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
-                          ),
-                        ),
+                child: Text("${taxvalue}")
               ),
                         ],
                       ),
@@ -425,6 +464,168 @@ void _saveDataCash() {
               ),
             ),
           ),
+           SizedBox(height: screenHeight*0.02,),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  
+                  'Discount',
+                  style: formFonts(14, Colors.black),
+                ),
+            SizedBox(height: screenHeight * 0.01),
+            Container(
+              width: 173,
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Container(
+                     height: 35, 
+                    width: 75,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5),
+                      color: Colors.white,
+                      border: Border.all(color: Appcolors().searchTextcolor),
+                    ),
+                     child: TextFormField(
+                             controller: _DiscountController,
+                              keyboardType: TextInputType.number,
+                              obscureText: false,
+                             // onChanged: _onRateChanged,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
+                              ),
+                            ),
+                  ),
+                  SizedBox(width: screenHeight*0.019,),
+                  Icon(Icons.percent),
+                  Container(
+                 height: 35, 
+                width: 55,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(5),
+                  color: Colors.white,
+                  border: Border.all(color: Appcolors().searchTextcolor),
+                ),
+                 child: TextFormField(
+                         controller: _Discpercentroller,
+                          keyboardType: TextInputType.number,
+                          obscureText: false,
+                         // onChanged: _onRateChanged,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
+                          ),
+                        ),
+              ),
+                ],
+              ),
+            ),
+          ],
+        ),
+            ),
+            SizedBox(height: screenHeight*0.02,),
+             Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  
+                  'Net Amount',
+                  style: formFonts(14, Colors.black),
+                ),
+            SizedBox(height: screenHeight * 0.01),
+            GestureDetector(
+              child: Container(
+                 height: 35, 
+                width: 173,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(5),
+                  color: Colors.white,
+                  border: Border.all(color: Appcolors().searchTextcolor),
+                ),
+                child: Text("${netamt}"),
+              ),
+            ),
+          ],
+        ),
+            )
+              ],
+            ),
+          ),
+          SizedBox(height: screenHeight*0.02,),
+          Padding(
+         padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.03),
+         child: Container(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Total Amount",style: getFonts(14, Colors.black),),
+              Column(children: [
+                Row(
+                  children: [
+                    Text("₹",style: getFonts(14, Colors.black)),
+ Text("${finalAmt}",style: getFonts(14, Colors.red),
+                        
+                      ),                  ],
+                ),
+                
+              ],)
+            ],
+          ),
+         ),
+       ),
+       SizedBox(height: screenHeight*0.04,),
+       SingleChildScrollView(
+          scrollDirection: Axis.horizontal, // Enables horizontal scrolling
+          child: Table(
+            border: TableBorder.all(color: Colors.black),
+            columnWidths: {
+               0: FixedColumnWidth(100),
+                1: FixedColumnWidth(70),
+                2: FixedColumnWidth(100),
+                3: FixedColumnWidth(100),
+                4: FixedColumnWidth(100),
+                5: FixedColumnWidth(100),
+                6: FixedColumnWidth(110),
+            }, // Border for the table
+            children: [
+              
+              TableRow(
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey[100], // Background color for header
+                ),
+                
+                children: [
+                  _tableHeaderCell('Item Name', width: 150),
+                  _tableHeaderCell('Qty', width: 80),
+                  _tableHeaderCell('Unit', width: 100),
+                  _tableHeaderCell('Rate', width: 100),
+                  _tableHeaderCell('Tax', width: 100),
+                  _tableHeaderCell('Discount', width: 100),
+                  _tableHeaderCell('Total Amt', width: 120),
+                ],
+              ),
+              // Data Row
+              TableRow(
+                children: [
+                  _tableCell('${_itemnameController.text}', width: 120),
+                  _tableCell('${_qtyController.text}', width: 80),
+                  _tableCell('${_unitController.text}', width: 100),
+                  _tableCell('${_selectedRate}', width: 100),
+                  _tableCell('${_taxController.text}', width: 100),
+                  _tableCell('${_DiscountController.text}', width: 100),
+                  _tableCell('${finalAmt.toString()}', width: 120),
+                ],
+              ),
+            ],
+          ),
+        ),
           ],
         ),
       ),
@@ -519,7 +720,6 @@ TableRow _buildTableRow(String label, String? value) {
       GestureDetector(
         onTap: () {
           setState(() {
-            // Update the selected value based on the clicked row
             _selectedRate = value ?? "N/A"; // Update the selected rate
             _isDropdownVisible = false; // Close the dropdown after selection
           });
@@ -532,5 +732,30 @@ TableRow _buildTableRow(String label, String? value) {
     ],
   );
 }
+ Widget _tableHeaderCell(String text, {double width = 100}) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color:Appcolors().scafoldcolor
+      ),
+      child: Text(
+        text,
+        style: getFonts(13, Appcolors().maincolor),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
 
+  Widget _tableCell(String text, {double width = 100}) {
+   return Container(
+    width: width,
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        style: getFonts(12, Colors.black),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
 }
