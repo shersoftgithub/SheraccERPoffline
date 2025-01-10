@@ -7,10 +7,12 @@ import 'package:sheraaccerpoff/models/salescredit_modal.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/Home.dart';
 import 'package:sheraaccerpoff/views/addPaymant.dart';
+import 'package:sheraaccerpoff/views/addpayment2.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
 
 class SalesOrder extends StatefulWidget {
@@ -56,12 +58,33 @@ class _SalesOrderState extends State<SalesOrder> {
     fetch_options();
     _fetchLedgerIds();
     _fetchLastInvoiceId();
-   _InvoicenoController.text;
-   _CustomerController.text;
-   _phonenoController.text;
+    _fetchTodayItems();
+   _InvoicenoController.text = ''; // set the default value or from your data
+    _dateController.text = '';      // set default or fetched value
+    _salerateController.text = '';  
+    _CustomerController.text = '';
+    _phonenoController.text = '';
     _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
   }
+   @override
+  void dispose() {
+    super.dispose();
+    _InvoicenoController.dispose();
+    _dateController.dispose();
+    _salerateController.dispose();
+    _CustomerController.dispose();
+    _phonenoController.dispose();
+    _totalamtController.dispose();
+  }
     optionsDBHelper dbHelper = optionsDBHelper();
+     List<Map<String, dynamic>> todayItems = [];
+ Future<void> _fetchTodayItems() async {
+    final items = await SaleDatabaseHelper.instance.queryTodayRows();
+    setState(() {
+      todayItems = items;
+    });
+  }
+
     List<String> salesrate = [];
     Future<void>fetch_options()async{
       salesrate = await dbHelper.getOptionsByType('price_level');
@@ -116,7 +139,6 @@ void _fetchInvoiceData(int ledgerId) async {
   if (selectedLedger.isNotEmpty) {
     setState(() {
             _CustomerController.text = selectedLedger[DatabaseHelper.columnLedgerName].toString();
-
       _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
     });
   }
@@ -139,33 +161,79 @@ void _fetchName_Data(String name) async {
     });
   }
 }
-void _saveData()async{
-  
-  final creditsale=SalesCredit(
-    
-    invoiceId: int.parse(_InvoicenoController.text),
-    date: _dateController.text, 
-    salesRate: double.tryParse(_salerateController.text)??0.0,
-     customer: _CustomerController.text,
+void _saveData() async {
+  final qty = widget.salesCredit!.qty.toDouble();
+  final itemName = widget.salesCredit!.itemName.toString();
+
+  // Fetch ItemId using itemName from product_registration
+  String? itemId = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
+
+  if (itemId == null) {
+    // Handle case where no ItemId is found for the itemName
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No ItemId found for $itemName')),
+    );
+    return;
+  }
+
+  // Step 2: Fetch the stock data using the ItemId from the stock table
+  Map<String, dynamic>? stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemId);
+
+  if (stockData != null) {
+    // Get the current quantity of the item in stock
+    double currentQty = stockData['Qty'] ?? 0.0;
+    double updatedQty = currentQty - qty;
+
+    if (updatedQty < 0) {
+      // Handle case where not enough stock is available
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Not enough stock available for $itemName')),
+      );
+      return;
+    }
+
+    // Proceed with saving the sales data
+    final creditsale = SalesCredit(
+      invoiceId: int.parse(_InvoicenoController.text),
+      date: _dateController.text,
+      salesRate: double.tryParse(_salerateController.text) ?? 0.0,
+      customer: _CustomerController.text,
       phoneNo: _phonenoController.text,
-       itemName:widget.salesCredit!.itemName,
-        qty: widget.salesCredit!.qty,
-         unit: widget.salesCredit!.unit,
-          rate: widget.salesCredit!.rate,
-           tax: widget.salesCredit!.tax, 
-           totalAmt:double.tryParse(_totalamtController.text)??0.0);
-          int lastInsertedId= await SaleDatabaseHelper.instance.insert(creditsale.toMap());
-            await _saveLastInsertedIdToPayments(lastInsertedId, creditsale.customer);
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('saved successfully')));
-   await syncOpeningBalances(lastInsertedId);
-   setState(() {
-        _InvoicenoController.clear();
-        _salerateController.clear();
-        _CustomerController.clear();
-        _phonenoController.clear();
-        _totalamtController.clear();      
-            });
+      itemName: widget.salesCredit!.itemName,
+      qty: widget.salesCredit!.qty,
+      unit: widget.salesCredit!.unit,
+      rate: widget.salesCredit!.rate,
+      tax: widget.salesCredit!.tax,
+      totalAmt: double.tryParse(_totalamtController.text) ?? 0.0,
+    );
+
+    int lastInsertedId = await SaleDatabaseHelper.instance.insert(creditsale.toMap());
+
+    // Update the stock quantity after saving sales data
+    await StockDatabaseHelper.instance.updateProductQuantity(stockData['id'], updatedQty);
+
+    // Save to payments, sync opening balances, and reset fields as per your existing logic
+    await _saveLastInsertedIdToPayments(lastInsertedId, creditsale.customer);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved successfully')));
+
+    await syncOpeningBalances(lastInsertedId);
+
+    setState(() {
+      _InvoicenoController.clear();
+      _salerateController.clear();
+      _CustomerController.clear();
+      _phonenoController.clear();
+      _totalamtController.clear();
+    });
+  } else {
+    // Handle case where the stock record is not found
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No stock record found for $itemName')),
+    );
+  }
 }
+
+
 
 void _saveDataCash()async{
   
@@ -380,11 +448,18 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
       ),
          body: SingleChildScrollView(
           physics: ScrollPhysics(),
-           child: Center(
-                   child: isCreditSelected
-              ? _CreditScreenContent(screenHeight,screenWidth)
-              : _CashScreenContent(screenHeight,screenWidth),
-                 ),
+           child: Column(
+             children: [
+               Center(
+                       child: isCreditSelected
+                  ? _CreditScreenContent(screenHeight,screenWidth)
+                  : _CashScreenContent(screenHeight,screenWidth),
+                     ),
+
+              
+
+             ],
+           ),
          ), 
       bottomNavigationBar: Container(
         padding: EdgeInsets.symmetric(horizontal: screenHeight*0.03,vertical:screenHeight*0.03 ),
@@ -404,7 +479,7 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
           GestureDetector(
             onTap: (){
               _saveDataCash();
-             // _saveData();
+              _saveData();
               
               },
             child: Container(
@@ -659,11 +734,197 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 ),
                 //Text("...........................",style: getFonts(14, Colors.black)),
                 // Text(".......................",style: getFonts(10, Colors.black),)
+
+                
               ],)
             ],
           ),
          ),
-       )
+       ),
+       Container(
+        padding: EdgeInsets.symmetric(vertical: screenHeight*0.01),
+  width: screenWidth * 0.9,
+  child: Card(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  "Itemname",
+                  style: formFonts(12, Colors.black),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  ":  ${widget.salesCredit?.itemName ?? ''}",
+                  style: getFontsinput(12, Colors.black),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  "Unit",
+                  style: formFonts(12, Colors.black),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  ":  ${widget.salesCredit?.unit ?? ''}",
+                  style: getFontsinput(12, Colors.black),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  "Quantity",
+                  style: formFonts(12, Colors.black),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  ":  ${widget.salesCredit?.qty.toString() ?? ''}",
+                  style: getFontsinput(12, Colors.black),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  "Rate",
+                  style: formFonts(12, Colors.black),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  ":  ${widget.salesCredit?.rate.toString() ?? ''}",
+                  style: getFontsinput(12, Colors.black),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  ),
+),
+        //SizedBox(height: screenHeight*0.2,),
+            Container(
+              height: screenHeight*0.3,
+              child: Expanded(
+                child: ListView.builder(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.022),
+                   itemCount: todayItems.length,
+                  itemBuilder: (context, index) {
+                    final item = todayItems[index];
+                    return  Container(
+                    padding: EdgeInsets.symmetric(vertical: screenHeight*0.01),
+                    width: screenWidth * 0.9,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        child: Column(
+                          children: [
+                            Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "Itemname",
+                        style: formFonts(12, Colors.black),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        ":  ${item['item_name']}",
+                        style: getFontsinput(12, Colors.black),
+                      ),
+                    ),
+                  ],
+                            ),
+                            Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "Unit",
+                        style: formFonts(12, Colors.black),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        ":  ${item['unit']}",
+                        style: getFontsinput(12, Colors.black),
+                      ),
+                    ),
+                  ],
+                            ),
+                            Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "Quantity",
+                        style: formFonts(12, Colors.black),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        ":  ${item['qty']}",
+                        style: getFontsinput(12, Colors.black),
+                      ),
+                    ),
+                  ],
+                            ),
+                            Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "Rate",
+                        style: formFonts(12, Colors.black),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        ":  ${item['rate']}",
+                        style: getFontsinput(12, Colors.black),
+                      ),
+                    ),
+                  ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                  }
+                 ,
+                  
+                ),
+              ),
+            )
       ],
     );
   }
@@ -788,7 +1049,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
              GestureDetector(
         onTap: () {
           Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => Addpaymant()));
+                        context, MaterialPageRoute(builder: (_) => Addpaymant2()));
         },
         child: Padding(
           padding: EdgeInsets.all(screenHeight * 0.03),
@@ -847,7 +1108,93 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
             ],
           )
          ),
-       )
+       ),
+       Container(
+        padding: EdgeInsets.symmetric(vertical: screenHeight*0.01),
+  width: screenWidth * 0.9,
+  child: Card(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  "Itemname",
+                  style: formFonts(12, Colors.black),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  ":  ${widget.salesDebit?.itemName ?? ''}",
+                  style: getFontsinput(12, Colors.black),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  "Unit",
+                  style: formFonts(12, Colors.black),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  ":  ${widget.salesDebit?.unit ?? ''}",
+                  style: getFontsinput(12, Colors.black),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  "Quantity",
+                  style: formFonts(12, Colors.black),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  ":  ${widget.salesDebit?.qty.toString() ?? ''}",
+                  style: getFontsinput(12, Colors.black),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  "Rate",
+                  style: formFonts(12, Colors.black),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  ":  ${widget.salesDebit?.rate.toString() ?? ''}",
+                  style: getFontsinput(12, Colors.black),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  ),
+)
+
       ],
     );
   }
