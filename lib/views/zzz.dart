@@ -90,3 +90,67 @@ void main() {
     home: MyTablePage(),
   ));
 }
+
+
+class NextScreen extends StatefulWidget {
+  final List<Map<String, String>> itemDetails;
+
+  // Constructor to accept itemDetails
+  const NextScreen({Key? key, required this.itemDetails}) : super(key: key);
+
+  @override
+  _NextScreenState createState() => _NextScreenState();
+}
+
+class _NextScreenState extends State<NextScreen> {
+  String? _selectedKey;
+
+  @override
+  Widget build(BuildContext context) {
+    // If itemDetails is empty, show a message
+    if (widget.itemDetails.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text("Next Screen")),
+        body: Center(child: Text("No item details available")),
+      );
+    }
+
+    // Get the keys (column names) from the first item in itemDetails
+    var item = widget.itemDetails[0];
+    List<String> keys = item.keys.toList();  // List of keys like ["mrp", "retail", "wsrate", "sprate", "branch"]
+
+    return Scaffold(
+      appBar: AppBar(title: Text("Item Details")),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            // Dropdown to select a key from the item details
+            DropdownButton<String>(
+              value: _selectedKey,
+              hint: Text("Select a column"),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedKey = newValue;
+                });
+              },
+              items: keys.map<DropdownMenuItem<String>>((String key) {
+                return DropdownMenuItem<String>(
+                  value: key,
+                  child: Text(key.toUpperCase()), // Display column name in uppercase
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 20),
+            // Display the selected value of the selected key
+            if (_selectedKey != null)
+              Text(
+                "Selected Column: $_selectedKey\nValue: ${item[_selectedKey]}",
+                style: TextStyle(fontSize: 18),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
