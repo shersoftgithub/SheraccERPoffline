@@ -5,27 +5,38 @@ import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
 class ShowStockReport extends StatefulWidget {
-  const ShowStockReport({super.key});
+  final String? itemcode;
+  final String? supplier;
+  final DateTime? fromDate;
+  final DateTime? toDate;
+  final String? itemname;
+  const ShowStockReport({super.key,this.fromDate,this.itemcode,this.supplier,this.toDate,this.itemname});
 
   @override
   State<ShowStockReport> createState() => _ShowStockReportState();
 }
 
 class _ShowStockReportState extends State<ShowStockReport> {
-  // Stock data will be fetched from the database
   List<Map<String, dynamic>> stockData = [];
 
   @override
   void initState() {
     super.initState();
     _fetchStockData();
-    _fetchStockData2();
+    //_fetchStockData2();
   }
 
   Future<void> _fetchStockData() async {
   try {
-    List<Map<String, dynamic>> data = await StockDatabaseHelper.instance.getAllProductRegistration();
-    print('Fetched stock data: $data'); // Debug fetched data
+    List<Map<String, dynamic>> data = await StockDatabaseHelper.instance.getFilteredStockData(
+      itemcode: widget.itemcode??"", 
+      supplier: widget.supplier??"", 
+      fromDate: widget.fromDate, 
+      toDate: widget.toDate,
+      itemname: widget.itemname??""
+    );
+
+    print('Fetched filtered stock data: $data');
     setState(() {
       stockData = data;
     });
@@ -36,7 +47,7 @@ class _ShowStockReportState extends State<ShowStockReport> {
 Future<void> _fetchStockData2() async {
   try {
     List<Map<String, dynamic>> data = await StockDatabaseHelper.instance.getAllProducts();
-    print('Fetched stock data: $data'); // Debug fetched data
+    print('Fetched stock data: $data'); 
     setState(() {
       stockData = data;
     });
@@ -102,8 +113,8 @@ Future<void> _fetchStockData2() async {
                 width: 1.0,
               ),
               columnWidths: {
-                0: FixedColumnWidth(60), // Adjust the first column width (SlNo)
-                1: FixedColumnWidth(80), // Adjust other column widths
+                0: FixedColumnWidth(60), 
+                1: FixedColumnWidth(80), 
                 2: FixedColumnWidth(120),
                 3: FixedColumnWidth(80),
                 4: FixedColumnWidth(80),
@@ -115,7 +126,7 @@ Future<void> _fetchStockData2() async {
                   children: [
                     _buildHeaderCell('SlNo'),
                     _buildHeaderCell('ItemId'),
-                    _buildHeaderCell('supplier'),
+                    _buildHeaderCell('ItemName'),
                     _buildHeaderCell('Qty'),
                     _buildHeaderCell('Disc'),
                     _buildHeaderCell('Amount'),
@@ -125,9 +136,9 @@ Future<void> _fetchStockData2() async {
                 ...stockData.map((data) {
                   return TableRow(
                     children: [
-                      _buildDataCell(data['id'].toString()), // Assuming id is present in the database
-                      _buildDataCell(data['itemcode'] ?? 'N/A'), // Adjust as needed based on your DB schema
-                      _buildDataCell(data['itemname'] ?? 'N/A'), // Assuming column name is `item_name`
+                      _buildDataCell(data['id'].toString()), 
+                      _buildDataCell(data['ItemId'] ?? 'N/A'), 
+                      _buildDataCell(data['itemname'] ?? 'N/A'), 
                       _buildDataCell(data['Qty'].toString() ?? '0'), // Assuming column name is `quantity`
                       _buildDataCell(data['Disc'].toString() ?? '0'), // Assuming column name is `rate`
                       _buildDataCell(data['Amount'].toString() ?? '0'), // Assuming column name is `total`

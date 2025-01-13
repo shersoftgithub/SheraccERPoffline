@@ -19,8 +19,9 @@ import 'package:sheraaccerpoff/views/newLedger.dart';
 class SalesOrder extends StatefulWidget {
   final SalesCredit? salesCredit;
   final SalesCredit? salesDebit;
-  const SalesOrder({super.key, this.salesCredit,this.salesDebit});
+final List<Map<String, String>>? itemDetails;
 
+  const SalesOrder({super.key, this.salesCredit,this.salesDebit,this.itemDetails});
   @override
   State<SalesOrder> createState() => _SalesOrderState();
 }
@@ -59,9 +60,9 @@ class _SalesOrderState extends State<SalesOrder> {
     fetch_options();
     _fetchLedger();
     _fetchLastInvoiceId();
-    _fetchTodayItems();
-   _InvoicenoController.text = ''; // set the default value or from your data
-    _dateController.text = '';      // set default or fetched value
+   
+   _InvoicenoController.text = ''; 
+    _dateController.text = '';      
     _salerateController.text = '';  
     _CustomerController.text = '';
     _phonenoController.text = '';
@@ -79,12 +80,7 @@ class _SalesOrderState extends State<SalesOrder> {
   }
     optionsDBHelper dbHelper = optionsDBHelper();
      List<Map<String, dynamic>> todayItems = [];
- Future<void> _fetchTodayItems() async {
-    final items = await SaleDatabaseHelper.instance.queryTodayRows();
-    setState(() {
-      todayItems = items;
-    });
-  }
+
 
     List<String> salesrate = [];
     Future<void>fetch_options()async{
@@ -163,9 +159,9 @@ void _fetchInvoiceData(int ledgerId) async {
     });
   }
 }
+
 void _fetchName_Data(String name) async {
   DatabaseHelper dbHelper = DatabaseHelper.instance;
-  
   List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
   
   var selectedLedger = ledgerData.firstWhere(
@@ -176,82 +172,66 @@ void _fetchName_Data(String name) async {
   if (selectedLedger.isNotEmpty) {
     setState(() {
             _InvoicenoController.text = selectedLedger[DatabaseHelper.columnId].toString();
-
       _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
     });
   }
 }
 void _saveData() async {
-  final qty = widget.salesCredit!.qty.toDouble();
+  final qtyToReduce = widget.salesCredit!.qty.toDouble(); 
   final itemName = widget.salesCredit!.itemName.toString();
+double finalamt=widget.salesCredit?.totalAmt??0.0;
+  final itemcode = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
 
-  // Fetch ItemId using itemName from product_registration
-  String? itemId = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
+  if (itemcode != null) {
+    final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemcode);
 
-  if (itemId == null) {
-    // Handle case where no ItemId is found for the itemName
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No ItemId found for $itemName')),
-    );
-    return;
-  }
+    if (stockData != null) {
+      final currentQty = stockData['Qty'] as double;
+      final updatedQty = currentQty - qtyToReduce;
 
-  // Step 2: Fetch the stock data using the ItemId from the stock table
-  Map<String, dynamic>? stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemId);
+      if (updatedQty >= 0) {
+        await StockDatabaseHelper.instance.updateProductQuantity(itemcode, updatedQty);
+        final creditsale = SalesCredit(
+          invoiceId: int.parse(_InvoicenoController.text),
+          date: _dateController.text,
+          salesRate: double.tryParse(_salerateController.text) ?? 0.0,
+          customer: _CustomerController.text,
+          phoneNo: _phonenoController.text,
+          itemName: widget.salesCredit!.itemName,
+          qty: widget.salesCredit!.qty,
+          unit: widget.salesCredit!.unit,
+          rate: widget.salesCredit!.rate,
+          tax: widget.salesCredit!.tax,
+          totalAmt: finalamt,
+        );
 
-  if (stockData != null) {
-    // Get the current quantity of the item in stock
-    double currentQty = stockData['Qty'] ?? 0.0;
-    double updatedQty = currentQty - qty;
+        int lastInsertedId = await SaleDatabaseHelper.instance.insert(creditsale.toMap());
 
-    if (updatedQty < 0) {
-      // Handle case where not enough stock is available
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Not enough stock available for $itemName')),
-      );
-      return;
+        await _saveLastInsertedIdToPayments(lastInsertedId, creditsale.customer);
+        await syncOpeningBalances(lastInsertedId);
+
+       // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved successfully')));
+
+        setState(() {
+          _InvoicenoController.clear();
+          _salerateController.clear();
+          _CustomerController.clear();
+          _phonenoController.clear();
+          _totalamtController.clear();
+        });
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved successfully')));
+      } else {
+        // Quantity cannot go below 0
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Not enough stock for $itemName')));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Item not found in stock table')));
     }
-
-    // Proceed with saving the sales data
-    final creditsale = SalesCredit(
-      invoiceId: int.parse(_InvoicenoController.text),
-      date: _dateController.text,
-      salesRate: double.tryParse(_salerateController.text) ?? 0.0,
-      customer: _CustomerController.text,
-      phoneNo: _phonenoController.text,
-      itemName: widget.salesCredit!.itemName,
-      qty: widget.salesCredit!.qty,
-      unit: widget.salesCredit!.unit,
-      rate: widget.salesCredit!.rate,
-      tax: widget.salesCredit!.tax,
-      totalAmt: double.tryParse(_totalamtController.text) ?? 0.0,
-    );
-
-    int lastInsertedId = await SaleDatabaseHelper.instance.insert(creditsale.toMap());
-
-    // Update the stock quantity after saving sales data
-    await StockDatabaseHelper.instance.updateProductQuantity(stockData['id'], updatedQty);
-
-    // Save to payments, sync opening balances, and reset fields as per your existing logic
-    await _saveLastInsertedIdToPayments(lastInsertedId, creditsale.customer);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved successfully')));
-
-    await syncOpeningBalances(lastInsertedId);
-
-    setState(() {
-      _InvoicenoController.clear();
-      _salerateController.clear();
-      _CustomerController.clear();
-      _phonenoController.clear();
-      _totalamtController.clear();
-    });
   } else {
-    // Handle case where the stock record is not found
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No stock record found for $itemName')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Itemcode not found for $itemName')));
   }
 }
+
 
 
 
@@ -338,8 +318,14 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
 }
 
 
+  String? _selectedKey;
 
-
+Future<void> _fetchItems({String? customer}) async {
+  final items = await SaleDatabaseHelper.instance.queryRowsByCustomer(customer: customer);
+  setState(() {
+    todayItems = items;
+  });
+}
 
 
   @override
@@ -353,7 +339,7 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
     double finalamt=widget.salesCredit?.totalAmt??0.0;
     double saleRate = double.tryParse(_salerateController.text) ?? 0.0;
         double totalAmt = finalamt + ((saleRate - rate) * qty);
-        _totalamtController.text = totalAmt.toStringAsFixed(2);
+        _totalamtController.text = finalamt.toStringAsFixed(2);
   }
   _salerateController.addListener(updateTotalAmount);
 
@@ -366,6 +352,7 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
         _CashtotalamtController.text = totalAmt.toStringAsFixed(2);
   }
   _CashsalerateController.addListener(CashupdateTotalAmount);
+
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -499,7 +486,7 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
           ),
           GestureDetector(
             onTap: (){
-              _saveDataCash();
+             // _saveDataCash();
               _saveData();
               
               },
@@ -518,6 +505,8 @@ Future<void> syncOpeningBalances(int lastInsertedId) async {
   }
 Widget _CreditScreenContent(double screenHeight,double screenWidth) {
 
+  var item = widget.itemDetails?[0];
+    List<String>? keys = item?.keys.toList();
   
   List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
    double additem_total=widget.salesCredit?.totalAmt??0.0;
@@ -617,6 +606,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
+            padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01),
                     height: screenHeight * 0.05,
                     width: screenWidth * 0.9,
                     decoration: BoxDecoration(
@@ -624,24 +614,26 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                       color: Colors.white,
                       border: Border.all(color: Appcolors().searchTextcolor),
                     ),
-                    child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _salerateController,
-                      style: getFontsinput(14, Colors.black),
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
-                      ),
+                    child: Container(height: screenHeight*0.2,
+                      child: DropdownButton<String>(
+                        dropdownColor: Appcolors().Scfold,
+                        style: getFontsinput(14, Colors.black),
+                                    value: _selectedKey,
+                                    onChanged: (String? newValue) {
+                                      setState(() {
+                                        _selectedKey = newValue;
+                                      });
+                                    },
+                                    items: keys?.map<DropdownMenuItem<String>>((String key) {
+                                      return DropdownMenuItem<String>(
+                                        value: key,
+                                        child: Text(key.toUpperCase()), // Display column name in uppercase
+                                      );
+                                    }).toList(),
+                                    menuMaxHeight: 150,
+                                    underline: SizedBox.shrink(), 
+                                  ),
                     ),
-                  ),
-                ],
-              ),
-            ),
                   ),
         ],
       ),
@@ -657,7 +649,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
             ),
         SizedBox(height: screenHeight * 0.01),
         Container(
-          
+          padding: EdgeInsets.symmetric(vertical: screenHeight*0.001),
                     height: screenHeight * 0.05,
                     width: screenWidth * 0.9,
                     decoration: BoxDecoration(
@@ -668,12 +660,14 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                     child: Padding(
               padding: EdgeInsets.only(left: 10,bottom: 10),
               child: SingleChildScrollView(
+                 physics: NeverScrollableScrollPhysics(),
                     child: EasyAutocomplete(
                         controller: _CustomerController,
                         suggestions: names,
                         inputTextStyle: getFontsinput(14, Colors.black),
                         onSubmitted: (value)async {
    await _fetchLedgerDetails(value);
+   await _fetchItems(customer: value);
   },
                         decoration: InputDecoration(
                           border: InputBorder.none,

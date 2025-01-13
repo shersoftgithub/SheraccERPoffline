@@ -359,10 +359,10 @@ void _saveDataCash() {
              
                _saveData();
             } else {
-               _saveDataCash();// Call the normal save function
+               _saveDataCash();
             }
             setState(() {
-              isCashSave = !isCashSave; // Toggle between cash and normal save actions
+              isCashSave = !isCashSave; 
             });
             },
             child: Container(

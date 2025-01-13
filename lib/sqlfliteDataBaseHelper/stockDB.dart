@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -241,19 +242,16 @@ class StockDatabaseHelper {
     }
   }
 
-  Future<void> updateProductQuantity(int id, double newQuantity) async {
-    try {
-      final db = await database;
-      await db.update(
-        'stock',
-        {'Qty': newQuantity},
-        where: 'ItemId = ?',
-        whereArgs: [id],
-      );
-    } catch (e) {
-      throw Exception("Failed to update quantity for product with ID $id: $e");
-    }
-  }
+ Future<void> updateProductQuantity(String itemId, double newQuantity) async {
+  final db = await database;
+  await db.update(
+    'stock',
+    {'Qty': newQuantity},
+    where: 'ItemId = ?',
+    whereArgs: [itemId],
+  );
+}
+
 
   Future<int> deleteProduct(int id) async {
     try {
@@ -288,6 +286,15 @@ class StockDatabaseHelper {
       columns: ['supplier'],
     );
     return result.map((row) => row['supplier'] as String).toList();
+  }
+
+  Future<List<String>> getAllItemnames() async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> result = await db.query(
+      'product_registration',
+      columns: ['itemname'],
+    );
+    return result.map((row) => row['itemname'] as String).toList();
   }
 
  Future<List<Map<String, String>>> getItemDetailsByName(String itemName) async {
@@ -330,15 +337,11 @@ Future<String?> getItemIdByItemName(String itemName) async {
     'product_registration',
     where: 'itemname = ?',
     whereArgs: [itemName],
-    limit: 1,  // Fetch the first matching result
+    limit: 1,
   );
-
-  if (result.isEmpty) {
-    return null;  // No matching item found
-  }
-
-  return result.first['ItemId'] as String?;  // Return ItemId for the given itemName
+  return result.isNotEmpty ? result.first['itemcode'] as String? : null;
 }
+
 
 // Step 2: Fetch stock data using ItemId from the stock table.
 Future<Map<String, dynamic>?> getProductByItemId2(String itemId) async {
@@ -347,14 +350,64 @@ Future<Map<String, dynamic>?> getProductByItemId2(String itemId) async {
     'stock',
     where: 'ItemId = ?',
     whereArgs: [itemId],
-    limit: 1, // Fetching the first result
+    limit: 1,
   );
-
-  if (result.isEmpty) {
-    return null;  // No record found
-  }
-  return result.first;
+  return result.isNotEmpty ? result.first : null;
 }
 
+Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
+  final db = await database;
+  try {
+    return await db.rawQuery('''
+      SELECT 
+        stock.id, 
+        stock.ItemId, 
+        product_registration.itemname, 
+        stock.Qty, 
+        stock.Disc, 
+        stock.Amount
+      FROM 
+        stock
+      LEFT JOIN 
+        product_registration 
+      ON 
+        stock.ItemId = product_registration.itemcode
+    ''');
+  } catch (e) {
+    throw Exception("Failed to fetch joined stock data: $e");
+  }
+}
 
+ Future<List<Map<String, dynamic>>> getFilteredStockData({
+    required String itemcode,
+    required String supplier,
+    required DateTime? fromDate,
+    required DateTime? toDate,
+    required String itemname,
+  }) async {
+    final db = await database;
+
+    String query = 'SELECT stock.id, stock.ItemId, product_registration.itemname, stock.Qty, stock.Disc, stock.Amount '
+                   'FROM stock '
+                   'LEFT JOIN product_registration ON stock.ItemId = product_registration.itemcode '
+                   'WHERE 1=1'; 
+
+    // Apply filters
+    if (itemcode.isNotEmpty) {
+      query += ' AND stock.ItemId = "$itemcode"';
+    }
+    if (supplier.isNotEmpty) {
+      query += ' AND stock.supplier = "$supplier"';
+    }
+     if (supplier.isNotEmpty) {
+      query += ' AND product_registration.itemname = "$itemname"';
+    }
+    if (fromDate != null && toDate != null) {
+      query += ' AND stock.Pdate BETWEEN "${DateFormat('dd-MM-yyyy').format(fromDate)}" '
+               'AND "${DateFormat('dd-MM-yyyy').format(toDate)}"';
+    }
+
+    final result = await db.rawQuery(query);
+    return result;
+  }
 }

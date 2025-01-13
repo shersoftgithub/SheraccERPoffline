@@ -11,6 +11,7 @@ import 'package:sheraaccerpoff/views/sales.dart';
 class Addpaymant extends StatefulWidget {
   final SalesCredit? salesCredit;
   final SalesCredit? salesdebit;
+  
   const Addpaymant({super.key,this.salesCredit,this.salesdebit});
 
   @override
@@ -70,7 +71,7 @@ final finalAmt=(totalAmt - PercenDisc);
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) =>SalesOrder(salesCredit: creditsale,),
+      builder: (context) =>SalesOrder(salesCredit: creditsale,itemDetails:itemDetails,),
     ),
   );
 }
@@ -125,9 +126,11 @@ void _saveDataCash() {
           (double.tryParse(_rateController.text.trim()) ?? 0.0) * (double.tryParse(_qtyController.text.trim()) ?? 0.0));
     }
   }
+
+
   String? _selectedRate;
   List<Map<String, String>> itemDetails = [];
- Future<void> _onItemnameChanged2(String value) async {
+Future<void> _onItemnameChanged2(String value) async {
   if (value.isEmpty) {
     setState(() {
       itemDetails = [];
@@ -142,6 +145,7 @@ void _saveDataCash() {
     itemDetails = details.isNotEmpty ? details : [];
     _selectedRate = null; 
   });
+
   if (details.isNotEmpty) {
     _taxController.text = details[0]["tax"] ?? "N/A"; 
   }
@@ -153,6 +157,7 @@ void _saveDataCash() {
     );
   }
 }
+
 
 
 
@@ -195,6 +200,9 @@ final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
       _isUpdating = false;
     });
   }
+  String? selectedValue;
+
+  List<String> dropdownItems = ['With Tax', 'Without Tax'];
 
   @override
   Widget build(BuildContext context) {
@@ -276,6 +284,7 @@ final finalAmt=(totalAmt - PercenDisc);
               ),
               child: SingleChildScrollView(
                 child: EasyAutocomplete(
+                  inputTextStyle: getFontsinput(14, Colors.black),
                   suggestionBackgroundColor: Appcolors().Scfold,
                     controller: _itemnameController,
                     suggestions: productNames,
@@ -287,7 +296,7 @@ final finalAmt=(totalAmt - PercenDisc);
   },
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 5)
+                      contentPadding: EdgeInsets.symmetric(horizontal: screenHeight*0.01,vertical: 8),
                     ),
                   ),
               ),
@@ -319,13 +328,14 @@ final finalAmt=(totalAmt - PercenDisc);
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
                child: TextFormField(
+                style: getFontsinput(14, Colors.black),
                        controller: _qtyController,
                         keyboardType: TextInputType.number,
                         obscureText: false,
                        // onChanged: _onRateChanged,
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
+                          contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.015,horizontal: screenHeight*0.01),
                         ),
                       ),
             ),
@@ -353,11 +363,11 @@ final finalAmt=(totalAmt - PercenDisc);
                 ),
                 child: TextFormField(
                          controller: _unitController,
-                          
+                          style: getFontsinput(14,Colors.black),
                           obscureText: false,
                           decoration: InputDecoration(
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
+                          contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.015,horizontal: screenHeight*0.01),
                           ),
                         ),
               ),
@@ -393,10 +403,11 @@ final finalAmt=(totalAmt - PercenDisc);
                 border: Border.all(color: Appcolors().searchTextcolor),
                 borderRadius: BorderRadius.circular(5),
               ),
-              child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 7,vertical: 7),
                 child: Text(
                   _selectedRate ?? "Select Rate",
-                  style: const TextStyle(color: Colors.black54),
+                  style: getFontsinput(14, Colors.black),
                 ),
               ),
                         ),
@@ -447,16 +458,37 @@ final finalAmt=(totalAmt - PercenDisc);
                     style: formFonts(14, Colors.black),
                   ),
               SizedBox(height: screenHeight * 0.01),
-              Container(
-                 height: 35, 
-                width: 173,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.white,
-                  border: Border.all(color: Appcolors().searchTextcolor),
-                ),
-                child: Text("${taxvalue}")
+             Container(
+      width: 173,  // Set the width of the container
+      height: 35,  // Set the height of the container
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        color: Colors.white,
+        border: Border.all(color: Colors.grey), // You can use Appcolors().searchTextcolor here
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 5),
+        child: DropdownButton<String>(
+          value: selectedValue,
+          onChanged: (String? newValue) {
+            setState(() {
+              selectedValue = newValue;
+            });
+          },
+          underline: SizedBox(), // Remove underline
+          isExpanded: true,  // Ensure dropdown fills the container width
+          items: dropdownItems.map<DropdownMenuItem<String>>((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(
+                value,
+                style: TextStyle(color: Colors.black), // Customize the text style here
               ),
+            );
+          }).toList(),
+        ),
+      ),
+    )
                         ],
                       ),
               )
@@ -465,103 +497,283 @@ final finalAmt=(totalAmt - PercenDisc);
             ),
           ),
            SizedBox(height: screenHeight*0.02,),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Container(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-          Text(
+        //   Container(
+        //     padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01),
+        //     child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        //       children: [
+        //         Container(
+        // child: Column(
+        //   crossAxisAlignment: CrossAxisAlignment.start,
+        //   children: [
+        //   Text(
                   
-                  'Discount',
-                  style: formFonts(14, Colors.black),
+        //           'Discount',
+        //           style: formFonts(14, Colors.black),
+        //         ),
+        //     SizedBox(height: screenHeight * 0.01),
+        //     Container(
+        //       width: 173,
+        //       child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        //         children: [
+        //           Container(
+        //              height: 35, 
+        //             width: 75,
+        //             decoration: BoxDecoration(
+        //               borderRadius: BorderRadius.circular(5),
+        //               color: Colors.white,
+        //               border: Border.all(color: Appcolors().searchTextcolor),
+        //             ),
+        //              child: TextFormField(
+        //               style: getFontsinput(14, Colors.black),
+        //                      controller: _DiscountController,
+        //                       keyboardType: TextInputType.number,
+        //                       obscureText: false,
+        //                      // onChanged: _onRateChanged,
+        //                       decoration: InputDecoration(
+        //                         border: InputBorder.none,
+        //                         contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
+        //                       ),
+        //                     ),
+        //           ),
+        //           SizedBox(width: screenHeight*0.019,),
+        //           Icon(Icons.percent),
+        //           Container(
+        //        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.0023,vertical: 0.026),
+
+        //          height: 35, 
+        //         width: 55,
+        //         decoration: BoxDecoration(
+        //           borderRadius: BorderRadius.circular(5),
+        //           color: Colors.white,
+        //           border: Border.all(color: Appcolors().searchTextcolor),
+        //         ),
+        //          child: TextFormField(
+        //           style: getFontsinput(14, Colors.black),
+        //                  controller: _Discpercentroller,
+        //                   keyboardType: TextInputType.number,
+        //                   obscureText: false,
+        //                  // onChanged: _onRateChanged,
+        //                   decoration: InputDecoration(
+        //                     border: InputBorder.none,
+        //                     contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
+        //                   ),
+        //                 ),
+        //       ),
+        //         ],
+        //       ),
+        //     ),
+        //   ],
+        // ),
+        //     ),
+        //     SizedBox(height: screenHeight*0.02,),
+        //      Container(
+        // child: Column(
+        //   crossAxisAlignment: CrossAxisAlignment.start,
+        //   children: [
+        //   Text(
+                  
+        //           'Net Amount',
+        //           style: formFonts(14, Colors.black),
+        //         ),
+        //     SizedBox(height: screenHeight * 0.01),
+        //     GestureDetector(
+        //       child: Container(
+        //        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01,vertical: 0.026),
+
+        //          height: 35, 
+        //         width: 173,
+        //         decoration: BoxDecoration(
+        //           borderRadius: BorderRadius.circular(5),
+        //           color: Colors.white,
+        //           border: Border.all(color: Appcolors().searchTextcolor),
+        //         ),
+        //         child: Padding(
+        //           padding: const EdgeInsets.symmetric(vertical: 6),
+        //           child: Text("${netamt}",style: getFontsinput(14, Colors.black),),
+        //         ),
+        //       ),
+        //     ),
+        //   ],
+        // ),
+        //     )
+        //       ],
+        //     ),
+        //   ),
+        
+       SizedBox(height: screenHeight*0.04,),
+      Container(
+        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.024),
+        child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Totals & Taxes",style: getFonts(14, Colors.black),),
+    SizedBox(height: screenHeight*0.01,),
+    Divider(color: Appcolors().searchTextcolor,),
+    SizedBox(height: screenHeight*0.01,),
+    Container(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Sub Total(Rate x Qty)",style: getFonts(12, Colors.black),),
+              Column(children: [
+                Row(
+                  children: [
+                    Text("₹",style: getFonts(14, Colors.black)),
+ Text("${totalAmt}",style: getFonts(12, Colors.black),
+                        
+                      ),                  ],
                 ),
-            SizedBox(height: screenHeight * 0.01),
-            Container(
-              width: 173,
-              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Container(
-                     height: 35, 
-                    width: 75,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: Colors.white,
-                      border: Border.all(color: Appcolors().searchTextcolor),
-                    ),
-                     child: TextFormField(
-                             controller: _DiscountController,
-                              keyboardType: TextInputType.number,
-                              obscureText: false,
-                             // onChanged: _onRateChanged,
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
-                              ),
-                            ),
-                  ),
-                  SizedBox(width: screenHeight*0.019,),
-                  Icon(Icons.percent),
-                  Container(
-                 height: 35, 
-                width: 55,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
+               
+              ],)
+            ],
+          ),
+         ),
+         SizedBox(height: screenHeight*0.012,),
+          Container(
+                  child: Row(
+                    children: [
+                      Text("Discount",style: getFonts(12, Colors.black),),
+                      SizedBox(width: screenHeight*0.053,),
+                      Container(
+                        child: Row(
+                          children: [
+                            Container(
+                              height: screenHeight*0.05,width: screenWidth*0.2,
+                              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)),
                   color: Colors.white,
                   border: Border.all(color: Appcolors().searchTextcolor),
                 ),
-                 child: TextFormField(
+                              child: TextFormField(
+                  style: getFontsinput(14, Colors.black),
                          controller: _Discpercentroller,
                           keyboardType: TextInputType.number,
                           obscureText: false,
                          // onChanged: _onRateChanged,
                           decoration: InputDecoration(
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
+                            contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.018,horizontal: screenHeight*0.01),
                           ),
                         ),
-              ),
-                ],
-              ),
-            ),
-          ],
-        ),
-            ),
-            SizedBox(height: screenHeight*0.02,),
-             Container(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-          Text(
-                  
-                  'Net Amount',
-                  style: formFonts(14, Colors.black),
-                ),
-            SizedBox(height: screenHeight * 0.01),
-            GestureDetector(
-              child: Container(
-                 height: 35, 
-                width: 173,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
+                            ),
+                           
+                            Container(
+                              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(bottomRight: Radius.circular(5),topRight: Radius.circular(5)),
                   color: Colors.white,
                   border: Border.all(color: Appcolors().searchTextcolor),
                 ),
-                child: Text("${netamt}"),
-              ),
-            ),
-          ],
-        ),
-            )
-              ],
-            ),
-          ),
-          SizedBox(height: screenHeight*0.02,),
-          Padding(
-         padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.03),
-         child: Container(
+                             height: screenHeight*0.05,width: screenWidth*0.1,
+                              child:  Icon(Icons.percent),
+                            ),
+                          ],
+                        ),
+                      ),
+                       SizedBox(width: screenHeight*0.02,),
+                      Container(
+                        child: Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                   borderRadius: BorderRadius.only(bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)),
+                  color: Colors.white,
+                  border: Border.all(color: Appcolors().searchTextcolor),
+                ),
+                             height: screenHeight*0.05,width: screenWidth*0.1,
+                              child:  Icon(Icons.currency_rupee),
+                            ),
+                            Container(
+                              height: screenHeight*0.05,width: screenWidth*0.2,
+                              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(bottomRight: Radius.circular(5),topRight: Radius.circular(5)),
+                  color: Colors.white,
+                  border: Border.all(color: Appcolors().searchTextcolor),
+                ),
+                              child: TextFormField(
+                  style: getFontsinput(14, Colors.black),
+                         controller: _DiscountController,
+                          keyboardType: TextInputType.number,
+                          obscureText: false,
+                         // onChanged: _onRateChanged,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.018,horizontal: screenHeight*0.01),
+                          ),
+                        ),
+                            ),
+                           
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+                SizedBox(height: screenHeight*0.01,),
+                Container(
+                  child: Row(
+                    children: [
+                      Text("Tax % ",style: getFonts(12, Colors.black),),
+                      SizedBox(width: screenHeight*0.075,),
+                      Container(
+                        child: Row(
+                          children: [
+                            Container(
+                            padding: EdgeInsets.symmetric(vertical: screenHeight*0.01,horizontal: screenHeight*0.01),
+
+                              height: screenHeight*0.05,width: screenWidth*0.2,
+                              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)),
+                  color: Colors.white,
+                  border: Border.all(color: Appcolors().searchTextcolor),
+                ),
+                              child: Text("${tax}",style: getFontsinput(14, Colors.black),),
+                            ),
+                           
+                            Container(
+                              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(bottomRight: Radius.circular(5),topRight: Radius.circular(5)),
+                  color: Colors.white,
+                  border: Border.all(color: Appcolors().searchTextcolor),
+                ),
+                             height: screenHeight*0.05,width: screenWidth*0.1,
+                              child:  Icon(Icons.percent),
+                            ),
+                          ],
+                        ),
+                      ),
+                       SizedBox(width: screenHeight*0.02,),
+                      Container(
+                        child: Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                   borderRadius: BorderRadius.only(bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)),
+                  color: Colors.white,
+                  border: Border.all(color: Appcolors().searchTextcolor),
+                ),
+                             height: screenHeight*0.05,width: screenWidth*0.1,
+                              child:  Icon(Icons.currency_rupee),
+                            ),
+                            Container(
+                            padding: EdgeInsets.symmetric(vertical: screenHeight*0.01,horizontal: screenHeight*0.01),
+
+                              height: screenHeight*0.05,width: screenWidth*0.2,
+                              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(bottomRight: Radius.circular(5),topRight: Radius.circular(5)),
+                  color: Colors.white,
+                  border: Border.all(color: Appcolors().searchTextcolor),
+                ),
+                              child:Text("${taxvalue}",style: getFontsinput(14, Colors.black),),
+                            ),
+                           
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+                 SizedBox(height: screenHeight*0.012,),
+                Container(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -579,53 +791,10 @@ final finalAmt=(totalAmt - PercenDisc);
             ],
           ),
          ),
-       ),
-       SizedBox(height: screenHeight*0.04,),
-       SingleChildScrollView(
-          scrollDirection: Axis.horizontal, // Enables horizontal scrolling
-          child: Table(
-            border: TableBorder.all(color: Colors.black),
-            columnWidths: {
-               0: FixedColumnWidth(100),
-                1: FixedColumnWidth(70),
-                2: FixedColumnWidth(100),
-                3: FixedColumnWidth(100),
-                4: FixedColumnWidth(100),
-                5: FixedColumnWidth(100),
-                6: FixedColumnWidth(110),
-            }, // Border for the table
-            children: [
-              
-              TableRow(
-                decoration: BoxDecoration(
-                  color: Colors.blueGrey[100], // Background color for header
-                ),
-                
-                children: [
-                  _tableHeaderCell('Item Name', width: 150),
-                  _tableHeaderCell('Qty', width: 80),
-                  _tableHeaderCell('Unit', width: 100),
-                  _tableHeaderCell('Rate', width: 100),
-                  _tableHeaderCell('Tax', width: 100),
-                  _tableHeaderCell('Discount', width: 100),
-                  _tableHeaderCell('Total Amt', width: 120),
-                ],
-              ),
-              // Data Row
-              TableRow(
-                children: [
-                  _tableCell('${_itemnameController.text}', width: 120),
-                  _tableCell('${_qtyController.text}', width: 80),
-                  _tableCell('${_unitController.text}', width: 100),
-                  _tableCell('${_selectedRate}', width: 100),
-                  _tableCell('${_taxController.text}', width: 100),
-                  _tableCell('${_DiscountController.text}', width: 100),
-                  _tableCell('${finalAmt.toString()}', width: 120),
-                ],
-              ),
-            ],
-          ),
+          ],
         ),
+      ),
+
           ],
         ),
       ),
@@ -732,30 +901,5 @@ TableRow _buildTableRow(String label, String? value) {
     ],
   );
 }
- Widget _tableHeaderCell(String text, {double width = 100}) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color:Appcolors().scafoldcolor
-      ),
-      child: Text(
-        text,
-        style: getFonts(13, Appcolors().maincolor),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _tableCell(String text, {double width = 100}) {
-   return Container(
-    width: width,
-      padding: const EdgeInsets.all(8.0),
-      child: Text(
-        text,
-        style: getFonts(12, Colors.black),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
+ 
 }

@@ -238,4 +238,20 @@ Future<List<int>> getAllLedgerIds() async {
   );
 }
 
+Future<List<Map<String, dynamic>>> queryRowsByCustomer({String? customer}) async {
+  Database db = await instance.database;
+
+  if (customer != null && customer.isNotEmpty) {
+    return await db.query(
+      table,
+      where: '$columnCustomer = ?',
+      whereArgs: [customer],
+    );
+  } else {
+    return await db.query(table);
+  }
+}
+
+
+
 }

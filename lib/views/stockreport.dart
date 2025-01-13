@@ -65,15 +65,30 @@ final GlobalKey _arrowKey = GlobalKey();
 
   List<String> items = [];
    List <String> suppliers=[];
-
+List <String> Itemnames=[];
 Future<void> _fetchLedgerIds() async {
   List<String> itemids = await StockDatabaseHelper.instance.getAllItemcode();
     List<String> cname = await StockDatabaseHelper.instance.getAllsupplier(); 
-
+List<String> itemname = await StockDatabaseHelper.instance.getAllItemnames();
   setState(() {
     items = itemids;
     suppliers=cname;
+    Itemnames=itemname;
   });
+}
+
+void _showLedgerWithFilters() {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => ShowStockReport(
+        fromDate: _fromDate,
+        toDate: _toDate,
+      supplier  : _selectSupplierController.text,
+      itemcode: _selectItemcodeController.text,
+      itemname: _selectItemnameController.text,
+      ),
+    ),
+  );
 }
   @override
   
@@ -198,7 +213,26 @@ Future<void> _fetchLedgerIds() async {
                 ),
               ),
                 //  _salefield("Select Item Code", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Select Item Name", _selectItemnameController, screenWidth, screenHeight),
+                SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: EasyAutocomplete(
+                      controller: _selectItemnameController,
+                      suggestions: Itemnames,
+                     
+                      onSubmitted: (value) {
+                                },
+                                    decoration: InputDecoration(
+                  border: UnderlineInputBorder(),
+                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  hintText: "Select Item Name",
+                  hintStyle: TextStyle(fontSize: 14)
+                                ),
+                  suggestionBackgroundColor: Appcolors().Scfold,
+                    ),
+                ),
+              ),
+               // _salefield("Select Item Name", _selectItemnameController, screenWidth, screenHeight),
                 _salefield("Manufacture", _manufactureController, screenWidth, screenHeight),
                 _salefield("Category", _categoryController, screenWidth, screenHeight),
                 
@@ -269,8 +303,7 @@ Future<void> _fetchLedgerIds() async {
         ),
          SizedBox(height: screenHeight * 0.0002),
               GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ShowStockReport()));
+          onTap: () {_showLedgerWithFilters();
           },
           child: Padding(
             padding: EdgeInsets.all(screenHeight * 0.03),

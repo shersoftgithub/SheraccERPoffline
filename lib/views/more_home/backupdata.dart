@@ -79,6 +79,26 @@ Future<List<Map<String, dynamic>>> fetchDataFromMSSQLCompany() async {
     }
   }
 
+Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
+    try {
+      final query = 'SELECT atLedCode,atEntryno,atDebitAmount,atCreditAmount,atOpposite,atSalesType FROM Account_Transactions';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+    
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for LedgerNames data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for LedgerNames: $rawData');
+    } catch (e) {
+      print('Error fetching data from LedgerNames: $e');
+      rethrow;
+    }
+  }
 
   // Backup both Stock and Product_Registration to local SQLite database
   Future<void> backupToLocalDatabase() async {
@@ -255,10 +275,27 @@ for (var row in CompanyLedgerData) {
   await DbHelper.insertLedgerData(rowData);
 }
 
+      final AccTransLedgerData = await fetchDataFromMSSQLAccTransations();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+for (var row in AccTransLedgerData) {
+  Map<String, dynamic> rowData = {
+    'atLedCode': row['atLedCode']?.toString() ?? '', 
+    'atEntryno': row['atEntryno']?.toString() ?? '', 
+    'atDebitAmount': row['atDebitAmount'] != null ? row['atDebitAmount'] : 0.0, 
+    'atCreditAmount': row['atCreditAmount'] != null ? row['atCreditAmount'] : 0.0, 
+    'atOpposite': row['atOpposite']?.toString() ?? '', 
+    'atSalesType': row['atSalesType']?.toString() ?? 'Default SalesType',
+  };
 
+  // Inserting the rowData into the NewTable
+  await DbHelper.insertAccTrans(rowData);
+}
 
-
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Backup completed successfully!')),
       );
@@ -269,6 +306,24 @@ for (var row in CompanyLedgerData) {
       );
     }
   }
+
+void sync() async {
+  final dbHelper = CompanyLEdgerDatabaseHelper.instance;
+
+  try {
+    // Start updating opening balances for all ledgers
+    await dbHelper.updateAllOpeningBalances();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Sync completed successfully!')),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error during sync: $e')),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -326,6 +381,7 @@ for (var row in CompanyLedgerData) {
         child: GestureDetector(
           onTap: () {
             backupToLocalDatabase(); 
+            sync();
           },
           child: Container(
             height: screenHeight * 0.04,
