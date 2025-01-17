@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -18,31 +20,25 @@ class ShowPaymentReport extends StatefulWidget {
 
 class _ShowPaymentReportState extends State<ShowPaymentReport> {
   List<Map<String, dynamic>> paymentData = [];
+  List<Map<String, dynamic>> Data = [];
   double totalAmount = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _fetchLedgerData2();
+    _fetchStockData2();
   }
 
-  Future<void> _fetchLedgerData2() async {
-    String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-    String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
-
-    List<Map<String, dynamic>> data = await PaymentDatabaseHelper.instance.queryFilteredRows(
-      fromDateStr,  
-      toDateStr,    
-      widget.ledgerName ?? "",  
-    );
-
-    setState(() {
-      paymentData = data;
-      totalAmount = paymentData.fold(0.0, (sum, item) {
-        double amount = double.tryParse(item[PaymentDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-        return sum + amount;  
+  Future<void> _fetchStockData2() async {
+    try {
+      List<Map<String, dynamic>> data = await LedgerDatabaseHelper.instance.getAccTrans();
+      print('Fetched stock data: $data');
+      setState(() {
+        Data = data;
       });
-    });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
   }
 
   @override
@@ -102,10 +98,10 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
                 width: 1.0,
               ),
               columnWidths: {
-                0: FixedColumnWidth(60),
-                1: FixedColumnWidth(100),
-                2: FixedColumnWidth(150),
-                3: FixedColumnWidth(100),
+                0: FixedColumnWidth(50),
+                1: FixedColumnWidth(60),
+                2: FixedColumnWidth(100),
+                3: FixedColumnWidth(150),
                 4: FixedColumnWidth(100),
                 5: FixedColumnWidth(100),
                 6: FixedColumnWidth(100),
@@ -115,75 +111,43 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
                 // Table header row
                 TableRow(
                   children: [
-                    _buildHeaderCell('No'),
-                    _buildHeaderCell('Date'),
-                    _buildHeaderCell('Name'),
-                    _buildHeaderCell('amount'),
-                    // _buildHeaderCell('Debit'),
-                    // _buildHeaderCell('Credit'),
-                     _buildHeaderCell('Discount'),
-                     _buildHeaderCell('Total'),
-                    _buildHeaderCell('Narration'),
-                   
+                    _buildHeaderCell('SiNo'),
+                    _buildHeaderCell('atLedCode'),
+                    _buildHeaderCell('atEntryno'),
+                    _buildHeaderCell('atDebitAmount'),
+                    _buildHeaderCell('atCreditAmount'),
+                    _buildHeaderCell('atOpposite'),
+                    _buildHeaderCell('atSalesType'),
+                    _buildHeaderCell('atType'),
                   ],
                 ),
                 // Table data rows
-                ...paymentData.map((data) {
+                ...Data.asMap().entries.map((entry) {
+                  int index = entry.key + 1; // Generate SiNo
+                  Map<String, dynamic> data = entry.value;
                   return TableRow(
-                     children: [
-                      _buildDataCell(data[PaymentDatabaseHelper.columnId]?.toString() ?? 'N/A'),
-                      _buildDataCell(data[PaymentDatabaseHelper.columnDate]?.toString() ?? 'N/A'),
-                      _buildDataCell(data[PaymentDatabaseHelper.columnLedgerName]?.toString() ?? 'N/A'),
-                      //_buildDataCell(""),
-                       _buildDataCell(data[PaymentDatabaseHelper.columnAmount]?.toString() ?? 'N/A'),
-                        _buildDataCell(data[PaymentDatabaseHelper.columnDiscount]?.toString() ?? 'N/A'),
-                         _buildDataCell(data[PaymentDatabaseHelper.columnTotal]?.toString() ?? 'N/A'),
-                      _buildDataCell(data[PaymentDatabaseHelper.columnNarration]?.toString() ?? 'N/A'),
-                     
+                    children: [
+                      _buildDataCell(index.toString()),
+                      _buildDataCell(data['atLedCode'].toString()),
+                      _buildDataCell(data['atEntryno'] ?? 'N/A'),
+                      _buildDataCell(data['atDebitAmount'] != null
+                          ? double.parse(data['atDebitAmount'].toString()).toStringAsFixed(2)
+                          : 'N/A'),
+                      _buildDataCell(data['atCreditAmount'] != null
+                          ? double.parse(data['atCreditAmount'].toString()).toStringAsFixed(2)
+                          : '0.00'),
+                      _buildDataCell(data['atOpposite'].toString()),
+                      _buildDataCell(data['atSalesType'].toString()),
+                      _buildDataCell(data['atType'].toString()),
                     ],
                   );
                 }).toList(),
-                // Closing balance row
-                // TableRow(
-                //   children: [
-                //     _buildDataCell(''),
-                //     _buildDataCell(''),
-                //     _buildDataCell(''),
-                //     _buildDataCell2('Closing Balance'),
-                //     _buildDataCell(''),
-                //     _buildDataCell2(totalAmount.toStringAsFixed(2)), 
-                //     _buildDataCell(''),
-                //     _buildDataCell(''),
-                //   ],
-                // ),
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  // Format the date as needed
-  String _formatDate(String? dateString) {
-    if (dateString != null && dateString.isNotEmpty) {
-      try {
-        DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateString);
-        return DateFormat('dd-MM-yyyy').format(parsedDate);
-      } catch (e) {
-        return "Invalid Date";
-      }
-    }
-    return "N/A";
-  }
-
-  // Format the amount with two decimal places
-  String _formatAmount(dynamic amount) {
-    if (amount != null) {
-      double parsedAmount = double.tryParse(amount.toString()) ?? 0.0;
-      return parsedAmount.toStringAsFixed(2);
-    }
-    return "0.00";
   }
 
   Widget _buildHeaderCell(String text) {
@@ -204,17 +168,6 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
       child: Text(
         text,
         style: getFonts(12, Colors.black),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildDataCell2(String text) {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      child: Text(
-        text,
-        style: getFonts(12, Colors.red),
         textAlign: TextAlign.center,
       ),
     );

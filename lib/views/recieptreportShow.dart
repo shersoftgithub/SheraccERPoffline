@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -24,7 +25,7 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
   @override
   void initState() {
     super.initState();
-    _fetchLedgerData();
+   // _fetchLedgerData();
     _fetchLedgerData2();
   }
 
@@ -58,33 +59,44 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
       });
     });
   }
-
+List Data=[];
 Future<void> _fetchLedgerData2() async {
-  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
+  try {
+    List<Map<String, dynamic>> data = await LedgerDatabaseHelper.instance.getFilteredAccTrans("RECEIPT");
+    print('Fetched stock data: $data'); 
+    setState(() {
+      Data = data;
+    });
+  } catch (e) {
+    print('Error fetching stock data: $e');
+  }
+}
+// Future<void> _fetchLedgerData2() async {
+//   String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
+//   String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
 
   
-  List<Map<String, dynamic>> data = await ReceiptDatabaseHelper.instance.queryFilteredRows(
-    fromDateStr,  
-    toDateStr,    
-    widget.ledgerName ?? "",  
-  );
+//   List<Map<String, dynamic>> data = await ReceiptDatabaseHelper.instance.queryFilteredRows(
+//     fromDateStr,  
+//     toDateStr,    
+//     widget.ledgerName ?? "",  
+//   );
 
-  setState(() {
-    recieptdata = data;
-        if (widget.ledgerName != null && widget.ledgerName!.isNotEmpty) {
-      totalAmount = recieptdata.fold(0.0, (sum, item) {
-        double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-        return sum + amount; 
-      });
-    } else {
-      totalAmount = recieptdata.fold(0.0, (sum, item) {
-        double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-        return sum + amount;  
-      });
-    }
-  });
-}
+//   setState(() {
+//     recieptdata = data;
+//         if (widget.ledgerName != null && widget.ledgerName!.isNotEmpty) {
+//       totalAmount = recieptdata.fold(0.0, (sum, item) {
+//         double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
+//         return sum + amount; 
+//       });
+//     } else {
+//       totalAmount = recieptdata.fold(0.0, (sum, item) {
+//         double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
+//         return sum + amount;  
+//       });
+//     }
+//   });
+// }
 
 
 
@@ -137,57 +149,82 @@ Future<void> _fetchLedgerData2() async {
         ],
       ),
       body: SingleChildScrollView(
+        
         scrollDirection: Axis.horizontal,
         child: Padding(
           padding: const EdgeInsets.only(top: 10),
-          child: Table(
-            border: TableBorder.all(
-              color: Colors.black,
-              width: 1.0,
-            ),
-            columnWidths: {
-              0: FixedColumnWidth(60), 
-              1: FixedColumnWidth(130), 
-              2: FixedColumnWidth(120),
-              3: FixedColumnWidth(100),
-              4: FixedColumnWidth(160), 
-              5: FixedColumnWidth(160), 
-            },
-            children: [
-              // Table header row
-              TableRow(
-                children: [
-                  _buildHeaderCell('No'),
-                  _buildHeaderCell('Date'),
-                  _buildHeaderCell('Name'),
-                  _buildHeaderCell('Discount'),
-                  _buildHeaderCell('Amount'),
-                  _buildHeaderCell('Narration'),
-                ],
+          child: SingleChildScrollView(
+            child: Table(
+              border: TableBorder.all(
+                color: Colors.black,
+                width: 1.0,
               ),
-              // Table data rows
-              ...recieptdata.map((data) {
-                return TableRow(
+              columnWidths: {
+                 0: FixedColumnWidth(60),
+                1: FixedColumnWidth(100),
+                2: FixedColumnWidth(150),
+                3: FixedColumnWidth(100),
+                4: FixedColumnWidth(100),
+                5: FixedColumnWidth(100),
+                6: FixedColumnWidth(100),
+                7: FixedColumnWidth(100),
+              },
+              children: [
+                // Table header row
+                TableRow(
                   children: [
-                    _buildDataCell(data[ReceiptDatabaseHelper.columnId].toString()),
-                    _buildDataCell(data[ReceiptDatabaseHelper.columnDate].toString()),
-                    _buildDataCell(data[ReceiptDatabaseHelper.columnLedgerName].toString()),
-                    _buildDataCell(data[ReceiptDatabaseHelper.columnDiscount].toString()),
-                    _buildDataCell(data[ReceiptDatabaseHelper.columnTotal].toString()),
-                    _buildDataCell(data[ReceiptDatabaseHelper.columnNarration].toString()),
+                     _buildHeaderCell('atLedCode'),
+                      _buildHeaderCell('atEntryno'),
+                      _buildHeaderCell('atDebitAmount'),
+                      _buildHeaderCell('atCreditAmount'),
+                      // _buildHeaderCell('Debit'),
+                      // _buildHeaderCell('Credit'),
+                       _buildHeaderCell('atOpposite'),
+                       _buildHeaderCell('atSalesType'),
+                      _buildHeaderCell('atType'),
+                    // _buildHeaderCell('No'),
+                    // _buildHeaderCell('Date'),
+                    // _buildHeaderCell('Name'),
+                    // _buildHeaderCell('Discount'),
+                    // _buildHeaderCell('Amount'),
+                    // _buildHeaderCell('Narration'),
                   ],
-                );
-              }).toList(),
-              // TableRow(
-              //   children: [
-              //     _buildDataCell(''),
-              //     _buildDataCell(''),
-              //     _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? 'Closing Balance' : 'Closing Balance'),
-              //   _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? totalAmount.toStringAsFixed(2) : totalAmount.toStringAsFixed(2)),
-              //     _buildDataCell(''),
-              //   ],
-              // ),
-            ],
+                ),
+                // Table data rows
+                ...Data.map((data) {
+                  return TableRow(
+                    children: [
+                         _buildDataCell(data['atLedCode'].toString()),
+                  _buildDataCell(data['atEntryno'] ?? 'N/A'),
+                  _buildDataCell(data['atDebitAmount'] != null 
+            ? data['atDebitAmount'].toStringAsFixed(2) 
+            : 'N/A'),  // Format to string with 2 decimal places
+                  _buildDataCell(data['atCreditAmount'] != null 
+            ? data['atCreditAmount'].toStringAsFixed(2) 
+            : '0.00'),  // Format to string with 2 decimal places
+                  _buildDataCell(data['atOpposite'].toString()),
+                  _buildDataCell(data['atSalesType'].toString()),
+                  _buildDataCell(data['atType'].toString()),
+                      // _buildDataCell(data[ReceiptDatabaseHelper.columnId].toString()),
+                      // _buildDataCell(data[ReceiptDatabaseHelper.columnDate].toString()),
+                      // _buildDataCell(data[ReceiptDatabaseHelper.columnLedgerName].toString()),
+                      // _buildDataCell(data[ReceiptDatabaseHelper.columnDiscount].toString()),
+                      // _buildDataCell(data[ReceiptDatabaseHelper.columnTotal].toString()),
+                      // _buildDataCell(data[ReceiptDatabaseHelper.columnNarration].toString()),
+                    ],
+                  );
+                }).toList(),
+                // TableRow(
+                //   children: [
+                //     _buildDataCell(''),
+                //     _buildDataCell(''),
+                //     _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? 'Closing Balance' : 'Closing Balance'),
+                //   _buildDataCell2(widget.ledgerName != null && widget.ledgerName!.isNotEmpty ? totalAmount.toStringAsFixed(2) : totalAmount.toStringAsFixed(2)),
+                //     _buildDataCell(''),
+                //   ],
+                // ),
+              ],
+            ),
           ),
         ),
       ),

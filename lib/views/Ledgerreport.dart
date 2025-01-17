@@ -1,5 +1,6 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -52,16 +53,19 @@ final GlobalKey _arrowKey = GlobalKey();
  @override
   void initState() {
     super.initState();
-   _fetchLedgerNames();
+   _fetchLedger();
    
   }
-  List <String>ledgerNames = [];
-  Future<void> _fetchLedgerNames() async {
-  List<String> names = await DatabaseHelper.instance.getAllLedgerNames();
-    setState(() {
-    ledgerNames = names; 
-    });
-  }
+
+   List <String> names=[];
+
+Future<void> _fetchLedger() async {
+    List<String> cname = await LedgerDatabaseHelper.instance.getAllNames();
+
+  setState(() {
+    names=cname;
+  });
+}
 
 
 void _showLedgerWithFilters() {
@@ -174,7 +178,7 @@ void _showLedgerWithFilters() {
                   child: SingleChildScrollView(
                     child: EasyAutocomplete(
                         controller: ledgernamesController,
-                        suggestions: ledgerNames,
+                        suggestions: names,
                            
                         onSubmitted: (value) {
                                   },

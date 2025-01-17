@@ -6,8 +6,7 @@ class ReceiptDatabaseHelper {
   static const _databaseName = "receipt.db";
   static const _databaseVersion = 1;
   static const table = 'receipt_table';
-
-  // Column names
+  
   static const columnId = 'id';
   static const columnDate = 'date';
   static const columnCashAccount = 'cashAccount';

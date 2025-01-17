@@ -4,6 +4,7 @@ import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/salescredit_modal.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
@@ -93,7 +94,7 @@ class _SalesOrderState extends State<SalesOrder> {
    List <String> names=[];
 
 Future<void> _fetchLedger() async {
-    List<String> cname = await CompanyLEdgerDatabaseHelper.instance.getAllNames();
+    List<String> cname = await LedgerDatabaseHelper.instance.getAllNames();
 
   setState(() {
     names=cname;
@@ -102,7 +103,7 @@ Future<void> _fetchLedger() async {
 
 Future<void> _fetchLedgerDetails(String ledgerName) async {
   if (ledgerName.isNotEmpty) {
-    Map<String, dynamic>? ledgerDetails = await CompanyLEdgerDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
+    Map<String, dynamic>? ledgerDetails = await LedgerDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
 
     if (ledgerDetails != null) {
       setState(() {

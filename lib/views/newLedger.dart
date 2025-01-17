@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/newLedger.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -55,50 +56,41 @@ Map<String, bool> _checkboxStates = {
 
 bool isBasicDataSaved = false;  
 Ledger? tempLedger;  
-void _saveData() async {
+Future<void> _saveData() async {
   try {
+    final db = await LedgerDatabaseHelper.instance.database;
+
+    // Fetch the maximum Ledcode, handling it as a String
+    final result = await db.rawQuery('SELECT MAX(Ledcode) as maxLedcode FROM LedgerNames');
+    String? maxLedCodeString = result.first['maxLedcode'] as String?;
+    int newLedCode = (int.tryParse(maxLedCodeString ?? '0') ?? 0) + 1;
+
     double receivedBalance = double.tryParse(_reievedAmtController.text) ?? 0.0;
     double payAmount = double.tryParse(_PayAmtController.text) ?? 0.0;
-    double openingBalance = (payAmount - receivedBalance).clamp(0, double.infinity);
-    final ledger = Ledger(
-      ledgerName: _LedgernameController.text,
-      under: _underController.text,
-      address: _adressController.text,
-      contact: _contactController.text,
-      mail: _mailController.text,
-      taxNo: _taxnoController.text,
-      priceLevel: _pricelevelController.text,
-      balance: double.tryParse(_balanceController.text) ?? 0.0,
-      openingBalance: openingBalance,
-      receivedBalance: receivedBalance,
-      payAmount: payAmount,
-      date: _dateController.text,
+
+    // Prepare the data to insert
+    final ledgerData = {
+      'Ledcode': newLedCode.toString(), // Store as a string if Ledcode is TEXT
+      'LedName': _LedgernameController.text,
+      'add1': _adressController.text,
+      'Mobile': _contactController.text,
+      'CAmount': payAmount,
+      'OpeningBalance': payAmount - receivedBalance,
+    };
+
+    await db.insert('LedgerNames', ledgerData);
+
+    print('Inserted ledger with Ledcode: $newLedCode');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
     );
 
-    int id = await DatabaseHelper.instance.insert(ledger.toMap());
-    print('Inserted ledger with ID: $id'); 
-
-    if (id > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('saved successfully ')),
-        
-      );
-      _reievedAmtController.clear();
-      _PayAmtController.clear();
-      _LedgernameController.clear();
-      _underController.clear();
-      _adressController.clear();
-      _contactController.clear();
-      _mailController.clear();
-      _taxnoController.clear();
-      _pricelevelController.clear();
-      _balanceController.clear();
-      _dateController.clear();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save data')),
-      );
-    }
+    // Clear input controllers
+    _reievedAmtController.clear();
+    _PayAmtController.clear();
+    _LedgernameController.clear();
+    _adressController.clear();
+    _contactController.clear();
   } catch (e) {
     print('Error while saving data: $e');
     ScaffoldMessenger.of(context).showSnackBar(
@@ -106,6 +98,8 @@ void _saveData() async {
     );
   }
 }
+
+
 
 
 
@@ -323,7 +317,7 @@ optionsDBHelper dbHelper = optionsDBHelper();
               children: [
                 _AccountTab(screenHeight,screenWidth), // Account Tab
                 _AddressTab(screenHeight,screenWidth), // Address Tab
-                _OpeningBalanceTab(screenHeight,screenWidth), // Opening Balance Tab
+                _OpeningBalanceTab(screenHeight,screenWidth), 
               ],
             ),
           ),

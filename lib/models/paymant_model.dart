@@ -8,7 +8,7 @@ class PaymentModel {
   final double discount;
   final double total;
   final String narration;
-  
+  final String atType;
   PaymentModel({
     this.id,
     required this.date,
@@ -19,6 +19,7 @@ class PaymentModel {
     required this.discount,
     required this.total,
     required this.narration,
+    required this.atType
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +33,7 @@ class PaymentModel {
       'discount': discount,
       'total': total,
       'narration': narration,
+      'atType':atType
     };
   }
 
@@ -46,6 +48,7 @@ class PaymentModel {
       discount: map['discount'],
       total: map['total'],
       narration: map['narration'],
+      atType: map['atType']
     );
   }
 }

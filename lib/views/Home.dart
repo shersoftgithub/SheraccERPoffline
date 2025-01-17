@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mssql_connection/mssql_connection.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/checkdatabse.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/syncDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
@@ -13,6 +14,7 @@ import 'package:sheraaccerpoff/views/more_home/backupdata.dart';
 import 'package:sheraaccerpoff/views/more_home/company.dart';
 import 'package:sheraaccerpoff/views/more_home/configServer.dart';
 import 'package:sheraaccerpoff/views/more_home/export.dart';
+import 'package:sheraaccerpoff/views/more_home/sync.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
 import 'package:sheraaccerpoff/views/payment.dart';
 import 'package:sheraaccerpoff/views/paymentReport.dart';
@@ -33,6 +35,7 @@ class HomePageERP extends StatefulWidget {
 
 class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
 
   final List<String> menuItems = [
     "Company",
@@ -56,6 +59,8 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
     super.dispose();
   }
 
+
+
   void navigateToPage(BuildContext context, String item) {
     switch (item) {
       case "Company":
@@ -71,9 +76,9 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
                         context, MaterialPageRoute(builder: (_) => CheckDatabaseScreen()));
         break;
       case "Sync Data":
-      var connection = MssqlConnection.getInstance();
-       Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => SyncDataServer(connection: connection,)));
+      LedgerDatabaseHelper.instance.updateOpeningBalances();
+      //  Navigator.push(
+      //                   context, MaterialPageRoute(builder: (_) => SyncButtonPage()));
         print("Syncing data...");
         break;
       case "Backup":

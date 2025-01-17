@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:sheraaccerpoff/models/paymant_model.dart';
 import 'package:sheraaccerpoff/provider/sherprovider.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -32,8 +33,8 @@ class _PaymentFormState extends State<PaymentForm> {
    @override
   void initState() {
     super.initState();
-   _fetchLedgerBalances();
-   _fetchLedgerNames();
+  // _fetchLedgerBalances();
+   _fetchLedger();
    _fetchCashAcc();
        _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
    _DiscountController.addListener(_calculateTotal);
@@ -73,20 +74,42 @@ class _PaymentFormState extends State<PaymentForm> {
       });
     }
   }
-  List <String>ledgerNames = [];
-  Future<void> _fetchLedgerNames() async {
-  List<String> names = await DatabaseHelper.instance.getAllLedgerNames();
-    setState(() {
-    ledgerNames = names; 
-    });
+
+   List <String> names=[];
+
+Future<void> _fetchLedger() async {
+    List<String> cname = await LedgerDatabaseHelper.instance.getAllNames();
+
+  setState(() {
+    names=cname;
+  });
+}
+Future<void> _fetchLedgerDetails(String ledgerName) async {
+  if (ledgerName.isNotEmpty) {
+    Map<String, dynamic>? ledgerDetails = await LedgerDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
+
+    if (ledgerDetails != null) {
+      setState(() {
+        // Ensure the OpeningBalance is converted to a string
+        final openingBalance = ledgerDetails['OpeningBalance'];
+        _balanceController.text = openingBalance != null ? openingBalance.toString() : '';
+      });
+    } else {
+      // Optionally clear the fields if no data found
+      setState(() {
+        _balanceController.clear();
+      });
+    }
   }
-   List <String>LedgerPaymant = [];
-    Future<void> _fetchLedgerBalances() async {
-    List<Map<String, dynamic>> LedgerPaymant = await DatabaseHelper.instance.getAllLedgersWithBalances();
-    setState(() {
-      LedgerPaymant = LedgerPaymant;  
-    });
-  }
+}
+
+  //  List <String>LedgerPaymant = [];
+  //   Future<void> _fetchLedgerBalances() async {
+  //   List<Map<String, dynamic>> LedgerPaymant = await DatabaseHelper.instance.getAllLedgersWithBalances();
+  //   setState(() {
+  //     LedgerPaymant = LedgerPaymant;  
+  //   });
+  // }
 
   void _fetchBalanceForLedger(String selectedLedgerName) async {
   DatabaseHelper dbHelper = DatabaseHelper.instance;
@@ -112,48 +135,60 @@ class _PaymentFormState extends State<PaymentForm> {
 }
 
 void _saveData() async {
-  final double amount = double.tryParse(_amountController.text) ?? 0.0;
-  final double balance = double.tryParse(_balanceController.text) ?? 0.0;
-  final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
-  final double total = balance - amount - discount;
+  try {
+    final double amount = double.tryParse(_amountController.text) ?? 0.0;
+    final double balance = double.tryParse(_balanceController.text) ?? 0.0;
+    final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
+    final double total = balance - amount - discount;
 
-  final payment = PaymentModel(
-    date: _dateController.text,
-    cashAccount: _cashAccController.text,
-    ledgerName: _selectlnamesController.text,
-    balance: balance,
-    amount: amount,
-    discount: discount,
-    total: total,
-    narration: _narrationController.text,
-  );
+    final ledgerDetails = await LedgerDatabaseHelper.instance
+        .getLedgerDetailsByName(_selectlnamesController.text);
 
-  bool ledgerExists = await PaymentDatabaseHelper.instance.doesLedgerExist(payment.ledgerName);
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
 
-  if (ledgerExists) {
-    await PaymentDatabaseHelper.instance.updatePaymentBalance(
-      payment.ledgerName,
-      payment.total.toString(),
-      payment.amount.toString(),
-      payment.balance,
+    final transactionData = {
+      'atDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'atLedCode': ledCode,
+      'atDebitAmount': amount,
+      'atCreditAmount': total,
+      'atType': 'PAYMENT',
+      'Caccount': _cashAccController.text,
+      'atDiscount': _DiscountController.text,
+      'atNaration': _narrationController.text,
+    };
+
+    await LedgerDatabaseHelper.instance.insertAccTrans(transactionData);
+
+    if (ledgerDetails != null) {
+      final double currentBalance = ledgerDetails['OpeningBalance'] as double? ?? 0.0;
+      final double updatedBalance = currentBalance - amount - discount;
+
+      await LedgerDatabaseHelper.instance.updateLedgerBalance(
+        ledCode,
+        updatedBalance,
+      );
+    } else {
+      print('Ledger not found for name: ${_selectlnamesController.text}');
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
     );
-  } else {
-    await PaymentDatabaseHelper.instance.insert(payment.toMap());
+    setState(() {
+      _amountController.clear();
+      _balanceController.clear();
+      _DiscountController.clear();
+      _dateController.clear();
+      _cashAccController.clear();
+      _selectlnamesController.clear();
+      _narrationController.clear();
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
   }
-  await syncOpeningBalances();
-  await syncOpeningBalances2();
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved successfully')));
-  setState(() {
-    _amountController.clear();
-    _balanceController.clear();
-    _DiscountController.clear();
-    _dateController.clear();
-    _cashAccController.clear();
-    _selectlnamesController.clear();
-    _narrationController.clear();
-  });
 }
-
 
 
 
@@ -172,13 +207,13 @@ void _onItemnamecreateChanged(String value) async {
   }
 
    syncOpeningBalances() async {
-  final paymentHelper = PaymentDatabaseHelper.instance;
-  final ledgerHelper = DatabaseHelper.instance;
+  final paymentHelper = LedgerDatabaseHelper.instance;
+  final ledgerHelper = LedgerDatabaseHelper.instance;
   List<Map<String, dynamic>> payments = await paymentHelper.queryAllRows();
 
   for (var payment in payments) {
-    String ledgerName = payment['ledgerName'];
-    double paymentTotal = payment['total'] ?? 0.0;
+    String ledgerName = payment['LedName'];
+    double paymentTotal = payment['atCreditAmount'] ?? 0.0;
 
     Map<String, dynamic>? ledger =
         await ledgerHelper.getLedgerByName(ledgerName);
@@ -192,7 +227,7 @@ void _onItemnamecreateChanged(String value) async {
 }
 
 Future<void> syncOpeningBalances2() async {
-  final paymentHelper = PaymentDatabaseHelper.instance;
+  final paymentHelper = LedgerDatabaseHelper.instance;
   List<Map<String, dynamic>> payments = await paymentHelper.queryAllRows();
 
   for (var payment in payments) {
@@ -397,10 +432,10 @@ double _TotalController=_total;
                     child: EasyAutocomplete(
                       suggestionBackgroundColor: Appcolors().Scfold,
                         controller: _selectlnamesController,
-                        suggestions: ledgerNames,
+                        suggestions: names,
                            inputTextStyle: getFontsinput(14, Colors.black),
                         onSubmitted: (value) {
-                _fetchBalanceForLedger(value); 
+                _fetchLedgerDetails(value); 
               },
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -562,7 +597,8 @@ double _TotalController=_total;
                    amount: 0.0,
                     discount: 0.0, 
                     total: 0.0,
-                     narration: "");
+                     narration: "",
+                     atType: "");
                 await PaymentDatabaseHelper.instance.insert(creditsale.toMap());
                 Navigator.of(context).pop();  
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Item created and saved')));

@@ -4,6 +4,8 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -26,9 +28,33 @@ double OpeningBalance = 0.0;
   @override
   void initState() {
     super.initState();
-    _fetchLedgerData();
-    _fetchLedgerData2();
+    // _fetchLedgerData();
+    // _fetchLedgerData2();
+    _fetchStockData2();
   }
+List ledgerdata=[];
+Future<void> _fetchStockData2() async {
+  try {
+    List<Map<String, dynamic>> data = await LedgerDatabaseHelper.instance.getLedgerData();
+    print('Fetched stock data: $data');
+        data.sort((a, b) {
+      var ledcodeA = a['Ledcode']?.toString() ?? '0'; 
+      var ledcodeB = b['Ledcode']?.toString() ?? '0'; 
+      
+      int ledcodeAInt = int.tryParse(ledcodeA) ?? 0;
+      int ledcodeBInt = int.tryParse(ledcodeB) ?? 0;
+
+      return ledcodeAInt.compareTo(ledcodeBInt); 
+    });
+
+    setState(() {
+      ledgerData = data;
+    });
+  } catch (e) {
+    print('Error fetching stock data: $e');
+  }
+}
+
 
 Future<void> _fetchLedgerData() async {
   List<Map<String, dynamic>> data = await DatabaseHelper.instance.queryAllRows();
@@ -211,7 +237,7 @@ Future<void> _exportToExcel() async {
     width: 1.0,
   ),
   columnWidths: {
-    0: FixedColumnWidth(120), 
+    0: FixedColumnWidth(60), 
     1: FixedColumnWidth(120),
     2: FixedColumnWidth(120), 
     3: FixedColumnWidth(120),
@@ -223,11 +249,13 @@ Future<void> _exportToExcel() async {
     9: FixedColumnWidth(140),
     10: FixedColumnWidth(120),
     11: FixedColumnWidth(120),
+     12: FixedColumnWidth(120),
   },
   children: [
     TableRow(
       children: [
-        _buildHeaderCell('Date'),
+        _buildHeaderCell('SiNo'),
+        _buildHeaderCell('Ledcode'),
         _buildHeaderCell('Ledger Name'),
         _buildHeaderCell('Address'),
         _buildHeaderCell('Contact'),
@@ -241,20 +269,23 @@ Future<void> _exportToExcel() async {
         _buildHeaderCell('Under'),
       ],
     ),
-    ...ledgerData.map((data) {
+   ...ledgerData.asMap().entries.map((entry) {
+                  int index = entry.key + 1; // Generate SiNo
+                  Map<String, dynamic> data = entry.value;
       return TableRow(
         children: [
-          _buildDataCell(data['date'] ?? 'N/A'),
-          _buildDataCell(data['ledger_name'] ?? 'N/A'),
-          _buildDataCell(data['address'] ?? 'N/A'),
-          _buildDataCell(data['contact'] ?? 'N/A'),
-          _buildDataCell(data['mail'] ?? 'N/A'),
+           _buildDataCell(index.toString()),
+          _buildDataCell(data['Ledcode'] ?? 'N/A'),
+          _buildDataCell(data['LedName'] ?? 'N/A'),
+          _buildDataCell(data['add1'] ?? 'N/A'),
+          _buildDataCell(data['Mobile'] ?? 'N/A'),
+          _buildDataCell(data['Email'] ?? 'N/A'),
           _buildDataCell(data['tax_no'] ?? 'N/A'),
           _buildDataCell(data['price_level'] ?? 'N/A'),
           _buildDataCell(data['balance']?.toString() ?? 'N/A'),
           widget.showOpeningBalance! 
-            ? _buildDataCell(data['opening_balance']?.toString() ?? '0') 
-            : _buildDataCell(data['opening_balance']?.toString() ?? '0'), 
+            ? _buildDataCell(data['OpeningBalance']?.toString() ?? '0') 
+            : _buildDataCell(data['OpeningBalance']?.toString() ?? '0'), 
           _buildDataCell(data['received_balance']?.toString() ?? '0') ,
           _buildDataCell(data['pay_amount']?.toString() ?? '0'),
           _buildDataCell(data['under'] ?? 'N/A'),
@@ -263,6 +294,7 @@ Future<void> _exportToExcel() async {
     }).toList(),
     TableRow(
       children: [
+         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),
@@ -279,6 +311,7 @@ Future<void> _exportToExcel() async {
     ),
     TableRow(
       children: [
+        _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),

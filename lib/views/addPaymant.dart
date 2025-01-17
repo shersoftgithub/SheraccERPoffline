@@ -782,7 +782,7 @@ final finalAmt=(totalAmt - PercenDisc);
                 Row(
                   children: [
                     Text("₹",style: getFonts(14, Colors.black)),
- Text("${finalAmt}",style: getFonts(14, Colors.red),
+                Text("${finalAmt}",style: getFonts(14, Colors.red),
                         
                       ),                  ],
                 ),
@@ -818,10 +818,10 @@ final finalAmt=(totalAmt - PercenDisc);
                if (isCashSave) {
               _saveDataCash();
             } else {
-              _saveData(); // Call the normal save function
+              _saveData(); 
             }
             setState(() {
-              isCashSave = !isCashSave; // Toggle between cash and normal save actions
+              isCashSave = !isCashSave; 
             });
             },
             child: Container(
@@ -889,8 +889,8 @@ TableRow _buildTableRow(String label, String? value) {
       GestureDetector(
         onTap: () {
           setState(() {
-            _selectedRate = value ?? "N/A"; // Update the selected rate
-            _isDropdownVisible = false; // Close the dropdown after selection
+            _selectedRate = value ?? "N/A"; 
+            _isDropdownVisible = false; 
           });
         },
         child: Padding(

@@ -1,3 +1,5 @@
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -21,7 +23,7 @@ class DatabaseHelper {
   static const columnReceivedBalance = 'received_balance';
   static const columnPayAmount = 'pay_amount';
   static const columnDate = 'date';
-
+  
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
@@ -196,9 +198,9 @@ Future<void> updateOpeningBalancesFromPayments(
 Future<void> updateLedgerBalance(String ledgerName, double newBalance) async {
   final db = await database;
   await db.update(
-    'ledger_table', // Your ledger table name
-    {'opening_balance': newBalance}, // Use the correct column name for opening balance
-    where: 'ledger_name = ?', // Use the correct column name for ledger name
+    'ledger_table', 
+    {'opening_balance': newBalance}, 
+    where: 'ledger_name = ?', 
     whereArgs: [ledgerName],
   );
 }
@@ -206,8 +208,8 @@ Future<void> updateLedgerBalance(String ledgerName, double newBalance) async {
 Future<Map<String, dynamic>?> getLedgerByName(String ledgerName) async {
   final db = await instance.database;
   final result = await db.query(
-    'ledger_table', // Your ledger table name
-    where: 'ledger_name = ?', // Use the correct column name for ledger name
+    'ledger_table', 
+    where: 'ledger_name = ?', 
     whereArgs: [ledgerName],
   );
   return result.isNotEmpty ? result.first : null;
@@ -315,5 +317,61 @@ Future<int?> getLedgerIdByName(String ledgerName) async {
       whereArgs: [ledgerId],
     );
   }
+
+
+Future<void> insertLedgerDataIntoLedgerTable() async {
+  final ledgerDb = await database; // Ledger database instance
+  final companyLedgerDb = await LedgerDatabaseHelper.instance.database; // Company ledger database instance
+
+  // Fetch all data from LedgerNames
+  final ledgerNamesData = await companyLedgerDb.query('LedgerNames');
+
+  for (var ledger in ledgerNamesData) {
+    final ledgerName = ledger['LedName'] as String? ?? '';
+    final address = ledger['add1'] as String? ?? '';
+    final contact = ledger['Mobile'] as String? ?? '';
+    final mail = ledger['Email'] as String? ?? '';
+    final openingBalance = ledger['OpeningBalance'] as double? ?? 0.0;
+
+    // Fetch all transactions for the current ledger code
+    final accountTransactionsData = await companyLedgerDb.query(
+      'Account_Transactions',
+      where: 'atLedCode = ?',
+      whereArgs: [ledger['Ledcode']],
+    );
+
+    double receivedBalance = 0.0;
+    double payAmount = 0.0;
+
+    // Calculate receivedBalance and payAmount
+    for (var transaction in accountTransactionsData) {
+      receivedBalance += transaction['atDebitAmount'] as double? ?? 0.0;
+      payAmount += transaction['atCreditAmount'] as double? ?? 0.0;
+    }
+
+    // Prepare data for insertion into ledger_table
+    final ledgerRow = {
+      'ledger_name': ledgerName,
+      'address': address,
+      'contact': contact,
+      'mail': mail,
+      'opening_balance': openingBalance,
+      'received_balance': receivedBalance,
+      'pay_amount': payAmount,
+      'date': DateTime.now().toIso8601String(), // Example: Adding a default date
+    };
+
+    // Insert or update the ledger_table
+    await ledgerDb.insert(
+      'ledger_table',
+      ledgerRow,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  print('Data successfully imported into ledger_table.');
+}
+
+
 
 }

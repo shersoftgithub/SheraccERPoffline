@@ -303,7 +303,8 @@ void _showLedgerWithFilters() {
         ),
          SizedBox(height: screenHeight * 0.0002),
               GestureDetector(
-          onTap: () {_showLedgerWithFilters();
+          onTap: () {
+            _showLedgerWithFilters();
           },
           child: Padding(
             padding: EdgeInsets.all(screenHeight * 0.03),
