@@ -399,7 +399,7 @@ Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
     if (supplier.isNotEmpty) {
       query += ' AND stock.supplier = "$supplier"';
     }
-     if (supplier.isNotEmpty) {
+     if (itemname.isNotEmpty) {
       query += ' AND product_registration.itemname = "$itemname"';
     }
     if (fromDate != null && toDate != null) {

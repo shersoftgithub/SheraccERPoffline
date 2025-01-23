@@ -1,15 +1,12 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:sheraaccerpoff/models/paymant_model.dart';
-import 'package:sheraaccerpoff/provider/sherprovider.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 
 
 class PaymentForm extends StatefulWidget {
@@ -78,7 +75,7 @@ class _PaymentFormState extends State<PaymentForm> {
    List <String> names=[];
 
 Future<void> _fetchLedger() async {
-    List<String> cname = await LedgerDatabaseHelper.instance.getAllNames();
+    List<String> cname = await LedgerTransactionsDatabaseHelper.instance.getAllNames();
 
   setState(() {
     names=cname;
@@ -86,7 +83,7 @@ Future<void> _fetchLedger() async {
 }
 Future<void> _fetchLedgerDetails(String ledgerName) async {
   if (ledgerName.isNotEmpty) {
-    Map<String, dynamic>? ledgerDetails = await LedgerDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
+    Map<String, dynamic>? ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
 
     if (ledgerDetails != null) {
       setState(() {
@@ -111,28 +108,28 @@ Future<void> _fetchLedgerDetails(String ledgerName) async {
   //   });
   // }
 
-  void _fetchBalanceForLedger(String selectedLedgerName) async {
-  DatabaseHelper dbHelper = DatabaseHelper.instance;
-  List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
-  var selectedLedger = ledgerData.firstWhere(
-    (row) => row[DatabaseHelper.columnLedgerName] == selectedLedgerName,
-    orElse: () => {},
-  );
+//   void _fetchBalanceForLedger(String selectedLedgerName) async {
+//   DatabaseHelper dbHelper = DatabaseHelper.instance;
+//   List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
+//   var selectedLedger = ledgerData.firstWhere(
+//     (row) => row[DatabaseHelper.columnLedgerName] == selectedLedgerName,
+//     orElse: () => {},
+//   );
 
-  if (selectedLedger.isNotEmpty) {
-    double openingBalance = selectedLedger[DatabaseHelper.columnPayAmount] ?? 0.0;
-    double receivedBalance = selectedLedger[DatabaseHelper.columnReceivedBalance] ?? 0.0;
-    double balance = (selectedLedger[DatabaseHelper.columnOpeningBalance] ?? 0.0).abs();
-    double remainingBalance = openingBalance-receivedBalance;
-    setState(() {
-      _balanceController.text = balance.toStringAsFixed(2);
-    });
-  } else {
-    setState(() {
-      _balanceController.text = 'Ledger not found';
-    });
-  }
-}
+//   if (selectedLedger.isNotEmpty) {
+//     double openingBalance = selectedLedger[DatabaseHelper.columnPayAmount] ?? 0.0;
+//     double receivedBalance = selectedLedger[DatabaseHelper.columnReceivedBalance] ?? 0.0;
+//     double balance = (selectedLedger[DatabaseHelper.columnOpeningBalance] ?? 0.0).abs();
+//     double remainingBalance = openingBalance-receivedBalance;
+//     setState(() {
+//       _balanceController.text = balance.toStringAsFixed(2);
+//     });
+//   } else {
+//     setState(() {
+//       _balanceController.text = 'Ledger not found';
+//     });
+//   }
+// }
 
 void _saveData() async {
   try {
@@ -141,7 +138,7 @@ void _saveData() async {
     final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
     final double total = balance - amount - discount;
 
-    final ledgerDetails = await LedgerDatabaseHelper.instance
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
         .getLedgerDetailsByName(_selectlnamesController.text);
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
@@ -155,15 +152,16 @@ void _saveData() async {
       'Caccount': _cashAccController.text,
       'atDiscount': _DiscountController.text,
       'atNaration': _narrationController.text,
+      'atLedName': _selectlnamesController.text,
     };
 
-    await LedgerDatabaseHelper.instance.insertAccTrans(transactionData);
+    await LedgerTransactionsDatabaseHelper.instance.insertAccTrans(transactionData);
 
     if (ledgerDetails != null) {
       final double currentBalance = ledgerDetails['OpeningBalance'] as double? ?? 0.0;
       final double updatedBalance = currentBalance - amount - discount;
 
-      await LedgerDatabaseHelper.instance.updateLedgerBalance(
+      await LedgerTransactionsDatabaseHelper.instance.updateLedgerBalance(
         ledCode,
         updatedBalance,
       );
@@ -205,60 +203,6 @@ void _onItemnamecreateChanged(String value) async {
       _itemSuggestions = items;
     });
   }
-
-   syncOpeningBalances() async {
-  final paymentHelper = LedgerDatabaseHelper.instance;
-  final ledgerHelper = LedgerDatabaseHelper.instance;
-  List<Map<String, dynamic>> payments = await paymentHelper.queryAllRows();
-
-  for (var payment in payments) {
-    String ledgerName = payment['LedName'];
-    double paymentTotal = payment['atCreditAmount'] ?? 0.0;
-
-    Map<String, dynamic>? ledger =
-        await ledgerHelper.getLedgerByName(ledgerName);
-
-    if (ledger != null) {
-      await ledgerHelper.updateLedgerBalance(ledgerName, paymentTotal);
-    }
-  }
-
-  print("Opening balances updated successfully!");
-}
-
-Future<void> syncOpeningBalances2() async {
-  final paymentHelper = LedgerDatabaseHelper.instance;
-  List<Map<String, dynamic>> payments = await paymentHelper.queryAllRows();
-
-  for (var payment in payments) {
-    String ledgerName = payment['ledgerName'];
-    double paymentTotal = payment['total'] ?? 0.0; 
-    double amount = payment['amount'] ?? 0.0; 
-    bool ledgerExists = await paymentHelper.doesLedgerExist(ledgerName);
-
-    if (ledgerExists) {
-      Map<String, dynamic>? ledger = await paymentHelper.getLedgerByName(ledgerName);
-      
-      if (ledger != null) {
-        double newBalance = ledger['balance'] ?? 0.0; 
-        await paymentHelper.updatePaymentBalance(
-          ledgerName, 
-          paymentTotal.toString(), 
-          amount.toString(),
-          newBalance,
-        );
-      }
-    } else {
-     
-    }
-  }
-
-  print("updated successfully!");
-}
-
-
-
-
 
   @override
   Widget build(BuildContext context) {

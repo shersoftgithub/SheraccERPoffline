@@ -8,12 +8,14 @@ import 'package:sheraaccerpoff/utility/fonts.dart';
 class ShowSalesReport extends StatefulWidget {
   final String? customerName;
   final String? itemName;
+  final String? itemcode;
   final DateTime? fromDate;
   final DateTime? toDate;
   
   const ShowSalesReport({
     super.key,
     this.customerName,
+    this.itemcode,
     this.itemName,
     this.fromDate,
     this.toDate,
@@ -40,8 +42,8 @@ double totalAmount = 0.0;
 
   List<Map<String, dynamic>> data = await SaleDatabaseHelper.instance.queryFilteredRows(
     fromDate: widget.fromDate,  // Pass the DateTime directly
-    toDate: widget.toDate,      // Pass the DateTime directly
-    ledgerName: widget.itemName ?? '',  // Pass the ledger name
+    toDate: widget.toDate,  
+    itemName: widget.itemName, 
     customer: widget.customerName ?? '', // Pass the customer name
   );
 
@@ -86,7 +88,6 @@ Future<void> _fetchFilteredSalesData() async {
     fromDate: widget.fromDate,  // Pass the DateTime directly
     toDate: widget.toDate,      // Pass the DateTime directly
     customer: widget.customerName ?? '',  // Pass the customer name
-    ledgerName: widget.itemName ?? '', // Optional: pass ledger name for sales
   );
 
   setState(() {
@@ -98,27 +99,27 @@ Future<void> _fetchFilteredSalesData() async {
     });
 
     // Fetch the ledger data for the customer (optional, depending on the use case)
-    _fetchLedgerDataForCustomer(widget.customerName ?? '');
+    //_fetchLedgerDataForCustomer(widget.customerName ?? '');
   });
 }
 
 
-Future<void> _fetchLedgerDataForCustomer(String customerName) async {
-  List<Map<String, dynamic>> ledgerData = await DatabaseHelper.instance.queryFilteredRows(
-     widget.fromDate,
-     widget.toDate,
-   customerName,
-  );
+// Future<void> _fetchLedgerDataForCustomer(String customerName) async {
+//   List<Map<String, dynamic>> ledgerData = await DatabaseHelper.instance.queryFilteredRows(
+//      widget.fromDate,
+//      widget.toDate,
+//    customerName,
+//   );
 
-  ledgerData.forEach((item) {
-    if (item['ledger_name'] == customerName) {  
-      openingBalance = (double.tryParse(item[DatabaseHelper.columnOpeningBalance]?.toString() ?? '0') ?? 0.0);
-      paidAmount = (double.tryParse(item[DatabaseHelper.columnPayAmount]?.toString() ?? '0') ?? 0.0);
-      receivedAmount = (double.tryParse(item[DatabaseHelper.columnReceivedBalance]?.toString() ?? '0') ?? 0.0);
-    }
-  });
-  setState(() {});
-}
+//   ledgerData.forEach((item) {
+//     if (item['ledger_name'] == customerName) {  
+//       openingBalance = (double.tryParse(item[DatabaseHelper.columnOpeningBalance]?.toString() ?? '0') ?? 0.0);
+//       paidAmount = (double.tryParse(item[DatabaseHelper.columnPayAmount]?.toString() ?? '0') ?? 0.0);
+//       receivedAmount = (double.tryParse(item[DatabaseHelper.columnReceivedBalance]?.toString() ?? '0') ?? 0.0);
+//     }
+//   });
+//   setState(() {});
+// }
 
 
   @override

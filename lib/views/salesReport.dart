@@ -2,8 +2,11 @@ import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/salesreportShow.dart';
@@ -57,7 +60,8 @@ class _SalesReportState extends State<SalesReport> {
   void initState() {
     super.initState();
   _fetchCustomerItemData();
-  _fetchItemNames();
+  _fetchstock();
+  _fetchLedgerNames();
   }
 final GlobalKey _arrowKey = GlobalKey();
 optionsDBHelper dbHelper=optionsDBHelper();
@@ -73,18 +77,24 @@ Future<void> _fetchCustomerItemData() async {
       customer = data;  
     });
   }
-  void _fetchItemNames() async {
-    List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
-    setState(() {
-      items=ItemList;
-    });
-  }
-    void _onItemnameChanged(String value) async {
-  List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
+    List<String> items = [];
+List <String> Itemnames=[];
+Future<void> _fetchstock() async {
+  List<String> itemids = await StockDatabaseHelper.instance.getAllItemcode();
+List<String> itemname = await StockDatabaseHelper.instance.getAllItemnames();
   setState(() {
-    ItemList = items.where((item) => item.contains(value)).toList();
+    items = itemids;
+    Itemnames=itemname;
   });
 }
+
+List <String>ledgerNames = [];
+  Future<void> _fetchLedgerNames() async {
+  List<String> names = await LedgerTransactionsDatabaseHelper.instance.getAllNames();
+    setState(() {
+    ledgerNames = names; 
+    });
+  }
   @override
   
   Widget build(BuildContext context) {
@@ -190,13 +200,33 @@ Future<void> _fetchCustomerItemData() async {
           child: Container(
             child: Column(
               children: [
-                _salefield("Select Item Code", _selectItemcodeController, screenWidth, screenHeight),
+                 SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: EasyAutocomplete(
+                      controller: _selectItemcodeController,
+                      suggestions: items,
+                          
+                         
+                      onSubmitted: (value) {
+
+                                },
+                      decoration: InputDecoration(
+                  border: UnderlineInputBorder(),
+                  contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  hintText: "Select Item code",
+                  hintStyle: TextStyle(fontSize: 14)
+                                ),
+                                suggestionBackgroundColor: Appcolors().Scfold,
+                    ),
+                ),
+              ),
                  SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 7),
                   child: EasyAutocomplete(
                       controller: _selectItemnameController,
-                      suggestions: ItemList,
+                      suggestions: Itemnames,
                           
                          
                       onSubmitted: (value) {
@@ -222,11 +252,10 @@ Future<void> _fetchCustomerItemData() async {
                   padding: const EdgeInsets.symmetric(horizontal: 7),
                   child: EasyAutocomplete(
                       controller: _selectSupplierController,
-                      suggestions: customer
-                          .map((item) => item['customer']!) 
-                          .toList(),
+                      suggestions: ledgerNames,
+                        
                            onChanged: (value) {
-                _onItemnameChanged(value); // Update the list based on input
+         
               },
                       onSubmitted: (value) {
                                 },
@@ -312,6 +341,7 @@ Future<void> _fetchCustomerItemData() async {
             Navigator.of(context).push(MaterialPageRoute(
               builder: (context) => ShowSalesReport(
                           customerName: _selectSupplierController.text,
+                          itemcode: _selectItemcodeController.text,
                           itemName: _selectItemnameController.text,
                           fromDate: _fromDate,
                           toDate: _toDate,

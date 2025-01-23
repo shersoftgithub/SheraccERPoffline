@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/newLedger.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -36,7 +37,7 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     fetch_options();
-    _loadUnderSuggestions();
+    //_loadUnderSuggestions();
     _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
   }
 
@@ -58,9 +59,8 @@ bool isBasicDataSaved = false;
 Ledger? tempLedger;  
 Future<void> _saveData() async {
   try {
-    final db = await LedgerDatabaseHelper.instance.database;
+    final db = await LedgerTransactionsDatabaseHelper.instance.database;
 
-    // Fetch the maximum Ledcode, handling it as a String
     final result = await db.rawQuery('SELECT MAX(Ledcode) as maxLedcode FROM LedgerNames');
     String? maxLedCodeString = result.first['maxLedcode'] as String?;
     int newLedCode = (int.tryParse(maxLedCodeString ?? '0') ?? 0) + 1;
@@ -68,14 +68,19 @@ Future<void> _saveData() async {
     double receivedBalance = double.tryParse(_reievedAmtController.text) ?? 0.0;
     double payAmount = double.tryParse(_PayAmtController.text) ?? 0.0;
 
-    // Prepare the data to insert
+
     final ledgerData = {
-      'Ledcode': newLedCode.toString(), // Store as a string if Ledcode is TEXT
+      'Ledcode': newLedCode.toString(), 
+      
       'LedName': _LedgernameController.text,
       'add1': _adressController.text,
       'Mobile': _contactController.text,
       'CAmount': payAmount,
       'OpeningBalance': payAmount - receivedBalance,
+      'under':_underController.text,
+      'Debit':_reievedAmtController.text,
+      'date':_dateController.text,
+      'balance':receivedBalance
     };
 
     await db.insert('LedgerNames', ledgerData);
@@ -85,7 +90,6 @@ Future<void> _saveData() async {
       SnackBar(content: Text('Saved successfully')),
     );
 
-    // Clear input controllers
     _reievedAmtController.clear();
     _PayAmtController.clear();
     _LedgernameController.clear();
@@ -174,13 +178,13 @@ optionsDBHelper dbHelper = optionsDBHelper();
   List<String> _allUnder = [];
 
 
- _loadUnderSuggestions() async {
-    List<String> uniqueUnder = await DatabaseHelper.instance.getAllUniqueUnder();
-    setState(() {
-      _allUnder = uniqueUnder;
-      _underSuggestions = uniqueUnder;  
-    });
-  }
+//  _loadUnderSuggestions() async {
+//     List<String> uniqueUnder = await DatabaseHelper.instance.getAllUniqueUnder();
+//     setState(() {
+//       _allUnder = uniqueUnder;
+//       _underSuggestions = uniqueUnder;  
+//     });
+//   }
   void _onUnderTextChanged(String query) {
     setState(() {
       _underSuggestions = _allUnder

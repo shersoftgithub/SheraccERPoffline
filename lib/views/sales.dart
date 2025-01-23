@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/salescredit_modal.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
@@ -94,7 +95,7 @@ class _SalesOrderState extends State<SalesOrder> {
    List <String> names=[];
 
 Future<void> _fetchLedger() async {
-    List<String> cname = await LedgerDatabaseHelper.instance.getAllNames();
+    List<String> cname = await LedgerTransactionsDatabaseHelper.instance.getAllNames();
 
   setState(() {
     names=cname;
@@ -103,7 +104,7 @@ Future<void> _fetchLedger() async {
 
 Future<void> _fetchLedgerDetails(String ledgerName) async {
   if (ledgerName.isNotEmpty) {
-    Map<String, dynamic>? ledgerDetails = await LedgerDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
+    Map<String, dynamic>? ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
 
     if (ledgerDetails != null) {
       setState(() {
@@ -143,106 +144,189 @@ Future<void> _fetchLastInvoiceId() async {
        _CustomerController.text=value;
   }
 
-void _fetchInvoiceData(int ledgerId) async {
-  DatabaseHelper dbHelper = DatabaseHelper.instance;
+// void _fetchInvoiceData(int ledgerId) async {
+//   DatabaseHelper dbHelper = DatabaseHelper.instance;
   
-  List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
+//   List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
   
-  var selectedLedger = ledgerData.firstWhere(
-    (row) => row[DatabaseHelper.columnId] == ledgerId,
-    orElse: () => {},
-  );
+//   var selectedLedger = ledgerData.firstWhere(
+//     (row) => row[DatabaseHelper.columnId] == ledgerId,
+//     orElse: () => {},
+//   );
   
-  if (selectedLedger.isNotEmpty) {
-    setState(() {
-            _CustomerController.text = selectedLedger[DatabaseHelper.columnLedgerName].toString();
-      _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
-    });
-  }
-}
+//   if (selectedLedger.isNotEmpty) {
+//     setState(() {
+//             _CustomerController.text = selectedLedger[DatabaseHelper.columnLedgerName].toString();
+//       _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
+//     });
+//   }
+// }
 
-void _fetchName_Data(String name) async {
-  DatabaseHelper dbHelper = DatabaseHelper.instance;
-  List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
+// void _fetchName_Data(String name) async {
+//   DatabaseHelper dbHelper = DatabaseHelper.instance;
+//   List<Map<String, dynamic>> ledgerData = await dbHelper.queryAllRows();
   
-  var selectedLedger = ledgerData.firstWhere(
-    (row) => row[DatabaseHelper.columnLedgerName] == name,
-    orElse: () => {},
-  );
+//   var selectedLedger = ledgerData.firstWhere(
+//     (row) => row[DatabaseHelper.columnLedgerName] == name,
+//     orElse: () => {},
+//   );
   
-  if (selectedLedger.isNotEmpty) {
-    setState(() {
-            _InvoicenoController.text = selectedLedger[DatabaseHelper.columnId].toString();
-      _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
-    });
-  }
-}
+//   if (selectedLedger.isNotEmpty) {
+//     setState(() {
+//             _InvoicenoController.text = selectedLedger[DatabaseHelper.columnId].toString();
+//       _phonenoController.text = selectedLedger[DatabaseHelper.columnContact].toString();
+//     });
+//   }
+// }
 void _saveData() async {
-  final qtyToReduce = widget.salesCredit!.qty.toDouble(); 
-  final itemName = widget.salesCredit!.itemName.toString();
-double finalamt=widget.salesCredit?.totalAmt??0.0;
-  final itemcode = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
+  try {
+    final qtyToReduce = widget.salesCredit!.qty.toDouble();
+    final itemName = widget.salesCredit!.itemName.toString();
+    final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
 
-  if (itemcode != null) {
-    final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemcode);
+    // Fetch item code from the stock database
+    final itemCode = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
 
-    if (stockData != null) {
-      final currentQty = stockData['Qty'] as double;
-      final updatedQty = currentQty - qtyToReduce;
-
-      if (updatedQty >= 0) {
-        await StockDatabaseHelper.instance.updateProductQuantity(itemcode, updatedQty);
-        final creditsale = SalesCredit(
-          invoiceId: int.parse(_InvoicenoController.text),
-          date: _dateController.text,
-          salesRate: double.tryParse(_salerateController.text) ?? 0.0,
-          customer: _CustomerController.text,
-          phoneNo: _phonenoController.text,
-          itemName: widget.salesCredit!.itemName,
-          qty: widget.salesCredit!.qty,
-          unit: widget.salesCredit!.unit,
-          rate: widget.salesCredit!.rate,
-          tax: widget.salesCredit!.tax,
-          totalAmt: finalamt,
-        );
-
-        int lastInsertedId = await SaleDatabaseHelper.instance.insert(creditsale.toMap());
-
-        await _saveLastInsertedIdToPayments(lastInsertedId, creditsale.customer);
-        await syncOpeningBalances(lastInsertedId);
-
-       // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved successfully')));
-
-        setState(() {
-          _InvoicenoController.clear();
-          _salerateController.clear();
-          _CustomerController.clear();
-          _phonenoController.clear();
-          _totalamtController.clear();
-        });
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved successfully')));
-      } else {
-        // Quantity cannot go below 0
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Not enough stock for $itemName')));
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Item not found in stock table')));
+    if (itemCode == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Item code not found for $itemName')),
+      );
+      return;
     }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Itemcode not found for $itemName')));
+
+    // Fetch product details by item code
+    final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemCode);
+
+    if (stockData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Item not found in stock table')),
+      );
+      return;
+    }
+
+    // Get current quantity and calculate updated quantity
+    final currentQty = stockData['Qty'] as double;
+    final updatedQty = currentQty - qtyToReduce;
+
+    if (updatedQty < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Not enough stock for $itemName')),
+      );
+      return;
+    }
+
+    // Update stock quantity in the database
+    await StockDatabaseHelper.instance.updateProductQuantity(itemCode, updatedQty);
+
+    // Fetch ledger details
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(_CustomerController.text);
+
+    if (ledgerDetails == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ledger not found for name: ${_CustomerController.text}')),
+      );
+      return;
+    }
+
+    final String ledCode = ledgerDetails['LedId'] ?? 'Unknown';
+    final double currentBalance = ledgerDetails['OpeningBalance'] as double? ?? 0.0;
+    final double updatedBalance = currentBalance - finalAmt;
+
+    // Update ledger opening balance
+    await LedgerTransactionsDatabaseHelper.instance.updateLedgerBalance(ledCode, updatedBalance);
+
+    // Create and insert sales credit entry
+    final creditsale = SalesCredit(
+      invoiceId: int.parse(_InvoicenoController.text),
+      date: _dateController.text,
+      salesRate: double.tryParse(_salerateController.text) ?? 0.0,
+      customer: _CustomerController.text,
+      phoneNo: _phonenoController.text,
+      itemName: widget.salesCredit!.itemName,
+      qty: widget.salesCredit!.qty,
+      unit: widget.salesCredit!.unit,
+      rate: widget.salesCredit!.rate,
+      tax: widget.salesCredit!.tax,
+      totalAmt: finalAmt,
+    );
+
+    int lastInsertedId = await SaleDatabaseHelper.instance.insert(creditsale.toMap());
+
+    // Perform any additional post-insert operations
+    // await _saveLastInsertedIdToPayments(lastInsertedId, creditsale.customer);
+    // await syncOpeningBalances(lastInsertedId);
+
+    // Show success message and clear form fields
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {
+      _InvoicenoController.clear();
+      _salerateController.clear();
+      _CustomerController.clear();
+      _phonenoController.clear();
+      _totalamtController.clear();
+    });
+  } catch (e) {
+    // Handle any unexpected errors
+    print('Error saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('An error occurred while saving data')),
+    );
   }
 }
 
 
 
+void _saveDataCash() async {
+  try {
+    final qtyToReduce = widget.salesDebit!.qty.toDouble();
+    final itemName = widget.salesDebit!.itemName.toString();
+    final double finalAmt = widget.salesDebit?.totalAmt ?? 0.0;
 
-void _saveDataCash()async{
-  
-  final Cashcreditsale=SalesCredit(
+    // Fetch item code from the stock database
+    final itemCode = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
+
+    if (itemCode == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Item code not found for $itemName')),
+      );
+      return;
+    }
+
+    // Fetch product details by item code
+    final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemCode);
+
+    if (stockData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Item not found in stock table')),
+      );
+      return;
+    }
+
+    // Get current quantity and calculate updated quantity
+    final currentQty = stockData['Qty'] as double;
+    final updatedQty = currentQty - qtyToReduce;
+
+    if (updatedQty < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Not enough stock for $itemName')),
+      );
+      return;
+    }
+
+    // Update stock quantity in the database
+    await StockDatabaseHelper.instance.updateProductQuantity(itemCode, updatedQty);
+
+final double salesRate = double.tryParse(_CashsalerateController.text) ?? 0.0;
+    final double totalAmt = double.tryParse(_CashtotalamtController.text) ?? 0.0;
+
+    final Cashcreditsale=SalesCredit(
     
     invoiceId: nextInvoiceId,
     date: _dateController.text, 
-    salesRate: double.tryParse(_CashsalerateController.text)??0.0,
+    salesRate: salesRate,
      customer: _billnameController.text,
       phoneNo: _CashphonenoController.text,
       itemName: widget.salesDebit?.itemName ?? '',
@@ -250,73 +334,89 @@ void _saveDataCash()async{
          unit: widget.salesDebit!.unit,
           rate: widget.salesDebit!.rate,
            tax: widget.salesDebit!.tax, 
-           totalAmt:double.parse(_CashtotalamtController.text));
+           totalAmt:finalAmt);
           await SaleDatabaseHelper.instance.insert(Cashcreditsale.toMap());
-           
-   await syncOpeningBalancesCash();
-    
-}
- syncOpeningBalancesCash() async {
-  final paymentHelper = SaleDatabaseHelper.instance;
-  final ledgerHelper = DatabaseHelper.instance;
-  List<Map<String, dynamic>> payments = await paymentHelper.queryAllRows();
 
-  for (var payment in payments) {
-    String ledgerName = payment['ledgerName'];
-    double saleTotal = payment['total_amt'] ?? 0.0;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
 
-    Map<String, dynamic>? ledger =
-        await ledgerHelper.getLedgerByName(ledgerName);
-
-    if (ledger != null) {
-      await ledgerHelper.updateLedgerBalance(ledgerName, saleTotal);
-    }
-  }
-
-  print("Opening balances updated successfully!");
-}
-Future<void> _saveLastInsertedIdToPayments(int lastInsertedId, String customer) async {
-  final ledgerHelper = DatabaseHelper.instance;
-
-  Map<String, dynamic>? ledger = await ledgerHelper.getLedgerByName(customer);
-
-  if (ledger != null) {
-    await ledgerHelper.updateLedgerBalance(customer, lastInsertedId.toDouble());
-  } else {
-    print("Ledger not found for customer: $customer");
+    setState(() {
+      _InvoicenoController.clear();
+      _CashsalerateController.clear();
+      _billnameController.clear();
+      _CashphonenoController.clear();
+      _CashtotalamtController.clear();
+    });
+  } catch (e) {
+    // Handle any unexpected errors
+    print('Error saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('An error occurred while saving data')),
+    );
   }
 }
+//  syncOpeningBalancesCash() async {
+//   final paymentHelper = SaleDatabaseHelper.instance;
+//   final ledgerHelper = DatabaseHelper.instance;
+//   List<Map<String, dynamic>> payments = await paymentHelper.queryAllRows();
 
-Future<void> syncOpeningBalances(int lastInsertedId) async {
-  final paymentHelper = SaleDatabaseHelper.instance;
-  final ledgerHelper = DatabaseHelper.instance;
+//   for (var payment in payments) {
+//     String ledgerName = payment['ledgerName'];
+//     double saleTotal = payment['total_amt'] ?? 0.0;
 
-  Map<String, dynamic>? payment = await paymentHelper.getRowById(lastInsertedId);
+//     Map<String, dynamic>? ledger =
+//         await ledgerHelper.getLedgerByName(ledgerName);
 
-  if (payment != null) {
-    String ledgerName = payment['customer'];
-    double saleTotal = payment['total_amt'] ?? 0.0;
+//     if (ledger != null) {
+//       await ledgerHelper.updateLedgerBalance(ledgerName, saleTotal);
+//     }
+//   }
 
-    Map<String, dynamic>? ledger = await ledgerHelper.getLedgerByName(ledgerName);
+//   print("Opening balances updated successfully!");
+// }
+// Future<void> _saveLastInsertedIdToPayments(int lastInsertedId, String customer) async {
+//   final ledgerHelper = DatabaseHelper.instance;
 
-    if (ledger != null) {
-      double receivedBalance = ledger[DatabaseHelper.columnReceivedBalance] ?? 0.0;
-      double payAmount = ledger[DatabaseHelper.columnPayAmount] ?? 0.0;
-      double openingBalance=payAmount-receivedBalance;
-      double updatedSaleTotal = (openingBalance - saleTotal).abs();
+//   Map<String, dynamic>? ledger = await ledgerHelper.getLedgerByName(customer);
 
-      await ledgerHelper.updateLedgerBalance(ledgerName, updatedSaleTotal);
+//   if (ledger != null) {
+//     await ledgerHelper.updateLedgerBalance(customer, lastInsertedId.toDouble());
+//   } else {
+//     print("Ledger not found for customer: $customer");
+//   }
+// }
 
-      print("Updated ledger balance for $ledgerName: $updatedSaleTotal");
-    } else {
-      print("Ledger not found for customer: $ledgerName");
-    }
-  } else {
-    print("No payment found for ID: $lastInsertedId");
-  }
+// Future<void> syncOpeningBalances(int lastInsertedId) async {
+//   final paymentHelper = SaleDatabaseHelper.instance;
+//   final ledgerHelper = DatabaseHelper.instance;
 
-  print("Opening balance synced for the last record.");
-}
+//   Map<String, dynamic>? payment = await paymentHelper.getRowById(lastInsertedId);
+
+//   if (payment != null) {
+//     String ledgerName = payment['customer'];
+//     double saleTotal = payment['total_amt'] ?? 0.0;
+
+//     Map<String, dynamic>? ledger = await ledgerHelper.getLedgerByName(ledgerName);
+
+//     if (ledger != null) {
+//       double receivedBalance = ledger[DatabaseHelper.columnReceivedBalance] ?? 0.0;
+//       double payAmount = ledger[DatabaseHelper.columnPayAmount] ?? 0.0;
+//       double openingBalance=payAmount-receivedBalance;
+//       double updatedSaleTotal = (openingBalance - saleTotal).abs();
+
+//       await ledgerHelper.updateLedgerBalance(ledgerName, updatedSaleTotal);
+
+//       print("Updated ledger balance for $ledgerName: $updatedSaleTotal");
+//     } else {
+//       print("Ledger not found for customer: $ledgerName");
+//     }
+//   } else {
+//     print("No payment found for ID: $lastInsertedId");
+//   }
+
+//   print("Opening balance synced for the last record.");
+// }
 
 
   String? _selectedKey;
@@ -487,7 +587,7 @@ Future<void> _fetchItems({String? customer}) async {
           ),
           GestureDetector(
             onTap: (){
-             // _saveDataCash();
+             _saveDataCash();
               _saveData();
               
               },
@@ -544,7 +644,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
            inputTextStyle: getFontsinput(14, Colors.black),
         onSubmitted: (value) {
           int selectedId = ledgerIds[ledgerNamesAsString.indexOf(value)];
-        _fetchInvoiceData(selectedId);  
+       // _fetchInvoiceData(selectedId);  
         },
         decoration: InputDecoration(
           border: InputBorder.none,
@@ -1061,7 +1161,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
              GestureDetector(
         onTap: () {
           Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => Addpaymant2()));
+                        context, MaterialPageRoute(builder: (_) => Addpaymant2(salesdebit: widget.salesDebit,)));
         },
         child: Padding(
           padding: EdgeInsets.all(screenHeight * 0.03),

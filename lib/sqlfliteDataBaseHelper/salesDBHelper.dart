@@ -137,7 +137,6 @@ Future<Map<String, dynamic>?> getRowById(int id) async {
 Future<List<Map<String, dynamic>>> queryFilteredRows({
   DateTime? fromDate, 
   DateTime? toDate, 
-  String? ledgerName,
   String? customer,
   String? itemName,
 }) async {
@@ -146,11 +145,7 @@ Future<List<Map<String, dynamic>>> queryFilteredRows({
   List<String> whereClauses = [];
   List<dynamic> whereArgs = [];
 
-  // Build the WHERE clause based on the provided filters
-  if (ledgerName != null && ledgerName.isNotEmpty) {
-    whereClauses.add('$columnCustomer LIKE ?');
-    whereArgs.add('%$ledgerName%');
-  }
+ 
 
   if (customer != null && customer.isNotEmpty) {
     whereClauses.add('$columnCustomer = ?');

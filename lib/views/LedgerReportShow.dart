@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -30,12 +31,64 @@ double OpeningBalance = 0.0;
     super.initState();
     // _fetchLedgerData();
     // _fetchLedgerData2();
-    _fetchStockData2();
+   _fetchFilteredData();
+    //_fetchStockData2();
   }
+
+Future<void> _fetchFilteredData() async {
+  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
+
+  // Fetch data filtered by ledger name, date range, and other filters
+  List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredLedgerRows(
+    fromDate: widget.fromDate,
+    toDate: widget.toDate,
+    ledgerName: widget.ledgerName ?? '',
+  );
+
+  // Using Future.wait to resolve the futures and map the results
+  List<Map<String, dynamic>> ledgerDataList = await Future.wait(data.map((ledger) async {
+    String? dateString = ledger['date'];
+    DateTime? ledgerDate;
+
+    if (dateString != null && dateString.isNotEmpty) {
+      try {
+        ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
+      } catch (e) {
+        print("Error parsing date: $e");
+        ledgerDate = DateTime.now();
+      }
+    } else {
+      ledgerDate = DateTime.now();
+    }
+
+    // Fetch the debit amount for the current ledger from the Account_Transaction table
+    double debitAmount = await LedgerTransactionsDatabaseHelper.instance.getDebitAmountForLedger(ledger['LedName'] ?? '');
+
+    double openingBalance = double.tryParse(ledger['OpeningBalance']?.toString() ?? '0') ?? 0.0;
+ double totalOpeningBalance2 = openingBalance + debitAmount;
+ totalOpeningBalance=totalOpeningBalance2;
+ OpeningBalance=openingBalance;
+    // Combine debit and opening balance to get the total opening balance for the ledger
+    return {
+      ...ledger,
+      'date': ledgerDate,
+      'OpeningBalance': openingBalance , // Total Opening Balance = Opening + Debit
+    };
+  }).toList());
+
+  setState(() {
+    ledgerData = ledgerDataList;
+   
+  });
+}
+
+
+
 List ledgerdata=[];
 Future<void> _fetchStockData2() async {
   try {
-    List<Map<String, dynamic>> data = await LedgerDatabaseHelper.instance.getLedgerData();
+    List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getLedgerData();
     print('Fetched stock data: $data');
         data.sort((a, b) {
       var ledcodeA = a['Ledcode']?.toString() ?? '0'; 
@@ -55,89 +108,6 @@ Future<void> _fetchStockData2() async {
   }
 }
 
-
-Future<void> _fetchLedgerData() async {
-  List<Map<String, dynamic>> data = await DatabaseHelper.instance.queryAllRows();
-  
-  // Filter by ledger name if provided
-  // if (widget.ledgerName != null && widget.ledgerName!.isNotEmpty) {
-  //   data = data.where((ledger) => ledger['ledger_name'].toLowerCase().contains(widget.ledgerName!.toLowerCase())).toList();
-  // }
-
-  // // Filter by date range if both fromDate and toDate are provided
-  // if (widget.fromDate != null && widget.toDate != null) {
-  //   data = data.where((ledger) {
-  //     // Check if ledger['date'] is not null before parsing
-  //     String? dateStr = ledger['date'];
-  //     if (dateStr != null) {
-  //       DateTime ledgerDate = DateTime.parse(dateStr);
-  //       return ledgerDate.isAfter(widget.fromDate!) && ledgerDate.isBefore(widget.toDate!);
-  //     }
-  //     return false; // If date is null, exclude from results
-  //   }).toList();
-  // }
-
-  setState(() {
-    ledgerData = data.map((ledger) {
-        String? dateString = ledger['date'];
-        DateTime? ledgerDate;
-
-        if (dateString != null && dateString.isNotEmpty) {
-          try {
-            ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
-          } catch (e) {
-            print("Error parsing date: $e");
-            print("Invalid date string: $dateString");
-
-            ledgerDate = DateTime.now();
-          }
-        } else {
-          print("Date string is empty or null for ledger: $ledger");
-          ledgerDate = DateTime.now();
-        }
-
-        return {...ledger, 'date': ledgerDate};
-      }).toList();
-    ledgerData = data;
-
-    // Calculate total opening balance safely
-    totalOpeningBalance = ledgerData.fold(0.0, (sum, item) {
-      double openingBalance = double.tryParse(item['opening_balance']?.toString() ?? '0') ?? 0.0;
-      return sum + openingBalance;
-    });
-
-    // Calculate Opening Balance safely
-    OpeningBalance = ledgerData.fold(0.0, (sum, item) {
-      double payAmount = double.tryParse(item['pay_amount']?.toString() ?? '0') ?? 0.0;
-      return sum + payAmount;
-    });
-  });
-}
-
-
-  Future<void> _fetchLedgerData2() async {
-    String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
-
-  
-  List<Map<String, dynamic>> data = await DatabaseHelper.instance.queryFilteredRows2(
-    fromDateStr,  
-    toDateStr,    
-    widget.ledgerName ?? "",  
-  );
-
-    setState(() {
-      ledgerData = data;
-      totalOpeningBalance = ledgerData.fold(0.0, (sum, item) {
-        double openingBalance = double.tryParse(item['opening_balance']?.toString() ?? '0') ?? 0.0;
-        return sum + openingBalance;
-      });
-      OpeningBalance = ledgerData.fold(0.0, (sum, item) {
-        double openingBalance = double.tryParse(item['pay_amount']?.toString() ?? '0') ?? 0.0;
-        return sum + openingBalance;
-      });
-    });
-  }
 
 Future<void> _exportToExcel() async {
   var excel = Excel.createExcel();
@@ -286,8 +256,8 @@ Future<void> _exportToExcel() async {
           widget.showOpeningBalance! 
             ? _buildDataCell(data['OpeningBalance']?.toString() ?? '0') 
             : _buildDataCell(data['OpeningBalance']?.toString() ?? '0'), 
-          _buildDataCell(data['received_balance']?.toString() ?? '0') ,
-          _buildDataCell(data['pay_amount']?.toString() ?? '0'),
+          _buildDataCell(data['Debit']?.toString() ?? '0') ,
+          _buildDataCell(data['CAmount']?.toString() ?? '0'),
           _buildDataCell(data['under'] ?? 'N/A'),
         ],
       );
@@ -303,32 +273,33 @@ Future<void> _exportToExcel() async {
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell2('Closing Balance'),
-        _buildDataCell2(totalOpeningBalance.toStringAsFixed(2)), // Display total opening balance
+        _buildDataCell2(OpeningBalance.toStringAsFixed(2)), 
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),
       ],
     ),
     TableRow(
-      children: [
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        widget.showOpeningBalance!?
-        _buildDataCell2('Opening Balance'): _buildDataCell(''),
-        widget.showOpeningBalance!
-          ? _buildDataCell2(OpeningBalance.toStringAsFixed(2)) 
-          : _buildDataCell(''), 
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-      ],
-    ),
+  children: [
+    _buildDataCell(''),
+    _buildDataCell(''),
+    _buildDataCell(''),
+    _buildDataCell(''),
+    _buildDataCell(''),
+    _buildDataCell(''),
+    _buildDataCell(''),
+    _buildDataCell(''),
+    widget.showOpeningBalance == true
+        ? _buildDataCell2('Opening Balance')
+        : _buildDataCell(''), // Display Opening Balance based on flag
+    widget.showOpeningBalance == true
+        ? _buildDataCell(totalOpeningBalance.toStringAsFixed(2)) // Display Opening Balance value
+        : _buildDataCell(''), 
+    _buildDataCell(''),
+    _buildDataCell(''),
+    _buildDataCell(''),
+  ],
+),
   ],
 ),
 

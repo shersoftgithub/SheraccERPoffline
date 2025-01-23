@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -26,43 +28,45 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
   void initState() {
     super.initState();
    // _fetchLedgerData();
-    _fetchLedgerData2();
+   _fetchFilteredData();
+   // _fetchLedgerData2();
   }
+ Future<void> _fetchFilteredData() async {
+  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
 
-  Future<void> _fetchLedgerData() async {
-    List<Map<String, dynamic>> data = await ReceiptDatabaseHelper.instance.queryAllRows();
+  List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredRows(
+    fromDate: widget.fromDate,  
+    toDate: widget.toDate,      
+    ledgerName: widget.ledgerName ?? '',  
+  );
 
-    setState(() {
-      recieptdata = data.map((ledger) {
-        String? dateString = ledger['date'];
-        DateTime? ledgerDate;
+  setState(() {
+    Data = data.map((ledger) {
+      String? dateString = ledger['date'];
+      DateTime? ledgerDate;
 
-        if (dateString != null && dateString.isNotEmpty) {
-          try {
-            ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
-          } catch (e) {
-            print("Error parsing date: $e");
-            print("Invalid date string: $dateString");
-
-            ledgerDate = DateTime.now();
-          }
-        } else {
-          print("Date string is empty or null for ledger: $ledger");
+      if (dateString != null && dateString.isNotEmpty) {
+        try {
+          ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
+        } catch (e) {
+          print("Error parsing date: $e");
           ledgerDate = DateTime.now();
         }
+      } else {
+        ledgerDate = DateTime.now();
+      }
 
-        return {...ledger, 'date': ledgerDate};
-      }).toList();
-      totalAmount = recieptdata.fold(0.0, (sum, item) {
-        double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-        return sum - amount;
-      });
-    });
-  }
+      return {...ledger, 'date': ledgerDate};
+    }).toList();
+  });
+}
+
+
 List Data=[];
 Future<void> _fetchLedgerData2() async {
   try {
-    List<Map<String, dynamic>> data = await LedgerDatabaseHelper.instance.getFilteredAccTrans("RECEIPT");
+    List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getFilteredAccTrans("RECEIPT");
     print('Fetched stock data: $data'); 
     setState(() {
       Data = data;
@@ -173,14 +177,14 @@ Future<void> _fetchLedgerData2() async {
                 // Table header row
                 TableRow(
                   children: [
-                     _buildHeaderCell('atLedCode'),
-                      _buildHeaderCell('atEntryno'),
-                      _buildHeaderCell('atDebitAmount'),
-                      _buildHeaderCell('atCreditAmount'),
+                     _buildHeaderCell('No'),
+                      _buildHeaderCell('Date'),
+                      _buildHeaderCell('Debit'),
+                      _buildHeaderCell('Credit'),
                       // _buildHeaderCell('Debit'),
                       // _buildHeaderCell('Credit'),
-                       _buildHeaderCell('atOpposite'),
-                       _buildHeaderCell('atSalesType'),
+                       _buildHeaderCell('Name'),
+                       _buildHeaderCell('Discount'),
                       _buildHeaderCell('atType'),
                     // _buildHeaderCell('No'),
                     // _buildHeaderCell('Date'),
@@ -194,16 +198,16 @@ Future<void> _fetchLedgerData2() async {
                 ...Data.map((data) {
                   return TableRow(
                     children: [
-                         _buildDataCell(data['atLedCode'].toString()),
-                  _buildDataCell(data['atEntryno'] ?? 'N/A'),
+                  _buildDataCell(data['atLedCode'].toString()),
+                  _buildDataCell(data['atDate'] ?? 'N/A'),
                   _buildDataCell(data['atDebitAmount'] != null 
             ? data['atDebitAmount'].toStringAsFixed(2) 
             : 'N/A'),  // Format to string with 2 decimal places
                   _buildDataCell(data['atCreditAmount'] != null 
             ? data['atCreditAmount'].toStringAsFixed(2) 
             : '0.00'),  // Format to string with 2 decimal places
-                  _buildDataCell(data['atOpposite'].toString()),
-                  _buildDataCell(data['atSalesType'].toString()),
+                  _buildDataCell(data['atLedName'].toString()),
+                  _buildDataCell(data['atDiscount'].toString()),
                   _buildDataCell(data['atType'].toString()),
                       // _buildDataCell(data[ReceiptDatabaseHelper.columnId].toString()),
                       // _buildDataCell(data[ReceiptDatabaseHelper.columnDate].toString()),

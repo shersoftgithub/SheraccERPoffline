@@ -2,6 +2,8 @@ import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -51,7 +53,7 @@ class _PaymentreportState extends State<Paymentreport> {
   }
   List <String>ledgerNames = [];
   Future<void> _fetchLedgerNames() async {
-  List<String> names = await DatabaseHelper.instance.getAllLedgerNames();
+  List<String> names = await LedgerTransactionsDatabaseHelper.instance.getAllNames();
     setState(() {
     ledgerNames = names; 
     });

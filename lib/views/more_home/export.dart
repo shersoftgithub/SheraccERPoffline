@@ -10,7 +10,6 @@ Future<String> createCsvFile(List<Map<String, dynamic>> data) async {
     'ID', 'Ledger Name', 'Under', 'Address', 'Contact', 'Mail', 'Tax No', 'Price Level', 'Balance', 'Opening Balance', 'Received Balance', 'Pay Amount', 'Date'
   ]);
 
-  // Adding data rows
   for (var row in data) {
     rows.add([
       row['id'], row['ledger_name'], row['under'], row['address'], row['contact'],

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/checkdatabse.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/syncDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
@@ -76,7 +78,7 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
                         context, MaterialPageRoute(builder: (_) => CheckDatabaseScreen()));
         break;
       case "Sync Data":
-      LedgerDatabaseHelper.instance.updateOpeningBalances();
+      LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances();
       //  Navigator.push(
       //                   context, MaterialPageRoute(builder: (_) => SyncButtonPage()));
         print("Syncing data...");
@@ -124,10 +126,10 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
     showProgressDialog(context);
 
     // Get ledger data from the database
-    List<Map<String, dynamic>> ledgerData = await getLedgerData();
+    //List<Map<String, dynamic>> ledgerData = await getLedgerData();
 
     // Create CSV file
-    String filePath = await createCsvFile(ledgerData);
+    //String filePath = await createCsvFile(ledgerData);
 
     // Here you can transfer the file to USB if needed (implement USB transfer logic).
 
@@ -138,14 +140,14 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
     });
 
     // Optionally, show a snackbar or another dialog to notify the user.
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Complete! File saved at $filePath')));
+   // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Complete! File saved at $filePath')));
   }
 
   // Fetch all ledger data
-Future<List<Map<String, dynamic>>> getLedgerData() async {
-  Database db = await DatabaseHelper.instance.database;
-  return await db.query(DatabaseHelper.table); // Assuming you want all rows from the ledger_table
-}
+// Future<List<Map<String, dynamic>>> getLedgerData() async {
+//   Database db = await DatabaseHelper.instance.database;
+//   return await db.query(DatabaseHelper.table); // Assuming you want all rows from the ledger_table
+// }
 
 
   Widget _buildTabContent(List<String> names, List<String> images) {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -81,44 +83,44 @@ Future<List<Map<String, dynamic>>> fetchDataFromMSSQLCompany() async {
   }
 
 
-Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
-  try {
-    final query =
-        'SELECT Auto,atDate,atLedCode,atType,atEntryno, atDebitAmount,atCreditAmount,atOpposite,atSalesType  FROM Account_Transactions';
+// Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
+//   try {
+//     final query =
+//         'SELECT Auto,atDate,atLedCode,atType,atEntryno, atDebitAmount,atCreditAmount,atOpposite,atNarration,atSalesType FROM Account_Transactions';
 
-    final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+//     final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
-    if (rawData is String) {
-      final decodedData = jsonDecode(rawData);
+//     if (rawData is String) {
+//       final decodedData = jsonDecode(rawData);
 
-      if (decodedData is List) {
-        final completeData =
-            decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+//       if (decodedData is List) {
+//         final completeData =
+//             decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
 
-        if (completeData.isNotEmpty) {
-          final firstRow = completeData.first;
-          final lastRow = completeData.last;
+//         if (completeData.isNotEmpty) {
+//           final firstRow = completeData.first;
+//           final lastRow = completeData.last;
 
-          print('First Row: $firstRow');
-          print('Last Row: $lastRow');
+//           print('First Row: $firstRow');
+//           print('Last Row: $lastRow');
 
-          print('Total Number of Rows: ${completeData.length}');
-        } else {
-          print('No data found in Account_Transactions table.');
-        }
+//           print('Total Number of Rows: ${completeData.length}');
+//         } else {
+//           print('No data found in Account_Transactions table.');
+//         }
 
-        return completeData; // Return the full list of data
-      } else {
-        throw Exception('Unexpected JSON format for Account_Transactions data: $decodedData');
-      }
-    } else {
-      throw Exception('Unexpected data format for Account_Transactions: $rawData');
-    }
-  } catch (e) {
-    print('Error fetching data from Account_Transactions: $e');
-    rethrow;
-  }
-}
+//         return completeData; // Return the full list of data
+//       } else {
+//         throw Exception('Unexpected JSON format for Account_Transactions data: $decodedData');
+//       }
+//     } else {
+//       throw Exception('Unexpected data format for Account_Transactions: $rawData');
+//     }
+//   } catch (e) {
+//     print('Error fetching data from Account_Transactions: $e');
+//     rethrow;
+//   }
+// }
 
 
 
@@ -222,7 +224,7 @@ Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
           'StockQty': (row['StockQty'] is num) ? row['StockQty'].toDouble() : 0.0,
           'TaxGroup_Name': row['TaxGroup_Name']?.toString(),
           //'PluNo': row['PluNo']?.toString(),
-         //'MachineItem': row['MachineItem']?.toString(),
+         // 'MachineItem': row['MachineItem']?.toString(),
         //'PackingItem': row['PackingItem']?.toString(),
        //'SpeedBill': row['SpeedBill']?.toString(),
       // 'Expiry': row['Expiry']?.toString(),
@@ -256,7 +258,7 @@ Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
         );
         return;
       }
-      final DbHelper = LedgerDatabaseHelper.instance;
+      final DbHelper = LedgerTransactionsDatabaseHelper.instance;
 for (var row in CompanyLedgerData) {
   Map<String, dynamic> rowData = {
     'Ledcode': row['Ledcode']?.toString() ?? '', // Default empty string for null values
@@ -295,28 +297,29 @@ for (var row in CompanyLedgerData) {
   await DbHelper.insertLedgerData(rowData);
 }
 
-      final AccTransLedgerData = await fetchDataFromMSSQLAccTransations();
- if (productData.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
-        );
-        return;
-      }
-for (var row in AccTransLedgerData) {
-  Map<String, dynamic> rowData = {
-    'atLedCode': row['atLedCode']?.toString() ?? '', 
-    'atEntryno': row['atEntryno']?.toString() ?? '', 
-    'atDebitAmount': row['atDebitAmount'] != null ? row['atDebitAmount'] : 0.0, 
-    'atCreditAmount': row['atCreditAmount'] != null ? row['atCreditAmount'] : 0.0, 
-    'atOpposite': row['atOpposite']?.toString() ?? '', 
-    'atSalesType': row['atSalesType']?.toString() ?? 'Default SalesType',
-    'atDate': row['atDate']?.toString() ?? '',
-    'atType': row['atType']?.toString() ?? '',
-  };
+//       final AccTransLedgerData = await fetchDataFromMSSQLAccTransations();
+//  if (productData.isEmpty) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+//         );
+//         return;
+//       }
+//       final DHelper = AccountTransactionsDatabaseHelper.instance;
+// for (var row in AccTransLedgerData) {
+//   Map<String, dynamic> rowData = {
+//     'atLedCode': row['atLedCode']?.toString() ?? '', 
+//     'atEntryno': row['atEntryno']?.toString() ?? '', 
+//     'atDebitAmount': row['atDebitAmount'] != null ? row['atDebitAmount'] : 0.0, 
+//     'atCreditAmount': row['atCreditAmount'] != null ? row['atCreditAmount'] : 0.0, 
+//     'atOpposite': row['atOpposite']?.toString() ?? '', 
+//     'atSalesType': row['atSalesType']?.toString() ?? 'Default SalesType',
+//     'atDate': row['atDate']?.toString() ?? '',
+//     'atType': row['atType']?.toString() ?? '',
+//   };
 
-  // Inserting the rowData into the NewTable
-  await DbHelper.insertAccTrans(rowData);
-}
+//   // Inserting the rowData into the NewTable
+//   await DHelper.insertTransaction(rowData);
+// }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Backup completed successfully!')),
@@ -339,7 +342,7 @@ for (var row in AccTransLedgerData) {
 //     // Iterate over each ledger and update opening balances
 //     for (var ledger in ledgers) {
 //       final atLedCode = ledger['Ledcode'] as String;
-//       await dbHelper.updateAllOpeningBalances();
+//       await dbHelper.updateOpeningBalances();
 //     }
 
 //     ScaffoldMessenger.of(context).showSnackBar(
@@ -352,7 +355,16 @@ for (var row in AccTransLedgerData) {
 //   }
 // }
 
+Future<void> performBackup() async {
+    try {
+      await backupMSSQLToSQLite(); // Call the backup function
+      print("Backup completed successfully.");
+    } catch (e) {
+      print("Error during backup: $e");
+    }
+  }
 
+ 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -409,7 +421,9 @@ for (var row in AccTransLedgerData) {
         child: GestureDetector(
           onTap: () {
             backupToLocalDatabase(); 
-          // sync();
+          //sync();
+         performBackup();
+          //updateOpeningBalances();
           },
           child: Container(
             height: screenHeight * 0.04,

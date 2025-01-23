@@ -1,6 +1,7 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -60,7 +61,7 @@ final GlobalKey _arrowKey = GlobalKey();
    List <String> names=[];
 
 Future<void> _fetchLedger() async {
-    List<String> cname = await LedgerDatabaseHelper.instance.getAllNames();
+    List<String> cname = await LedgerTransactionsDatabaseHelper.instance.getAllNames();
 
   setState(() {
     names=cname;

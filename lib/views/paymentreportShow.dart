@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
@@ -26,20 +28,46 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
   @override
   void initState() {
     super.initState();
-    _fetchStockData2();
+  //_fetchFilteredData();
+   _fetchStockData2();
   }
 
   Future<void> _fetchStockData2() async {
     try {
-      List<Map<String, dynamic>> data = await LedgerDatabaseHelper.instance.getAccTrans();
+      List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getAllTransactions();
       print('Fetched stock data: $data');
       setState(() {
-        Data = data;
+      paymentData   = data;
       });
     } catch (e) {
       print('Error fetching stock data: $e');
     }
   }
+Future<void> _fetchFilteredData() async {
+  try {
+    // Format dates for filtering
+    String? fromDateStr = widget.fromDate != null
+        ? DateFormat('dd-MM-yyyy').format(widget.fromDate!)
+        : null;
+    String? toDateStr = widget.toDate != null
+        ? DateFormat('dd-MM-yyyy').format(widget.toDate!)
+        : null;
+
+    // Query filtered data from the database
+    List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredRowsPay(
+      fromDate: widget.fromDate,
+      toDate: widget.toDate,
+      ledgerName: widget.ledgerName ?? '',
+    );
+
+    // Update paymentData with the filtered data
+    setState(() {
+      paymentData = data;
+    });
+  } catch (e) {
+    print('Error fetching filtered data: $e');
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -111,34 +139,46 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
                 // Table header row
                 TableRow(
                   children: [
-                    _buildHeaderCell('SiNo'),
-                    _buildHeaderCell('atLedCode'),
-                    _buildHeaderCell('atEntryno'),
-                    _buildHeaderCell('atDebitAmount'),
-                    _buildHeaderCell('atCreditAmount'),
-                    _buildHeaderCell('atOpposite'),
-                    _buildHeaderCell('atSalesType'),
-                    _buildHeaderCell('atType'),
+                    _buildHeaderCell('No'),
+                      _buildHeaderCell('Date'),
+                      _buildHeaderCell('Debit'),
+                      _buildHeaderCell('Credit'),
+                      // _buildHeaderCell('Debit'),
+                      // _buildHeaderCell('Credit'),
+                       _buildHeaderCell('Name'),
+                       _buildHeaderCell('Discount'),
+                      _buildHeaderCell('atType'),
                   ],
                 ),
                 // Table data rows
-                ...Data.asMap().entries.map((entry) {
+                ...paymentData.asMap().entries.map((entry) {
                   int index = entry.key + 1; // Generate SiNo
                   Map<String, dynamic> data = entry.value;
                   return TableRow(
                     children: [
-                      _buildDataCell(index.toString()),
                       _buildDataCell(data['atLedCode'].toString()),
-                      _buildDataCell(data['atEntryno'] ?? 'N/A'),
-                      _buildDataCell(data['atDebitAmount'] != null
-                          ? double.parse(data['atDebitAmount'].toString()).toStringAsFixed(2)
-                          : 'N/A'),
-                      _buildDataCell(data['atCreditAmount'] != null
-                          ? double.parse(data['atCreditAmount'].toString()).toStringAsFixed(2)
-                          : '0.00'),
-                      _buildDataCell(data['atOpposite'].toString()),
-                      _buildDataCell(data['atSalesType'].toString()),
-                      _buildDataCell(data['atType'].toString()),
+                  _buildDataCell(data['atDate'] ?? 'N/A'),
+                  _buildDataCell(data['atDebitAmount'] != null 
+            ? data['atDebitAmount'].toStringAsFixed(2) 
+            : 'N/A'),  // Format to string with 2 decimal places
+                  _buildDataCell(data['atCreditAmount'] != null 
+            ? data['atCreditAmount'].toStringAsFixed(2) 
+            : '0.00'),  // Format to string with 2 decimal places
+                  _buildDataCell(data['atLedName'].toString()),
+                  _buildDataCell(data['atDiscount'].toString()),
+                  _buildDataCell(data['atType'].toString()),
+                      // _buildDataCell(index.toString()),
+                      // _buildDataCell(data['atLedCode'].toString()),
+                      // _buildDataCell(data['atEntryno'] ?? 'N/A'),
+                      // _buildDataCell(data['atDebitAmount'] != null
+                      //     ? double.parse(data['atDebitAmount'].toString()).toStringAsFixed(2)
+                      //     : 'N/A'),
+                      // _buildDataCell(data['atCreditAmount'] != null
+                      //     ? double.parse(data['atCreditAmount'].toString()).toStringAsFixed(2)
+                      //     : '0.00'),
+                      // _buildDataCell(data['atOpposite'].toString()),
+                      // _buildDataCell(data['atSalesType'].toString()),
+                      // _buildDataCell(data['atType'].toString()),
                     ],
                   );
                 }).toList(),
