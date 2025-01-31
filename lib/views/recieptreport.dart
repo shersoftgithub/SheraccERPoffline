@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -22,7 +22,7 @@ class _RecieptreportState extends State<Recieptreport> {
  DateTime? _fromDate = DateTime.now();
   DateTime? _toDate = DateTime.now();
 
-  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,

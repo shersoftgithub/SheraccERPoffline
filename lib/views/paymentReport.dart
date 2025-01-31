@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -25,7 +25,7 @@ class _PaymentreportState extends State<Paymentreport> {
   DateTime? _fromDate = DateTime.now();
   DateTime? _toDate = DateTime.now();
 
-  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
@@ -49,7 +49,6 @@ class _PaymentreportState extends State<Paymentreport> {
   void initState() {
     super.initState();
    _fetchLedgerNames();
-   _fetchCash();
   }
   List <String>ledgerNames = [];
   Future<void> _fetchLedgerNames() async {
@@ -58,13 +57,7 @@ class _PaymentreportState extends State<Paymentreport> {
     ledgerNames = names; 
     });
   }
-  List <String>CashAcclist = [];
-  Future<void> _fetchCash() async {
-  List<String> names = await PaymentDatabaseHelper.instance.getAllUniqueCashAccounts();
-    setState(() {
-    CashAcclist = names; 
-    });
-  }
+  
 
 
 void _showLedgerWithFilters() {
@@ -73,7 +66,7 @@ void _showLedgerWithFilters() {
       builder: (context) => ShowPaymentReport(
         fromDate: _fromDate,
         toDate: _toDate,
-        ledgerName: ledgernamesController.text,
+        ledgerName: selectledgernamesController.text,
       ),
     ),
   );
@@ -192,7 +185,7 @@ void _showLedgerWithFilters() {
                     child: EasyAutocomplete(
                       suggestionBackgroundColor: Appcolors().Scfold,
                         controller: ledgernamesController,
-                        suggestions: CashAcclist,
+                       
                            
                         onSubmitted: (value) {
                                   },

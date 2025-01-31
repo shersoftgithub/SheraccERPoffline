@@ -315,3 +315,77 @@
 
 
 
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+class AccountTransactionsDatabaseHelper {
+  static final AccountTransactionsDatabaseHelper instance =
+      AccountTransactionsDatabaseHelper._init();
+
+  static Database? _database;
+
+  AccountTransactionsDatabaseHelper._init();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB('account_transactions.db');
+    return _database!;
+  }
+
+  Future<Database> _initDB(String fileName) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, fileName);
+
+    return await openDatabase(path, version: 1, onCreate: _createDB);
+  }
+
+  Future<void> _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE accountTransactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        Auto TEXT,
+        atDate TEXT,
+        atLedCode TEXT,
+        atType TEXT,
+        atEntryno TEXT,
+        atDebitAmount REAL,
+        atCreditAmount REAL,
+        atNarration TEXT,
+        atOpposite TEXT,
+        atSalesEntryno TEXT,
+        atSalesType TEXT,
+        atLocation TEXT,
+        atChequeNo TEXT,
+        atProject TEXT,
+        atBankEntry TEXT,
+        atInvestor TEXT,
+        atFyID TEXT,
+        atFxDebit TEXT,
+        atFxCredit TEXT
+        
+      )
+    ''');
+  }
+Future<int> insertTransaction(Map<String, dynamic> data) async {
+  final db = await database;
+    try {
+      return await db.insert(
+        'accountTransactions',
+        data,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      throw Exception("Failed to insert data into Product_Registration: $e");
+    }
+}
+
+
+
+
+
+
+  Future<List<Map<String, dynamic>>> getAllTransactions() async {
+    final db = await instance.database;
+    return await db.query('accountTransactions');
+  }
+}

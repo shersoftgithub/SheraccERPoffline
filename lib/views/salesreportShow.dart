@@ -37,8 +37,8 @@ double totalAmount = 0.0;
 
  Future<void> _fetchFilteredData() async {
   // Ensure the filters are passed correctly into the queryFilteredRows method
-  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
+  String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
 
   List<Map<String, dynamic>> data = await SaleDatabaseHelper.instance.queryFilteredRows(
     fromDate: widget.fromDate,  // Pass the DateTime directly
@@ -54,7 +54,7 @@ double totalAmount = 0.0;
 
       if (dateString != null && dateString.isNotEmpty) {
         try {
-          ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
+          ledgerDate = DateFormat('yyyy-MM-dd').parse(dateString);
         } catch (e) {
           print("Error parsing date: $e");
           ledgerDate = DateTime.now();
@@ -81,8 +81,8 @@ List<Map<String, dynamic>> salesData = [];
   double receivedAmount = 0.0;
 Future<void> _fetchFilteredSalesData() async {
   // Ensure the filters are passed correctly into the queryFilteredRows method
-  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
+  String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
 
   List<Map<String, dynamic>> data = await SaleDatabaseHelper.instance.queryFilteredRows(
     fromDate: widget.fromDate,  // Pass the DateTime directly

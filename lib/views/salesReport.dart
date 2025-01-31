@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
@@ -29,7 +29,7 @@ class _SalesReportState extends State<SalesReport> {
  final TextEditingController _salesmanController=TextEditingController();
  final TextEditingController _dateController=TextEditingController();
  
-  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   DateTime? _fromDate = DateTime.now();
   DateTime? _toDate = DateTime.now();
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {

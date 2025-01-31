@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/salescredit_modal.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
@@ -51,7 +51,7 @@ class _SalesOrderState extends State<SalesOrder> {
 
     if (picked != null && picked != DateTime.now()) {
       setState(() {
-        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+        _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
      
       });
     }
@@ -68,7 +68,7 @@ class _SalesOrderState extends State<SalesOrder> {
     _salerateController.text = '';  
     _CustomerController.text = '';
     _phonenoController.text = '';
-    _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+    _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
   }
    @override
   void dispose() {
@@ -112,7 +112,6 @@ Future<void> _fetchLedgerDetails(String ledgerName) async {
         _phonenoController.text = ledgerDetails['Mobile'] ?? '';
       });
     } else {
-      // Optionally clear the fields if no data found
       setState(() {
         _InvoicenoController.clear();
         _phonenoController.clear();
@@ -178,13 +177,63 @@ Future<void> _fetchLastInvoiceId() async {
 //     });
 //   }
 // }
+void _saveData2() async {
+  try {
+final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;  
+//final double dicount = widget.salesCredit?. ?? 0.0;   
+
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_CustomerController.text);
+
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+    final double op = ledgerDetails?['OpeningBalance']?? '';
+    final double creditamt = op - finalAmt;
+    final transactionData = {
+      'atDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'atLedCode': ledCode,
+      'atDebitAmount': finalAmt,
+    'atCreditAmount': creditamt,
+      'atType': 'SALE',
+      'Caccount': _salerateController.text,
+      //'atDiscount':,
+      //'atNaration': _narrationController.text,
+      'atLedName': _CustomerController.text,
+    };
+
+    await LedgerTransactionsDatabaseHelper.instance.insertAccTrans(transactionData);
+
+    if (ledgerDetails != null) {
+      final double currentBalance = ledgerDetails['OpeningBalance'] as double? ?? 0.0;
+      final double updatedBalance = creditamt;
+
+      await LedgerTransactionsDatabaseHelper.instance.updateLedgerBalance(
+        ledCode,
+        updatedBalance,
+      );
+    } else {
+      print('Ledger not found for name: ${_CustomerController.text}');
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+    setState(() {
+      
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
+
 void _saveData() async {
   try {
     final qtyToReduce = widget.salesCredit!.qty.toDouble();
     final itemName = widget.salesCredit!.itemName.toString();
     final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
 
-    // Fetch item code from the stock database
     final itemCode = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
 
     if (itemCode == null) {
@@ -194,7 +243,6 @@ void _saveData() async {
       return;
     }
 
-    // Fetch product details by item code
     final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemCode);
 
     if (stockData == null) {
@@ -204,7 +252,6 @@ void _saveData() async {
       return;
     }
 
-    // Get current quantity and calculate updated quantity
     final currentQty = stockData['Qty'] as double;
     final updatedQty = currentQty - qtyToReduce;
 
@@ -215,10 +262,8 @@ void _saveData() async {
       return;
     }
 
-    // Update stock quantity in the database
     await StockDatabaseHelper.instance.updateProductQuantity(itemCode, updatedQty);
 
-    // Fetch ledger details
     final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(_CustomerController.text);
 
     if (ledgerDetails == null) {
@@ -232,10 +277,8 @@ void _saveData() async {
     final double currentBalance = ledgerDetails['OpeningBalance'] as double? ?? 0.0;
     final double updatedBalance = currentBalance - finalAmt;
 
-    // Update ledger opening balance
     await LedgerTransactionsDatabaseHelper.instance.updateLedgerBalance(ledCode, updatedBalance);
 
-    // Create and insert sales credit entry
     final creditsale = SalesCredit(
       invoiceId: int.parse(_InvoicenoController.text),
       date: _dateController.text,
@@ -269,7 +312,6 @@ void _saveData() async {
       _totalamtController.clear();
     });
   } catch (e) {
-    // Handle any unexpected errors
     print('Error saving data: $e');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('An error occurred while saving data')),
@@ -284,8 +326,6 @@ void _saveDataCash() async {
     final qtyToReduce = widget.salesDebit!.qty.toDouble();
     final itemName = widget.salesDebit!.itemName.toString();
     final double finalAmt = widget.salesDebit?.totalAmt ?? 0.0;
-
-    // Fetch item code from the stock database
     final itemCode = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
 
     if (itemCode == null) {
@@ -294,8 +334,6 @@ void _saveDataCash() async {
       );
       return;
     }
-
-    // Fetch product details by item code
     final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemCode);
 
     if (stockData == null) {
@@ -305,7 +343,6 @@ void _saveDataCash() async {
       return;
     }
 
-    // Get current quantity and calculate updated quantity
     final currentQty = stockData['Qty'] as double;
     final updatedQty = currentQty - qtyToReduce;
 
@@ -316,7 +353,6 @@ void _saveDataCash() async {
       return;
     }
 
-    // Update stock quantity in the database
     await StockDatabaseHelper.instance.updateProductQuantity(itemCode, updatedQty);
 
 final double salesRate = double.tryParse(_CashsalerateController.text) ?? 0.0;
@@ -349,7 +385,6 @@ final double salesRate = double.tryParse(_CashsalerateController.text) ?? 0.0;
       _CashtotalamtController.clear();
     });
   } catch (e) {
-    // Handle any unexpected errors
     print('Error saving data: $e');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('An error occurred while saving data')),
@@ -589,7 +624,7 @@ Future<void> _fetchItems({String? customer}) async {
             onTap: (){
              _saveDataCash();
               _saveData();
-              
+              _saveData2();
               },
             child: Container(
               width: 175,height: 53,
@@ -769,10 +804,13 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                         onSubmitted: (value)async {
    await _fetchLedgerDetails(value);
    await _fetchItems(customer: value);
+   setState(() {
+                              _CustomerController.text = value; 
+                            });
   },
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          
+                          contentPadding: EdgeInsets.only(bottom: 10)
                         ),
                         suggestionBackgroundColor: Appcolors().Scfold,
                       ),
@@ -787,6 +825,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
              SizedBox(height: screenHeight*0.001,),
              GestureDetector(
         onTap: () {
+          
           Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Addpaymant(
                           salesCredit: widget.salesCredit,
@@ -1343,6 +1382,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                         }
                         return null;
                       },
+                      readOnly: true,
                       obscureText: false,
                       decoration: InputDecoration(
                         border: InputBorder.none,

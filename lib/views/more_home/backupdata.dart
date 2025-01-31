@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'dart:convert';
+
+import 'package:sqflite/sqflite.dart';
 
 class Backupdata extends StatefulWidget {
   const Backupdata({super.key});
@@ -63,8 +63,14 @@ Future<List<Map<String, dynamic>>> fetchProductDataFromMSSQL() async {
 
 Future<List<Map<String, dynamic>>> fetchDataFromMSSQLCompany() async {
     try {
-      final query = 'SELECT  Ledcode,LedName,lh_id,add1,add2,add3,add4,city,route,state,Mobile,pan,Email,gstno,CAmount,Active,SalesMan,Location,OrderDate,DeliveryDate,CPerson,CostCenter,Franchisee,SalesRate,SubGroup,SecondName,UserName,Password,CustomerType,OTP,maxDiscount FROM LedgerNames';
-      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+final query = '''
+  SELECT Ledcode, LedName, lh_id, add1, add2, add3, add4, city, route, state, 
+         Mobile, pan, Email, gstno, CAmount, Active, SalesMan, Location, 
+         OrderDate, DeliveryDate, CPerson, CostCenter, Franchisee, SalesRate, 
+         SubGroup, SecondName, UserName, Password, CustomerType, OTP, maxDiscount 
+  FROM LedgerNames 
+  ORDER BY Ledcode ASC
+''';      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
     
       if (rawData is String) {
@@ -82,36 +88,82 @@ Future<List<Map<String, dynamic>>> fetchDataFromMSSQLCompany() async {
     }
   }
 
+Future<List<Map<String, dynamic>>> fetch_P_vPerticularsDataFromMSSQL() async {
+   try {
+      final query = 'SELECT  auto,EntryNo,Name,Amount,Discount,Total,Narration,ddate FROM PV_Particulars';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for PV_Particulars data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for PV_Particulars: $rawData');
+    } catch (e) {
+      print('Error fetching data from PV_Particulars: $e');
+      rethrow;
+    }
+}
+
+Future<List<Map<String, dynamic>>> fetch_R_vPerticularsDataFromMSSQL() async {
+   try {
+      final query = 'SELECT  auto,EntryNo,Name,Amount,Discount,Total,Narration,ddate FROM RV_Particulars';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for RV_Particulars data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for RV_Particulars: $rawData');
+    } catch (e) {
+      print('Error fetching data from RV_Particulars: $e');
+      rethrow;
+    }
+}
 // Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
 //   try {
-//     final query =
-//         'SELECT Auto,atDate,atLedCode,atType,atEntryno, atDebitAmount,atCreditAmount,atOpposite,atNarration,atSalesType FROM Account_Transactions';
+//     // Define the query to fetch clean data from the database
+//     final query = '''
+//       SELECT DISTINCT TOP 499 Auto, atDate, atLedCode, atType, atEntryno, atDebitAmount, 
+//              atCreditAmount, atNarration, atOpposite, atSalesEntryno, atSalesType, 
+//              atLocation, atChequeNo, atProject, atBankEntry, atInvestor, atFyID, 
+//              atFxDebit, atFxCredit 
+//       FROM Account_Transactions
+//       WHERE Auto IS NOT NULL -- Exclude rows with NULL Auto
+//         AND atDebitAmount >= 0 -- Exclude invalid debit amounts
+//         AND atCreditAmount >= 0 -- Exclude invalid credit amounts
+//         -- Add any additional filters as needed
+//       ORDER BY Auto ASC -- Ensure a consistent row order
+//     ''';
 
+//     // Fetch raw data from the database
 //     final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
+//     // Check and decode the data
 //     if (rawData is String) {
 //       final decodedData = jsonDecode(rawData);
 
 //       if (decodedData is List) {
-//         final completeData =
-//             decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+//         // Convert rows to a list of maps
+//         final completeData = decodedData
+//             .map((row) => Map<String, dynamic>.from(row))
+//             .toList();
 
-//         if (completeData.isNotEmpty) {
-//           final firstRow = completeData.first;
-//           final lastRow = completeData.last;
+//         // Remove any duplicates programmatically (if required)
+//         final uniqueData = completeData.toSet().toList();
 
-//           print('First Row: $firstRow');
-//           print('Last Row: $lastRow');
-
-//           print('Total Number of Rows: ${completeData.length}');
-//         } else {
-//           print('No data found in Account_Transactions table.');
-//         }
-
-//         return completeData; // Return the full list of data
+//         print('Fetched ${uniqueData.length} unique rows from Account_Transactions.');
+//         return uniqueData;
 //       } else {
-//         throw Exception('Unexpected JSON format for Account_Transactions data: $decodedData');
+//         throw Exception(
+//             'Unexpected JSON format for Account_Transactions data: $decodedData');
 //       }
 //     } else {
 //       throw Exception('Unexpected data format for Account_Transactions: $rawData');
@@ -121,6 +173,23 @@ Future<List<Map<String, dynamic>>> fetchDataFromMSSQLCompany() async {
 //     rethrow;
 //   }
 // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -192,11 +261,11 @@ Future<List<Map<String, dynamic>>> fetchDataFromMSSQLCompany() async {
           'hsncode': row['hsncode']?.toString(),
           'itemname': row['itemname']?.toString(),
           'Catagory_id': row['Catagory_id']?.toString(),
-         // 'Mfr_id': row['Mfr_id']?.toString(),
+          // 'Mfr_id': row['Mfr_id']?.toString(),
           //'subcatagory_id': row['subcatagory_id']?.toString(),
           'unit_id': row['unit_id']?.toString(),
           //'rack_id': row['rack_id']?.toString(),
-         // 'packing': row['packing']?.toString(),
+          // 'packing': row['packing']?.toString(),
           //'reorder': (row['reorder'] is int) ? row['reorder'] : 0,
           //'maxorder': (row['maxorder'] is int) ? row['maxorder'] : 0,
           'taxgroup_id': row['taxgroup_id']?.toString(),
@@ -304,21 +373,32 @@ for (var row in CompanyLedgerData) {
 //         );
 //         return;
 //       }
-//       final DHelper = AccountTransactionsDatabaseHelper.instance;
+//       final DHelper = LedgerTransactionsDatabaseHelper.instance;
 // for (var row in AccTransLedgerData) {
 //   Map<String, dynamic> rowData = {
+//     'Auto': row['Auto']?.toString() ?? '',
+//     'atDate': row['atDate']?.toString() ?? '',
 //     'atLedCode': row['atLedCode']?.toString() ?? '', 
+//       'atType': row['atType']?.toString() ?? '',
 //     'atEntryno': row['atEntryno']?.toString() ?? '', 
 //     'atDebitAmount': row['atDebitAmount'] != null ? row['atDebitAmount'] : 0.0, 
 //     'atCreditAmount': row['atCreditAmount'] != null ? row['atCreditAmount'] : 0.0, 
-//     'atOpposite': row['atOpposite']?.toString() ?? '', 
+//      'atNarration': row['atNarration']?.toString() ?? '',
+//     'atOpposite': row['atOpposite']?.toString() ?? '',     
+//     'atSalesEntryno': row['atSalesEntryno']?.toString() ?? '',
 //     'atSalesType': row['atSalesType']?.toString() ?? 'Default SalesType',
-//     'atDate': row['atDate']?.toString() ?? '',
-//     'atType': row['atType']?.toString() ?? '',
+//     'atLocation': row['atLocation']?.toString() ?? '',
+//     'atChequeNo': row['atChequeNo']?.toString() ?? '',
+//     'atProject': row['atProject']?.toString() ?? '',
+//     'atBankEntry': row['atBankEntry']?.toString() ?? '',
+//     'atInvestor': row['atInvestor']?.toString() ?? '',
+//     'atFyID': row['atFyID']?.toString() ?? '',
+//     'atFxDebit': row['atFxDebit']?.toString() ?? '',
+//     'atFxCredit': row['atFxCredit']?.toString() ?? '',
 //   };
 
 //   // Inserting the rowData into the NewTable
-//   await DHelper.insertTransaction(rowData);
+//   await DHelper.insertData(rowData);
 // }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -357,7 +437,7 @@ for (var row in CompanyLedgerData) {
 
 Future<void> performBackup() async {
     try {
-      await backupMSSQLToSQLite(); // Call the backup function
+      await backupMSSQLToSQLite(); 
       print("Backup completed successfully.");
     } catch (e) {
       print("Error during backup: $e");
@@ -379,9 +459,9 @@ Future<void> performBackup() async {
           padding: const EdgeInsets.only(top: 20),
           child: IconButton(
             onPressed: () {
-              Navigator.pop(context);
+            Navigator.pop(context);
             },
-            icon: Icon(
+              icon: Icon(
               Icons.arrow_back_ios_new_sharp,
               color: Colors.white,
               size: 20,
@@ -407,7 +487,9 @@ Future<void> performBackup() async {
               right: screenHeight * 0.02,
             ),
             child: GestureDetector(
-              onTap: () {},
+              onTap: () {
+
+              },
               child: Icon(
                 Icons.more_vert,
                 color: Colors.white,
@@ -420,9 +502,9 @@ Future<void> performBackup() async {
       body: Center(
         child: GestureDetector(
           onTap: () {
-            backupToLocalDatabase(); 
+          backupToLocalDatabase(); 
           //sync();
-         performBackup();
+          performBackup();
           //updateOpeningBalances();
           },
           child: Container(

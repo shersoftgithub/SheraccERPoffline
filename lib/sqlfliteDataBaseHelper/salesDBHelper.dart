@@ -154,12 +154,12 @@ Future<List<Map<String, dynamic>>> queryFilteredRows({
 
   if (fromDate != null) {
     whereClauses.add('$columnDate >= ?');
-    whereArgs.add(DateFormat('dd-MM-yyyy').format(fromDate));
+    whereArgs.add(DateFormat('yyyy-MM-dd').format(fromDate));
   }
 
   if (toDate != null) {
     whereClauses.add('$columnDate <= ?');
-    whereArgs.add(DateFormat('dd-MM-yyyy').format(toDate));
+    whereArgs.add(DateFormat('yyyy-MM-dd').format(toDate));
   }
 
   if (itemName != null && itemName.isNotEmpty) {

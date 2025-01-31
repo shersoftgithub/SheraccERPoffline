@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
@@ -28,13 +28,15 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
   @override
   void initState() {
     super.initState();
-  //_fetchFilteredData();
-   _fetchStockData2();
+  _fetchFilteredData();
+   //_fetchStockData2();
   }
 
   Future<void> _fetchStockData2() async {
     try {
-      List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getAllTransactions();
+   //   List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getAllTransactions();
+            List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getAllTransactions();
+
       print('Fetched stock data: $data');
       setState(() {
       paymentData   = data;
@@ -44,29 +46,34 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
     }
   }
 Future<void> _fetchFilteredData() async {
-  try {
-    // Format dates for filtering
-    String? fromDateStr = widget.fromDate != null
-        ? DateFormat('dd-MM-yyyy').format(widget.fromDate!)
-        : null;
-    String? toDateStr = widget.toDate != null
-        ? DateFormat('dd-MM-yyyy').format(widget.toDate!)
-        : null;
+   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
 
-    // Query filtered data from the database
-    List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredRowsPay(
-      fromDate: widget.fromDate,
-      toDate: widget.toDate,
-      ledgerName: widget.ledgerName ?? '',
-    );
+  List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredRowsPay(
+    fromDate: widget.fromDate!,  
+    toDate: widget.toDate!,      
+    ledgerName: widget.ledgerName ?? '',  
+  );
 
-    // Update paymentData with the filtered data
-    setState(() {
-      paymentData = data;
-    });
-  } catch (e) {
-    print('Error fetching filtered data: $e');
-  }
+  setState(() {
+    Data = data.map((ledger) {
+      String? dateString = ledger['date'];
+      DateTime? ledgerDate;
+
+      if (dateString != null && dateString.isNotEmpty) {
+        try {
+          ledgerDate = DateFormat('yyyy-MM-dd').parse(dateString);
+        } catch (e) {
+          print("Error parsing date: $e");
+          ledgerDate = DateTime.now();
+        }
+      } else {
+        ledgerDate = DateTime.now();
+      }
+
+      return {...ledger, 'date': ledgerDate};
+    }).toList();
+  });
 }
 
   @override
@@ -127,18 +134,20 @@ Future<void> _fetchFilteredData() async {
               ),
               columnWidths: {
                 0: FixedColumnWidth(50),
-                1: FixedColumnWidth(60),
-                2: FixedColumnWidth(100),
+                1: FixedColumnWidth(100),
+                2: FixedColumnWidth(260),
                 3: FixedColumnWidth(150),
                 4: FixedColumnWidth(100),
                 5: FixedColumnWidth(100),
                 6: FixedColumnWidth(100),
                 7: FixedColumnWidth(100),
+                8: FixedColumnWidth(100),
               },
               children: [
                 // Table header row
                 TableRow(
                   children: [
+                    _buildHeaderCell('id'),
                     _buildHeaderCell('No'),
                       _buildHeaderCell('Date'),
                       _buildHeaderCell('Debit'),
@@ -151,11 +160,12 @@ Future<void> _fetchFilteredData() async {
                   ],
                 ),
                 // Table data rows
-                ...paymentData.asMap().entries.map((entry) {
+                ...Data.asMap().entries.map((entry) {
                   int index = entry.key + 1; // Generate SiNo
                   Map<String, dynamic> data = entry.value;
                   return TableRow(
                     children: [
+                       _buildDataCell(data['Auto'].toString()),
                       _buildDataCell(data['atLedCode'].toString()),
                   _buildDataCell(data['atDate'] ?? 'N/A'),
                   _buildDataCell(data['atDebitAmount'] != null 

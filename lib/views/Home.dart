@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/checkdatabse.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/syncDB.dart';
@@ -47,6 +47,7 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
     "Backup",
     "Export Backup",
     "Clear Data",
+     "Update",
   ];
 
   @override
@@ -95,6 +96,9 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
       case "Clear Data":
         _showClearDataDialog();
         break;
+        case "Update":
+        backupAndSyncData();
+        break;
       default:
         print("Unknown option selected: $item");
     }
@@ -102,8 +106,6 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
 
   Future<void> _clearAllData() async {
     try {
-      await PaymentDatabaseHelper.instance.clearAllPayments();
-      await ReceiptDatabaseHelper.instance.clearAllReceipts();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('All data has been cleared')),
@@ -148,6 +150,11 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
 //   Database db = await DatabaseHelper.instance.database;
 //   return await db.query(DatabaseHelper.table); // Assuming you want all rows from the ledger_table
 // }
+Future<void> backupAndSyncData() async {
+  
+  //await LedgerTransactionsDatabaseHelper.instance.fetchAndInsertIntoSQLite();
+  await LedgerTransactionsDatabaseHelper.instance.syncLedgerNamesToMSSQL();
+}
 
 
   Widget _buildTabContent(List<String> names, List<String> images) {

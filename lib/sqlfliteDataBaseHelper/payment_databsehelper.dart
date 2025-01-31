@@ -2,29 +2,18 @@ import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-class PaymentDatabaseHelper {
-  static const _databaseName = "payment.db";
+class PV_DatabaseHelper {
+  static const _databaseName = "pv_database.db";
   static const _databaseVersion = 1;
 
-  static const table = 'payment_table';
+  
 
-  // Column names
-  static const columnId = 'id';
-  static const columnDate = 'date';
-  static const columnCashAccount = 'cashAccount';
-  static const columnLedgerName = 'ledgerName';
-  static const columnBalance = 'balance';
-  static const columnAmount = 'amount';
-  static const columnDiscount = 'discount';
-  static const columnTotal = 'total';
-  static const columnNarration = 'narration';
+  // Singleton pattern
+  PV_DatabaseHelper._privateConstructor();
+  static final PV_DatabaseHelper instance = PV_DatabaseHelper._privateConstructor();
 
-  // Singleton instance
-  static final PaymentDatabaseHelper instance =
-      PaymentDatabaseHelper._privateConstructor();
+  // Database instance
   static Database? _database;
-
-  PaymentDatabaseHelper._privateConstructor();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -32,145 +21,73 @@ class PaymentDatabaseHelper {
     return _database!;
   }
 
+  // Open the database and create tables
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), _databaseName);
-    return await openDatabase(
-      path,
-      version: _databaseVersion,
-      onCreate: _onCreate,
-    );
+    var databasesPath = await getDatabasesPath();
+    String path = join(databasesPath, _databaseName);
+    
+    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
   }
 
+  // Create tables in the database
   Future _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE $table (
-        $columnId INTEGER PRIMARY KEY AUTOINCREMENT,
-        $columnDate TEXT NOT NULL,
-        $columnCashAccount TEXT NOT NULL,
-        $columnLedgerName TEXT NOT NULL,
-        $columnBalance REAL NOT NULL,
-        $columnAmount REAL NOT NULL,
-        $columnDiscount REAL NOT NULL,
-        $columnTotal REAL NOT NULL,
-        $columnNarration TEXT NOT NULL
-      )
+      CREATE TABLE IF NOT EXISTS PV_Particulars (
+        auto TEXT PRIMARY KEY,
+        EntryNo TEXT,
+        Name TEXT,
+        Amount REAL,
+        Discount REAL,
+        Total REAL,
+        Narration TEXT,
+        ddate TEXT,
+        CashAccount TEXT
+      );
     ''');
+
   }
 
-  // Insert a new row
-  Future<int> insert(Map<String, dynamic> row) async {
-    Database db = await instance.database;
-    return await db.insert(table, row);
+  // Insert data into PV_Particulars table
+  Future<void> insertPVParticulars(List<Map<String, dynamic>> data) async {
+    final db = await database;
+    
+    // Insert data into the table, or replace it if the primary key already exists
+    Batch batch = db.batch();
+    for (var row in data) {
+      batch.insert(
+        "PV_Particulars",
+        row,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit();
   }
 
-  // Query all rows
-  Future<List<Map<String, dynamic>>> queryAllRows() async {
-    Database db = await instance.database;
-    return await db.query(table);
+  // Insert data into RV_Particulars table
+  Future<void> insertRVParticulars(List<Map<String, dynamic>> data) async {
+    final db = await database;
+
+    // Insert data into the table, or replace it if the primary key already exists
+    Batch batch = db.batch();
+    for (var row in data) {
+      batch.insert(
+        "PV_Particulars",
+        row,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit();
+  }
+  
+  // Fetch data from the PV_Particulars table
+  Future<List<Map<String, dynamic>>> fetchPVParticulars() async {
+    final db = await database;
+    return await db.query("PV_Particulars");
   }
 
-  // Update a row
-  Future<int> update(Map<String, dynamic> row) async {
-    Database db = await instance.database;
-    int id = row[columnId];
-    return await db.update(table, row, where: '$columnId = ?', whereArgs: [id]);
-  }
-
-  // Delete a row
-  Future<int> delete(int id) async {
-    Database db = await instance.database;
-    return await db.delete(table, where: '$columnId = ?', whereArgs: [id]);
-  }
-
-Future<void> clearAllPayments() async {
-  Database db = await instance.database;
-  await db.delete(table);
-}
-
-  // Retrieve distinct cash accounts
-  Future<List<String>> getAllUniqueCashAccounts() async {
-    Database db = await instance.database;
-    final List<Map<String, dynamic>> result = await db
-        .rawQuery('SELECT DISTINCT $columnCashAccount FROM $table');
-    return result.map((row) => row[columnCashAccount] as String).toList();
-  }
-
-  Future<List<Map<String, dynamic>>> getTotalBalancesByLedger() async {
-  Database db = await instance.database;
-  final List<Map<String, dynamic>> result = await db.rawQuery('''
-    SELECT $columnLedgerName, SUM($columnBalance) AS total_balance
-    FROM $table
-    GROUP BY $columnLedgerName
-  ''');
-  return result;
-}
-
-Future<List<Map<String, dynamic>>> queryFilteredRows(String? fromDate, String? toDate, String ledgerName) async {
-  Database db = await instance.database;
-
-  String whereClause = '';
-  List<dynamic> whereArgs = [];
-
-  // Filter by ledger name if provided
-  if (ledgerName.isNotEmpty) {
-    whereClause = '$columnLedgerName LIKE ?';
-    whereArgs.add('%$ledgerName%');
-  }
-
-  if (fromDate != null && toDate != null) {
-    if (whereClause.isNotEmpty) whereClause += ' AND ';
-    whereClause += '$columnDate BETWEEN ? AND ?';
-    whereArgs.add(fromDate);  // Use formatted date
-    whereArgs.add(toDate);    // Use formatted date
-  }
-
-  return await db.query(
-    table,
-    where: whereClause.isNotEmpty ? whereClause : null,
-    whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
-  );
-}
-
-Future<bool> doesLedgerExist(String ledgerName) async {
-  Database db = await instance.database;
-  var result = await db.query(
-    table,
-    where: '$columnLedgerName = ?',
-    whereArgs: [ledgerName],
-  );
-  return result.isNotEmpty;
-}
-
-Future<void> updatePaymentBalance(String ledgerName,String total,String amt, double newBalance) async {
-  final db = await database;
-  await db.update(
-    'payment_table', 
-    {'balance': newBalance,
-    'total':total,
-    'amount':amt,
-    }, 
-    where: 'ledgerName = ?', 
-    whereArgs: [ledgerName],
-  );
-}
-
-Future<Map<String, dynamic>?> getLedgerByName(String ledgerName) async {
-  final db = await instance.database;
-  final result = await db.query(
-    'payment_table', 
-    where: 'ledgerName = ?', 
-    whereArgs: [ledgerName],
-  );
-  return result.isNotEmpty ? result.first : null;
-}
-Future<List<String>> getAllCashAcc() async {
-    Database db = await instance.database;
-    final List<Map<String, dynamic>> result = await db.query(
-      table,
-      columns: [columnCashAccount,],
-    );
-    List<String> ledgerNames = result.map((row) => row[columnCashAccount] as String).toList();
-
-    return ledgerNames;
+  // Fetch data from the RV_Particulars table
+  Future<List<Map<String, dynamic>>> fetchRVParticulars() async {
+    final db = await database;
+    return await db.query("PV_Particulars");
   }
 }

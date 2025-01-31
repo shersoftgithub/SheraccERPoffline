@@ -6,7 +6,7 @@ import 'package:sheraaccerpoff/models/paymant_model.dart';
 import 'package:sheraaccerpoff/models/recipt_modal.dart';
 import 'package:sheraaccerpoff/provider/sherprovider.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
@@ -38,8 +38,8 @@ class _PaymentFormState extends State<Reciept> {
     super.initState();
    // _fetchLedgerBalances();
    _fetchLedger();
-   _fetchCashAcc();
-       _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+   
+       _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _DiscountController.addListener(_calculateTotal);
     _amountController.addListener(_calculateTotal);
     _balanceController.addListener(_calculateTotal);
@@ -117,15 +117,15 @@ Future<void> _fetchLedgerDetails(String ledgerName) async {
 List<String> _itemSuggestions = [];
 void _onItemnamecreateChanged(String value) async {
     if (!_itemSuggestions.contains(value)) {
-      _showCreateItemDialog( _cashAccController.text.trim(), );
+     // _showCreateItemDialog( _cashAccController.text.trim(), );
     }
   }
-  void _fetchCashAcc() async {
-    List<String> items = await PaymentDatabaseHelper.instance.getAllUniqueCashAccounts();
-    setState(() {
-      _itemSuggestions = items;
-    });
-  }
+  // void _fetchCashAcc() async {
+  //   List<String> items = await PaymentDatabaseHelper.instance.getAllUniqueCashAccounts();
+  //   setState(() {
+  //     _itemSuggestions = items;
+  //   });
+  // }
 
  Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -137,7 +137,7 @@ void _onItemnamecreateChanged(String value) async {
 
     if (picked != null && picked != DateTime.now()) {
       setState(() {
-        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+        _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
   }
@@ -159,7 +159,7 @@ void _saveData() async {
       'atLedCode': ledCode,
       'atDebitAmount': amount,
       'atCreditAmount': total,
-      'atType': 'RECIEPT',
+      'atType': 'RECEIPT',
       'Caccount': _cashAccController.text,
       'atDiscount': _DiscountController.text,
       'atNaration': _narrationController.text,
@@ -508,41 +508,41 @@ double _TotalController=_total;
     );
   }
 
-   void _showCreateItemDialog(String CassAcc,) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(backgroundColor: Appcolors().Scfold,
-          title: Text('Create a new item'),
-          content: Text('Item "$CassAcc" does not exist. Would you like to create it?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel',style: TextStyle(color: Appcolors().maincolor),),
-            ),
-            TextButton(
-              onPressed: () async {
-                final creditsale = PaymentModel(date: "",
-                 cashAccount: CassAcc,
-                  ledgerName: "", 
-                  balance: 0.0,
-                   amount: 0.0,
-                    discount: 0.0, 
-                    total: 0.0,
-                     narration: "",
-                     atType: "");
-                await PaymentDatabaseHelper.instance.insert(creditsale.toMap());
-                Navigator.of(context).pop();  
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Item created and saved')));
-                _fetchCashAcc();
-              },
-              child: Text('Create',style: TextStyle(color: Appcolors().maincolor),),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  //  void _showCreateItemDialog(String CassAcc,) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(backgroundColor: Appcolors().Scfold,
+  //         title: Text('Create a new item'),
+  //         content: Text('Item "$CassAcc" does not exist. Would you like to create it?'),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //             },
+  //             child: Text('Cancel',style: TextStyle(color: Appcolors().maincolor),),
+  //           ),
+  //           TextButton(
+  //             onPressed: () async {
+  //               final creditsale = PaymentModel(date: "",
+  //                cashAccount: CassAcc,
+  //                 ledgerName: "", 
+  //                 balance: 0.0,
+  //                  amount: 0.0,
+  //                   discount: 0.0, 
+  //                   total: 0.0,
+  //                    narration: "",
+  //                    atType: "");
+  //               await PaymentDatabaseHelper.instance.insert(creditsale.toMap());
+  //               Navigator.of(context).pop();  
+  //               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Item created and saved')));
+  //               _fetchCashAcc();
+  //             },
+  //             child: Text('Create',style: TextStyle(color: Appcolors().maincolor),),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 }

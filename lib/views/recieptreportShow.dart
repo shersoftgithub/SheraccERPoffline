@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LedgerAtransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
@@ -32,12 +32,12 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
    // _fetchLedgerData2();
   }
  Future<void> _fetchFilteredData() async {
-  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
+  String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
 
   List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredRows(
-    fromDate: widget.fromDate,  
-    toDate: widget.toDate,      
+    fromDate: widget.fromDate!,  
+    toDate: widget.toDate!,      
     ledgerName: widget.ledgerName ?? '',  
   );
 
@@ -48,7 +48,7 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
 
       if (dateString != null && dateString.isNotEmpty) {
         try {
-          ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
+          ledgerDate = DateFormat('yyyy-MM-dd').parse(dateString);
         } catch (e) {
           print("Error parsing date: $e");
           ledgerDate = DateTime.now();
