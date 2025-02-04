@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class RV_DatabaseHelper {
   static const _databaseName = "RV_database.db";
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   // Singleton pattern
   RV_DatabaseHelper._privateConstructor();
@@ -43,6 +45,30 @@ class RV_DatabaseHelper {
       );
     ''');
 
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS RV_Information (
+        RealEntryNo INTEGER PRIMARY KEY AUTOINCREMENT,
+        DDATE TEXT,
+        AMOUNT TEXT,
+        Discount REAL,
+        Total REAL,
+        DEBITACCOUNT TEXT,
+        takeuser TEXT,
+        Location INTEGER,
+        Project INTEGER,
+        SalesMan INTEGER,
+        MonthDate TEXT,
+        app INTEGER,
+        Transfer_Status INTEGER,
+        FyID INTEGER,
+        EntryNo INTEGER,
+        FrmID INTEGER,
+        pviCurrency INTEGER,
+        pviCurrencyValue INTEGER,
+        pdate TEXT
+      );
+    ''');
+
   }
 
   // Insert data into PV_Particulars table
@@ -61,31 +87,111 @@ class RV_DatabaseHelper {
     await batch.commit();
   }
 
-  // Insert data into RV_Particulars table
-  Future<void> insertRVParticulars(List<Map<String, dynamic>> data) async {
-    final db = await database;
+  Future<void> insertRVParticulars(Map<String, dynamic> payData) async {
+  final db = await database;
 
-    // Insert data into the table, or replace it if the primary key already exists
-    Batch batch = db.batch();
-    for (var row in data) {
-      batch.insert(
-        'RV_Particulars',
-        row,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+  try {
+    print('Inserting LedgerData: $payData');
+
+    final result = await db.insert(
+      'RV_Particulars',
+      payData,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    if (result > 0) {
+      print('Insertion successful. Row inserted with ID: $result');
+    } else {
+      print('Insertion failed. No row inserted.');
     }
-    await batch.commit();
+
+    // Check if the data exists
+    final checkResult = await db.query(
+      'RV_Particulars',
+      where: 'auto = ?',
+      whereArgs: [payData['auto']],
+    );
+
+    if (checkResult.isNotEmpty) {
+      print('Data successfully inserted: ${checkResult.first}');
+    } else {
+      print('Data insertion was unsuccessful. Unable to find the inserted record.');
+    }
+  } catch (e) {
+    print('Error inserting ledger data: $e');
   }
+}
   
-  // Fetch data from the PV_Particulars table
   Future<List<Map<String, dynamic>>> fetchPVParticulars() async {
     final db = await database;
     return await db.query('RV_Particulars');
   }
 
-  // Fetch data from the RV_Particulars table
   Future<List<Map<String, dynamic>>> fetchRVParticulars() async {
     final db = await database;
     return await db.query('RV_Particulars');
+  }
+  Future<void> insertRVInformation(Map<String, dynamic> data) async {
+    final db = await database;
+    try {
+      final result = await db.insert(
+        'RV_Information',
+        data,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (result > 0) {
+        print('RV_Information Inserted: $data');
+      } else {
+        print(' Failed to insert RV_Information.');
+      }
+    } catch (e) {
+      print(' Error inserting into RV_Information: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchRVInformation() async {
+    final db = await database;
+    return await db.query("RV_Information");
+  }
+
+   Future<List<Map<String, dynamic>>> fetch_R_vPerticularsDataFromMSSQL() async {
+    try {
+      final query = 'SELECT  auto,EntryNo,Name,Amount,Discount,Total,Narration,ddate FROM RV_Particulars';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for RV_Particulars data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for RV_Particulars: $rawData');
+    } catch (e) {
+      print('Error fetching data from RV_Particulars: $e');
+      rethrow;
+    }
+  }
+
+     Future<List<Map<String, dynamic>>> fetch_R_vInformationsDataFromMSSQL() async {
+    try {
+      final query = 'SELECT RealEntryNo, DDATE, AMOUNT, Discount, Total, DEBITACCOUNT, takeuser, Location,Project,SalesMan,MonthDate,app,Transfer_Status,FyID,EntryNo,FrmID,pviCurrency,pviCurrencyValue,pdate FROM RV_Information';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for RV_Particulars data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for RV_Particulars: $rawData');
+    } catch (e) {
+      print('Error fetching data from RV_Particulars: $e');
+      rethrow;
+    }
   }
 }

@@ -30,6 +30,7 @@ class _PaymentFormState extends State<PaymentForm> {
    @override
   void initState() {
     super.initState();
+    fetchData();
   // _fetchLedgerBalances();
    _fetchLedger();
        _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -129,6 +130,24 @@ Future<void> _fetchLedgerDetails(String ledgerName) async {
 //     });
 //   }
 // }
+List<String> cashAcc = [];
+
+Future<void> fetchData() async {
+  try {
+    List<Map<String, dynamic>> cashAndBankData = await PV_DatabaseHelper.instance.fetchCaccount();
+        cashAcc = cashAndBankData.map((row) {
+      return row['AccountName'] as String; 
+    }).toList();
+    cashAcc.forEach((name) {
+      print('Ledger Name: $name');
+    });
+  } catch (e) {
+    print('Error fetching Cash and Bank data: $e');
+  }
+}
+
+
+
 
 void _saveData() async {
   try {
@@ -187,6 +206,160 @@ void _saveData() async {
   }
 }
 
+void _saveDataPV_Perticular() async {
+  try {
+    final db = await PV_DatabaseHelper.instance.database;
+
+    final lastRow = await db.rawQuery(
+      'SELECT auto, EntryNo FROM PV_Particulars ORDER BY auto DESC LIMIT 1'
+    );
+
+    int newAuto = 1;
+    int newEntryNo = 1;
+
+    if (lastRow.isNotEmpty) {
+      final lastAuto = int.tryParse(lastRow.first['auto'].toString()) ?? 0;
+      final lastEntryNo = int.tryParse(lastRow.first['EntryNo'].toString()) ?? 0;
+
+      newAuto = lastAuto + 1;
+      newEntryNo = lastEntryNo + 1;
+    }
+
+    final double amount = double.tryParse(_amountController.text) ?? 0.0;
+    final double balance = double.tryParse(_balanceController.text) ?? 0.0;
+    final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
+    final double total = balance - amount - discount;
+
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_selectlnamesController.text);
+
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+
+    final transactionData = {
+      'auto': newAuto.toString(), 
+      'EntryNo': newEntryNo.toString(), 
+      'ddate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'Amount': amount,
+      'Total': total,  
+      'CashAccount': _cashAccController.text,
+      'Discount': _DiscountController.text,
+      'Narration': _narrationController.text,
+      'Name': ledCode,
+    };
+
+    await PV_DatabaseHelper.instance.insertPVParticulars(transactionData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {
+      _amountController.clear();
+      _balanceController.clear();
+      _DiscountController.clear();
+      _dateController.clear();
+      _cashAccController.clear();
+      _selectlnamesController.clear();
+      _narrationController.clear();
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
+void _saveDataPV_Information() async {
+  try {
+    final db = await PV_DatabaseHelper.instance.database;
+
+    final lastRow = await db.rawQuery(
+      'SELECT * FROM PV_Information ORDER BY RealEntryNo DESC LIMIT 1'
+    );
+
+    // Default values
+    int newEntryNo = 1;
+    String lastTakeUser = '';
+    int lastLocation = 0;
+    int lastProject = 0;
+    int lastSalesMan = 0;
+    int lastApp = 0;
+    int lastTransferStatus = 0;
+    int lastFyID = 0;
+    int lastFrmID = 0;
+    int lastPviCurrency = 0;
+    int lastPviCurrencyValue = 0;
+
+    if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+
+      newEntryNo = (lastData['EntryNo'] as int? ?? 0) + 1;
+      lastTakeUser = lastData['takeuser'] as String? ?? '';
+      lastLocation = lastData['Location'] as int? ?? 0;
+      lastProject = lastData['Project'] as int? ?? 0;
+      lastSalesMan = lastData['SalesMan'] as int? ?? 0;
+      lastApp = lastData['app'] as int? ?? 0;
+      lastTransferStatus = lastData['Transfer_Status'] as int? ?? 0;
+      lastFyID = lastData['FyID'] as int? ?? 0;
+      lastFrmID = lastData['FrmID'] as int? ?? 0;
+      lastPviCurrency = lastData['pviCurrency'] as int? ?? 0;
+      lastPviCurrencyValue = lastData['pviCurrencyValue'] as int? ?? 0;
+    }
+
+    final double amount = double.tryParse(_amountController.text) ?? 0.0;
+    final double balance = double.tryParse(_balanceController.text) ?? 0.0;
+    final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
+    final double total = balance - amount - discount;
+
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_selectlnamesController.text);
+
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+
+    final transactionData = {
+      'DDATE': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'AMOUNT': amount,
+      'Discount': discount,
+      'Total': total,
+      'CreditAccount': ledCode,
+      'takeuser': lastTakeUser,  
+      'Location': lastLocation, 
+      'Project': lastProject,    
+      'SalesMan': lastSalesMan,  
+      'MonthDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'app': lastApp,            
+      'Transfer_Status': lastTransferStatus, 
+      'FyID': lastFyID,          
+      'EntryNo': newEntryNo,     
+      'FrmID': lastFrmID,        
+      'pviCurrency': lastPviCurrency,  
+      'pviCurrencyValue': lastPviCurrencyValue, 
+      'pdate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+    };
+
+    await PV_DatabaseHelper.instance.insertPVInformation(transactionData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {
+      _amountController.clear();
+      _balanceController.clear();
+      _DiscountController.clear();
+      _dateController.clear();
+      _cashAccController.clear();
+      _selectlnamesController.clear();
+      _narrationController.clear();
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
 
 
 
@@ -246,7 +419,9 @@ double _TotalController=_total;
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
             child: GestureDetector(
               onTap: () {
-                _saveData();
+                // _saveData();
+                // _saveDataPV_Perticular();
+                _saveDataPV_Information();
               },
               child: SizedBox(
                 width: 20,
@@ -289,7 +464,7 @@ double _TotalController=_total;
                padding: const EdgeInsets.symmetric(horizontal: 5),
                child: EasyAutocomplete(
                    controller: _cashAccController,
-                   suggestions: _itemSuggestions,
+                   suggestions: cashAcc,
                       inputTextStyle: getFontsinput(14, Colors.black),
                    onSubmitted: (value) {
                      _onItemnamecreateChanged(value);  

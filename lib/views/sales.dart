@@ -9,6 +9,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -108,12 +109,12 @@ Future<void> _fetchLedgerDetails(String ledgerName) async {
 
     if (ledgerDetails != null) {
       setState(() {
-        _InvoicenoController.text = ledgerDetails['LedId'] ?? '';
+       // _InvoicenoController.text = ledgerDetails['LedId'] ?? '';
         _phonenoController.text = ledgerDetails['Mobile'] ?? '';
       });
     } else {
       setState(() {
-        _InvoicenoController.clear();
+       // _InvoicenoController.clear();
         _phonenoController.clear();
       });
     }
@@ -227,7 +228,142 @@ final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
   }
 }
 
+void _saveDataSaleinfor() async {
+  try {
+final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;  
+// final double discount = widget.salesCredit?.discount ?? 0.0;  
 
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_CustomerController.text);
+
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+    final transactionData = {
+      'InvoiceNo': _InvoicenoController.text,
+      'DDate':_dateController.text,
+      'Customer': ledCode,
+    'Toname': _CustomerController.text,
+       'Discount': 0.00, 
+      'NetAmount': finalAmt,
+      
+      'Total': finalAmt,
+      'TotalQty': _CustomerController.text,
+    };
+
+    await SalesInformationDatabaseHelper.instance.insertSale(transactionData);
+
+    if (ledgerDetails != null) {
+
+    
+    } else {
+      print('Ledger not found for name: ${_CustomerController.text}');
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+    setState(() {
+      
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+void _saveDataSaleperti() async {
+  try {
+    final db = await SalesInformationDatabaseHelper.instance.database;
+     final lastRow = await db.rawQuery(
+      'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1'
+    );
+    int newAuto = 1;
+      if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+newAuto = (lastData['Auto'] as int? ?? 0) + 1;
+      
+    }
+final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;  
+// final double discount = widget.salesCredit?.discount ?? 0.0;  
+
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_CustomerController.text);
+
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+    final transactionData = {
+      'DDate': _dateController.text,
+      'EntryNo': _InvoicenoController.text,
+      'UniqueCode': 0,
+      'ItemID': 0,
+      'serialno': 0,
+      'Rate': 0.0,
+      'RealRate': 0.0,
+      'Qty': widget.salesCredit!.qty,
+      'freeQty': 0.0,
+      'GrossValue': finalAmt,
+      'DiscPersent': 0.0,
+      'Disc': 0.0,
+      'RDisc': 0.0,
+      'Net': finalAmt,
+      'Vat': 0.0,
+      'freeVat': 0.0,
+      'cess': 0.0,
+      'Total': finalAmt,
+      'Profit': 0.0,
+      'Auto': newAuto,
+      'Unit': 0,
+      'UnitValue': 0.0,
+      'Funit': 0,
+      'FValue': 0,
+      'commision': 0.0,
+      'GridID': 0,
+      'takeprintstatus': 0,
+      'QtyDiscPercent': 0.0,
+      'QtyDiscount': 0.0,
+      'ScheemDiscPercent': 0.0,
+      'ScheemDiscount': 0.0,
+      'CGST': 0.0,
+      'SGST': 0.0,
+      'IGST': 0.0,
+      'adcess': 0.0,
+      'netdisc': 0.0,
+      'taxrate': 0,
+      'SalesmanId': 0,
+      'Fcess': 0.0,
+      'Prate': 0.0,
+      'Rprate': 0.0,
+      'location': 0,
+      'Stype': 0,
+      'LC': 0.0,
+      'ScanBarcode': 0,
+      'Remark': 0,
+      'FyID': 0,
+      'Supplier': 0,
+      'Retail': 0.0,
+      'spretail': 0.0,
+      'wsrate': 0.0,
+    };
+
+    await SalesInformationDatabaseHelper.instance.insertParticular(transactionData);
+
+    if (ledgerDetails != null) {
+
+    
+    } else {
+      print('Ledger not found for name: ${_CustomerController.text}');
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+    setState(() {
+      
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
 void _saveData() async {
   try {
     final qtyToReduce = widget.salesCredit!.qty.toDouble();
@@ -622,9 +758,11 @@ Future<void> _fetchItems({String? customer}) async {
           ),
           GestureDetector(
             onTap: (){
-             _saveDataCash();
-              _saveData();
-              _saveData2();
+             //_saveDataCash();
+              //_saveData();
+              //_saveData2();
+              //_saveDataSaleinfor();
+              _saveDataSaleperti();
               },
             child: Container(
               width: 175,height: 53,

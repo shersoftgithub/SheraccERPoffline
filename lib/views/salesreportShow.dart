@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart'; // Adjust with your actual import
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -31,10 +32,23 @@ double totalAmount = 0.0;
   @override
   void initState() {
     super.initState();
-    _fetchFilteredData();
-    _fetchFilteredSalesData(); 
+    // _fetchFilteredData();
+    // _fetchFilteredSalesData(); 
+    _fetchStockData2();
   }
+ Future<void> _fetchStockData2() async {
+    try {
+   //   List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getAllTransactions();
+            List<Map<String, dynamic>> data = await SalesInformationDatabaseHelper.instance.getSalesData();
 
+      print('Fetched stock data: $data');
+      setState(() {
+      paymentData   = data;
+      });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
+  }
  Future<void> _fetchFilteredData() async {
   // Ensure the filters are passed correctly into the queryFilteredRows method
   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
@@ -188,11 +202,11 @@ Future<void> _fetchFilteredSalesData() async {
                 3: FixedColumnWidth(100),
                 4: FixedColumnWidth(100),
                 5: FixedColumnWidth(100),
-                6: FixedColumnWidth(100),
-                7: FixedColumnWidth(100),
-                8: FixedColumnWidth(100),
-                9: FixedColumnWidth(100),
-                10: FixedColumnWidth(100),
+                // 6: FixedColumnWidth(100),
+                // 7: FixedColumnWidth(100),
+                // 8: FixedColumnWidth(100),
+                // 9: FixedColumnWidth(100),
+                // 10: FixedColumnWidth(100),
               },
               children: [
                 TableRow(
@@ -203,47 +217,54 @@ Future<void> _fetchFilteredSalesData() async {
                     _buildHeaderCell('Customer'),
                     _buildHeaderCell('Phone No'),
                     _buildHeaderCell('Item Name'),
-                    _buildHeaderCell('Quantity'),
-                    _buildHeaderCell('Unit'),
-                    _buildHeaderCell('Rate'),
-                    _buildHeaderCell('Tax'),
-                    _buildHeaderCell('Total Amt'),
+                    // _buildHeaderCell('Quantity'),
+                    // _buildHeaderCell('Unit'),
+                    // _buildHeaderCell('Rate'),
+                    // _buildHeaderCell('Tax'),
+                    // _buildHeaderCell('Total Amt'),
                   ],
                 ),
                 // Table data rows
                 ...paymentData.map((data) {
                   return TableRow(
                     children: [
-                      _buildDataCell(data[SaleDatabaseHelper.columnId].toString()), // Invoice No
-                      _buildDataCell(DateFormat('dd-MM-yyyy').format(data[SaleDatabaseHelper.columnDate])),
+                       
+                      _buildDataCell(data['RealEntryNo'].toString()),
+                  _buildDataCell(data['InvoiceNo'].toString()),
+                  _buildDataCell(data['DDate'].toString()),
+                  _buildDataCell(data['Customer'].toString()),
+                  _buildDataCell(data['Toname'].toString()),
+                  _buildDataCell(data['Total'].toString()),
+                      // _buildDataCell(data[SaleDatabaseHelper.columnId].toString()), // Invoice No
+                      // _buildDataCell(DateFormat('dd-MM-yyyy').format(data[SaleDatabaseHelper.columnDate])),
 
-                      _buildDataCell(data[SaleDatabaseHelper.columnSaleRate].toString()), // Sale Rate
-                      _buildDataCell(data[SaleDatabaseHelper.columnCustomer]), // Customer
-                      _buildDataCell(data[SaleDatabaseHelper.columnPhoneNo]), // Phone No
-                      _buildDataCell(data[SaleDatabaseHelper.columnItemName]), // Item Name
-                      _buildDataCell(data[SaleDatabaseHelper.columnQTY].toString()), // Quantity
-                      _buildDataCell(data[SaleDatabaseHelper.columnUnit]), // Unit
-                      _buildDataCell(data[SaleDatabaseHelper.columnRate].toString()), // Rate
-                      _buildDataCell(data[SaleDatabaseHelper.columnTax].toString()), // Tax
-                      _buildDataCell(data[SaleDatabaseHelper.columnTotalAmt].toString()), // Total Amount
+                      // _buildDataCell(data[SaleDatabaseHelper.columnSaleRate].toString()), // Sale Rate
+                      // _buildDataCell(data[SaleDatabaseHelper.columnCustomer]), // Customer
+                      // _buildDataCell(data[SaleDatabaseHelper.columnPhoneNo]), // Phone No
+                      // _buildDataCell(data[SaleDatabaseHelper.columnItemName]), // Item Name
+                      // _buildDataCell(data[SaleDatabaseHelper.columnQTY].toString()), // Quantity
+                      // _buildDataCell(data[SaleDatabaseHelper.columnUnit]), // Unit
+                      // _buildDataCell(data[SaleDatabaseHelper.columnRate].toString()), // Rate
+                      // _buildDataCell(data[SaleDatabaseHelper.columnTax].toString()), // Tax
+                      // _buildDataCell(data[SaleDatabaseHelper.columnTotalAmt].toString()), // Total Amount
                     ],
                   );
                 }).toList(),
-                TableRow(
-                children: [
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                  _buildDataCell2('Closing Balance'),
-                  _buildDataCell(''),
-                  _buildDataCell2(openingBalance.toStringAsFixed(2)), 
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                  _buildDataCell(''),
-                ],
-              ),
+              //   TableRow(
+              //   children: [
+              //     _buildDataCell(''),
+              //     _buildDataCell(''),
+              //     _buildDataCell(''),
+              //     _buildDataCell(''),
+              //     _buildDataCell2('Closing Balance'),
+              //     _buildDataCell(''),
+              //     _buildDataCell2(openingBalance.toStringAsFixed(2)), 
+              //     _buildDataCell(''),
+              //     _buildDataCell(''),
+              //     _buildDataCell(''),
+              //     _buildDataCell(''),
+              //   ],
+              // ),
               ],
             ),
           ),

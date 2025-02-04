@@ -410,4 +410,18 @@ Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
     final result = await db.rawQuery(query);
     return result;
   }
+
+   Future<Map<String, dynamic>?> getLedgerDetailsByName(String ledgerName) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'LedgerNames',
+      columns: ['Ledcode AS LedId', 'Mobile','OpeningBalance'],
+      where: 'LedName = ?',
+      whereArgs: [ledgerName],
+    );
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
 }

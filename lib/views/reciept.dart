@@ -38,7 +38,7 @@ class _PaymentFormState extends State<Reciept> {
     super.initState();
    // _fetchLedgerBalances();
    _fetchLedger();
-   
+   fetchData();
        _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _DiscountController.addListener(_calculateTotal);
     _amountController.addListener(_calculateTotal);
@@ -114,18 +114,21 @@ Future<void> _fetchLedgerDetails(String ledgerName) async {
 //   }
 // }
 
-List<String> _itemSuggestions = [];
-void _onItemnamecreateChanged(String value) async {
-    if (!_itemSuggestions.contains(value)) {
-     // _showCreateItemDialog( _cashAccController.text.trim(), );
-    }
+List<String> cashAcc = [];
+
+Future<void> fetchData() async {
+  try {
+    List<Map<String, dynamic>> cashAndBankData = await PV_DatabaseHelper.instance.fetchCaccount();
+        cashAcc = cashAndBankData.map((row) {
+      return row['AccountName'] as String; 
+    }).toList();
+    cashAcc.forEach((name) {
+      print('Ledger Name: $name');
+    });
+  } catch (e) {
+    print('Error fetching Cash and Bank data: $e');
   }
-  // void _fetchCashAcc() async {
-  //   List<String> items = await PaymentDatabaseHelper.instance.getAllUniqueCashAccounts();
-  //   setState(() {
-  //     _itemSuggestions = items;
-  //   });
-  // }
+}
 
  Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -198,6 +201,162 @@ void _saveData() async {
     );
   }
 }
+
+void _saveDataRV_Perticular() async {
+  try {
+    final db = await RV_DatabaseHelper.instance.database;
+
+    // Fetch the highest auto and EntryNo values
+    final lastRow = await db.rawQuery(
+      'SELECT MAX(auto) AS maxAuto, MAX(EntryNo) AS maxEntryNo FROM RV_Particulars'
+    );
+
+    int newAuto = 1;
+    int newEntryNo = 1;
+
+    if (lastRow.isNotEmpty) {
+      final lastAuto = int.tryParse(lastRow.first['maxAuto']?.toString() ?? '0') ?? 0;
+      final lastEntryNo = int.tryParse(lastRow.first['maxEntryNo']?.toString() ?? '0') ?? 0;
+
+      newAuto = lastAuto + 1;
+      newEntryNo = lastEntryNo + 1;
+    }
+
+    final double amount = double.tryParse(_amountController.text) ?? 0.0;
+    final double balance = double.tryParse(_balanceController.text) ?? 0.0;
+    final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
+    final double total = balance - amount - discount;
+
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_selectlnamesController.text);
+
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+
+    final transactionData = {
+      'auto': newAuto.toString(), // Highest auto + 1
+      'EntryNo': newEntryNo.toString(), // Highest EntryNo + 1
+      'ddate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'Amount': amount,
+      'Total': total,  
+      'CashAccount': _cashAccController.text,
+      'Discount': _DiscountController.text,
+      'Narration': _narrationController.text,
+      'Name': ledCode,
+    };
+
+    await RV_DatabaseHelper.instance.insertRVParticulars(transactionData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {
+      _amountController.clear();
+      _balanceController.clear();
+      _DiscountController.clear();
+      _dateController.clear();
+      _cashAccController.clear();
+      _selectlnamesController.clear();
+      _narrationController.clear();
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
+void _saveDataRV_Information() async {
+  try {
+    final db = await RV_DatabaseHelper.instance.database;
+
+    final lastRow = await db.rawQuery(
+      'SELECT * FROM RV_Information ORDER BY RealEntryNo DESC LIMIT 1'
+    );
+
+    int newEntryNo = 1;
+    String lastTakeUser = '';
+    int lastLocation = 0;
+    int lastProject = 0;
+    int lastSalesMan = 0;
+    int lastApp = 0;
+    int lastTransferStatus = 0;
+    int lastFyID = 0;
+    int lastFrmID = 0;
+    int lastPviCurrency = 0;
+    int lastPviCurrencyValue = 0;
+
+    if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+
+      newEntryNo = int.tryParse(lastData['EntryNo'].toString()) ??  1;
+lastLocation = int.tryParse(lastData['Location'].toString()) ?? 0;
+lastProject = int.tryParse(lastData['Project'].toString()) ?? 0;
+lastSalesMan = int.tryParse(lastData['SalesMan'].toString()) ?? 0;
+lastApp = int.tryParse(lastData['app'].toString()) ?? 0;
+lastTransferStatus = int.tryParse(lastData['Transfer_Status'].toString()) ?? 0;
+lastFyID = int.tryParse(lastData['FyID'].toString()) ?? 0;
+lastFrmID = int.tryParse(lastData['FrmID'].toString()) ?? 0;
+lastPviCurrency = int.tryParse(lastData['pviCurrency'].toString()) ?? 0;
+lastPviCurrencyValue = int.tryParse(lastData['pviCurrencyValue'].toString()) ?? 0;
+
+    }
+
+    final double amount = double.tryParse(_amountController.text) ?? 0.0;
+    final double balance = double.tryParse(_balanceController.text) ?? 0.0;
+    final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
+    final double total = balance - amount - discount;
+
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_selectlnamesController.text);
+
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+ final newEntryNo2=newEntryNo+1;
+    final transactionData = {
+      'DDATE': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'AMOUNT': amount,
+      'Discount': discount,
+      'Total': total,
+      'DEBITACCOUNT': ledCode,
+      'takeuser': lastTakeUser,  
+      'Location': lastLocation, 
+      'Project': lastProject,    
+      'SalesMan': lastSalesMan,  
+      'MonthDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'app': lastApp,            
+      'Transfer_Status': lastTransferStatus, 
+      'FyID': lastFyID,          
+      'EntryNo': newEntryNo2,     
+      'FrmID': lastFrmID,        
+      'pviCurrency': lastPviCurrency,  
+      'pviCurrencyValue': lastPviCurrencyValue, 
+      'pdate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+    };
+
+    await RV_DatabaseHelper.instance.insertRVInformation(transactionData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {
+      _amountController.clear();
+      _balanceController.clear();
+      _DiscountController.clear();
+      _dateController.clear();
+      _cashAccController.clear();
+      _selectlnamesController.clear();
+      _narrationController.clear();
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -237,7 +396,9 @@ double _TotalController=_total;
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
             child: GestureDetector(
               onTap: () {
-                _saveData();
+               // _saveData();
+                //_saveDataRV_Perticular();
+                _saveDataRV_Information();
               },
               child: SizedBox(
                 width: 20,
@@ -279,11 +440,9 @@ double _TotalController=_total;
                padding: const EdgeInsets.symmetric(horizontal: 5),
                child: EasyAutocomplete(
                    controller: _cashAccController,
-                   suggestions: _itemSuggestions,
+                   suggestions: cashAcc,
                       inputTextStyle: getFontsinput(14, Colors.black),
-                   onSubmitted: (value) {
-                     _onItemnamecreateChanged(value);  
-                   },
+                  
                    decoration: InputDecoration(
                      border: InputBorder.none,
                      contentPadding: EdgeInsets.only(bottom: 20)
