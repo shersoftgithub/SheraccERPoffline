@@ -3,6 +3,9 @@ import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -127,6 +130,162 @@ Future<List<Map<String, dynamic>>> fetch_R_vPerticularsDataFromMSSQL() async {
       rethrow;
     }
 }
+
+Future<List<Map<String, dynamic>>> fetch_sale_informationDataFromMSSQL() async {
+   try {
+      final query = 'SELECT  RealEntryNo,InvoiceNo,DDate,Customer,Toname,Discount,NetAmount,Total,TotalQty FROM Sales_Information';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for RV_Particulars data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for RV_Particulars: $rawData');
+    } catch (e) {
+      print('Error fetching data from RV_Particulars: $e');
+      rethrow;
+    }
+}
+Future<List<Map<String, dynamic>>> fetch_sales_particularsDataFromMSSQL() async {
+  try {
+    final query = '''
+      SELECT 
+        DDate, EntryNo, UniqueCode, ItemID, serialno, Rate, RealRate, Qty, freeQty, 
+        GrossValue, DiscPersent, Disc, RDisc, Net, Vat, freeVat, cess, Total, Profit, 
+        Auto, Unit, UnitValue, Funit, FValue, commision, GridID, takeprintstatus, 
+        QtyDiscPercent, QtyDiscount, ScheemDiscPercent, ScheemDiscount, CGST, SGST, 
+        IGST, adcess, netdisc, taxrate, SalesmanId, Fcess, Prate, Rprate, location, 
+        Stype, LC, ScanBarcode, Remark, FyID, Supplier, Retail, spretail, wsrate
+      FROM Sales_Particulars
+    ''';
+
+    final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+    if (rawData is String) {
+      final decodedData = jsonDecode(rawData);
+      if (decodedData is List) {
+        return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+      } else {
+        throw Exception('Unexpected JSON format for Sales_Particulars data: $decodedData');
+      }
+    }
+    throw Exception('Unexpected data format for Sales_Particulars: $rawData');
+  } catch (e) {
+    print('Error fetching data from Sales_Particulars: $e');
+    rethrow;
+  }
+}
+
+Future<List<Map<String, dynamic>>> fetch_sale_information22DataFromMSSQL() async {
+  try {
+    final query = '''
+      SELECT RealEntryNo, EntryNo, InvoiceNo, DDate, BTime, Customer, Add1, Add2, Toname, TaxType, 
+             GrossValue, Discount, NetAmount, cess, Total, loadingcharge, OtherCharges, OtherDiscount, 
+             Roundoff, GrandTotal, SalesAccount, SalesMan, Location, Narration, Profit, CashReceived, 
+             BalanceAmount, Ecommision, labourCharge, OtherAmount, Type, PrintStatus, CNo, CreditPeriod, 
+             DiscPercent, SType, VatEntryNo, tcommision, commisiontype, cardno, takeuser, PurchaseOrderNo, 
+             ddate1, deliverNoteNo, despatchno, despatchdate, Transport, Destination, Transfer_Status, 
+             TenderCash, TenderBalance, returnno, returnamt, vatentryname, otherdisc1, salesorderno, 
+             systemno, deliverydate, QtyDiscount, ScheemDiscount, Add3, Add4, BankName, CCardNo, 
+             SMInvoice, Bankcharges, CGST, SGST, IGST, mrptotal, adcess, BillType, discuntamount, 
+             unitprice, lrno, evehicleno, ewaybillno, RDisc, subsidy, kms, todevice, Fcess, spercent, 
+             bankamount, FcessType, receiptAmount, receiptDate, JobCardno, WareHouse, CostCenter, 
+             CounterClose, CashAccountID, ShippingName, ShippingAdd1, ShippingAdd2, ShippingAdd3, 
+             ShippingGstNo, ShippingState, ShippingStateCode, RateType, EmiAc, EmiAmount, EmiRefNo, 
+             RedeemPoint, IRNNo, signedinvno, signedQrCode, Salesman1, TCSPer, TCS, app, TotalQty, 
+             InvoiceLetter, AckDate, AckNo, Project, PlaceofSupply, tenderRefNo, IsCancel, FyID, 
+             m_invoiceno, PaymentTerms, WarrentyTerms, QuotationEntryNo, CreditNoteNo, CreditNoteAmount, 
+             Careoff, CareoffAmount, DeliveryStatus, SOrderBilled, isCashCounter, Discountbarcode, 
+             ExcEntryNo, ExcEntryAmt, FxCurrency, FxValue, CntryofOrgin, ContryFinalDest, PrecarriageBy, 
+             PlacePrecarrier, PortofLoading, Portofdischarge, FinalDestination, CtnNo, Totalctn, Netwt, 
+             grosswt, Blno
+      FROM Sales_Information
+    ''';
+    
+    final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+    if (rawData is String) {
+      final decodedData = jsonDecode(rawData);
+      if (decodedData is List) {
+        return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+      } else {
+        throw Exception('Unexpected JSON format for Sales_Information data: $decodedData');
+      }
+    }
+    throw Exception('Unexpected data format for Sales_Information: $rawData');
+  } catch (e) {
+    print('Error fetching data from Sales_Information: $e');
+    rethrow;
+  }
+}
+Future<List<Map<String, dynamic>>> fetch_P_vInformationsDataFromMSSQL() async {
+    try {
+      final query = 'SELECT RealEntryNo, DDATE, AMOUNT, Discount, Total, CreditAccount, takeuser, Location,Project,SalesMan,MonthDate,app,Transfer_Status,FyID,EntryNo,FrmID,pviCurrency,pviCurrencyValue,pdate FROM PV_Information';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for PV_Particulars data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for PV_Particulars: $rawData');
+    } catch (e) {
+      print('Error fetching data from PV_Particulars: $e');
+      rethrow;
+    }
+  }
+
+Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
+   try {
+ String query = '''
+    SELECT ledcode, LedName
+    FROM LedgerNames l
+    INNER JOIN LedgerHeads lh ON l.lh_id = lh.lh_id
+    WHERE lh_name IN ('BANK A/C', 'CASH IN HAND', 'BANK O/D (LOAN)')
+    ORDER BY LedName
+    ''';
+          final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for RV_Particulars data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for RV_Particulars: $rawData');
+    } catch (e) {
+      print('Error fetching data from RV_Particulars: $e');
+      rethrow;
+    }
+}
+
+  Future<List<Map<String, dynamic>>> fetch_R_vInformationsDataFromMSSQL() async {
+    try {
+      final query = 'SELECT RealEntryNo, DDATE, AMOUNT, Discount, Total, DEBITACCOUNT, takeuser, Location,Project,SalesMan,MonthDate,app,Transfer_Status,FyID,EntryNo,FrmID,rviCurrency,rviCurrencyValue,pdate FROM RV_Information';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for RV_Particulars data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for RV_Particulars: $rawData');
+    } catch (e) {
+      print('Error fetching data from RV_Particulars: $e');
+      rethrow;
+    }
+  }
 // Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
 //   try {
 //     // Define the query to fetch clean data from the database
@@ -366,6 +525,386 @@ for (var row in CompanyLedgerData) {
   await DbHelper.insertLedgerData(rowData);
 }
 
+final paymentData = await fetch_P_vPerticularsDataFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperpay = PV_DatabaseHelper.instance;
+for (var row in paymentData) {
+  Map<String, dynamic> rowData = {
+    'auto': row['auto']?.toString() ?? '', 
+    'EntryNo': row['EntryNo']?.toString() ?? '',
+    'Name': row['Name']?.toString() ?? '',
+    'Amount': row['Amount']?.toString() ?? '',
+    'Discount': row['Discount']?.toString() ?? '',
+    'Total': row['Total']?.toString() ?? '',
+    'Narration': row['Narration']?.toString() ?? '',
+    'ddate': row['ddate']?.toString() ?? '',
+  };
+
+  await DbHelperpay.insertPVParticulars(rowData);
+}
+final paymentDatainfo = await fetch_P_vInformationsDataFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperpayinfo = PV_DatabaseHelper.instance;
+for (var row in paymentDatainfo) {
+  Map<String, dynamic> rowData = {
+    'RealEntryNo': row['RealEntryNo']?.toString() ?? '', 
+    'DDATE': row['DDATE']?.toString() ?? '',
+    'AMOUNT': row['AMOUNT']?.toString() ?? '',
+    'Discount': row['Discount']?.toString() ?? '',
+    'Total': row['Total']?.toString() ?? '',
+    'CreditAccount': row['CreditAccount']?.toString() ?? '',
+    'takeuser': row['takeuser']?.toString() ?? '',
+    'Location': row['Location']?.toString() ?? '',
+    'Project': row['Project']?.toString() ?? '', 
+    'SalesMan': row['SalesMan']?.toString() ?? '',
+    'MonthDate': row['MonthDate']?.toString() ?? '',
+    'app': row['app']?.toString() ?? '',
+    'Transfer_Status': row['Transfer_Status']?.toString() ?? '',
+    'FyID': row['FyID']?.toString() ?? '',
+    'EntryNo': row['EntryNo']?.toString() ?? '',
+    'FrmID': row['FrmID']?.toString() ?? '',
+    'pviCurrency': row['pviCurrency']?.toString() ?? '',
+    'pviCurrencyValue': row['pviCurrencyValue']?.toString() ?? '',
+    'pdate': row['pdate']?.toString() ?? '',
+  };
+   
+
+  await DbHelperpayinfo.insertPVInformation(rowData);
+}
+final recimentData = await fetch_R_vPerticularsDataFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperReci = RV_DatabaseHelper.instance;
+for (var row in recimentData) {
+  Map<String, dynamic> rowData = {
+    'auto': row['auto']?.toString() ?? '', 
+    'EntryNo': row['EntryNo']?.toString() ?? '',
+    'Name': row['Name']?.toString() ?? '',
+    'Amount': row['Amount']?.toString() ?? '',
+    'Discount': row['Discount']?.toString() ?? '',
+    'Total': row['Total']?.toString() ?? '',
+    'Narration': row['Narration']?.toString() ?? '',
+    'ddate': row['ddate']?.toString() ?? '',
+  };
+
+  await DbHelperReci.insertRVParticulars(rowData);
+}
+
+final recieDatainfo = await fetch_R_vInformationsDataFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperreciinfo = RV_DatabaseHelper.instance;
+for (var row in recieDatainfo) {
+  Map<String, dynamic> rowData = {
+    'RealEntryNo': row['RealEntryNo']?.toString() ?? '', 
+    'DDATE': row['DDATE']?.toString() ?? '',
+    'AMOUNT': row['AMOUNT']?.toString() ?? '',
+    'Discount': row['Discount']?.toString() ?? '',
+    'Total': row['Total']?.toString() ?? '',
+    'DEBITACCOUNT': row['DEBITACCOUNT']?.toString() ?? '',
+    'takeuser': row['takeuser']?.toString() ?? '',
+    'Location': row['Location']?.toString() ?? '',
+    'Project': row['Project']?.toString() ?? '', 
+    'SalesMan': row['SalesMan']?.toString() ?? '',
+    'MonthDate': row['MonthDate']?.toString() ?? '',
+    'app': row['app']?.toString() ?? '',
+    'Transfer_Status': row['Transfer_Status']?.toString() ?? '',
+    'FyID': row['FyID']?.toString() ?? '',
+    'EntryNo': row['EntryNo']?.toString() ?? '',
+    'FrmID': row['FrmID']?.toString() ?? '',
+    'pviCurrency': row['pviCurrency']?.toString() ?? '',
+    'pviCurrencyValue': row['pviCurrencyValue']?.toString() ?? '',
+    'pdate': row['pdate']?.toString() ?? '',
+  };
+   
+
+  await DbHelperreciinfo.insertRVInformation(rowData);
+}
+
+final AccData = await fetch_CashAccDataFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperAcc = PV_DatabaseHelper.instance;
+for (var row in AccData) {
+  String accountName = row['LedName']?.toString() ?? ''; // Extracting string
+
+  await DbHelperAcc.insertCaccount(accountName); // Passing string
+}
+
+final saleData = await fetch_sale_informationDataFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperSale = SalesInformationDatabaseHelper.instance;
+for (var row in saleData) {
+  Map<String, dynamic> rowData = {
+    'RealEntryNo': row['RealEntryNo']?.toString() ?? '', 
+    'InvoiceNo': row['InvoiceNo']?.toString() ?? '',
+    'DDate': row['DDate']?.toString() ?? '',
+    'Customer': row['Customer']?.toString() ?? '',
+    'Toname': row['Toname']?.toString() ?? '',
+    'Discount': row['Discount']?.toString() ?? '',
+    'NetAmount': row['NetAmount']?.toString() ?? '',
+    'Total': row['Total']?.toString() ?? '',
+    'TotalQty': row['TotalQty']?.toString() ?? '',
+  };
+
+  await DbHelperSale.insertSale(rowData);
+}
+
+final saleDataper = await fetch_sales_particularsDataFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperSaleper = SalesInformationDatabaseHelper.instance;
+for (var row in saleDataper) {
+  Map<String, dynamic> rowData = {
+   'DDate': row['DDate']?.toString() ?? '',
+            'EntryNo': row['EntryNo']?.toString() ?? '',
+            'UniqueCode': row['UniqueCode']?.toString() ?? '',
+            'ItemID': row['ItemID']?.toString() ?? '',
+            'serialno': row['serialno']?.toString() ?? '',
+            'Rate': row['Rate']?.toString() ?? '',
+            'RealRate': row['RealRate']?.toString() ?? '',
+            'Qty': row['Qty']?.toString() ?? '',
+            'freeQty': row['freeQty']?.toString() ?? '',
+            'GrossValue': row['GrossValue']?.toString() ?? '',
+            'DiscPersent': row['DiscPersent']?.toString() ?? '',
+            'Disc': row['Disc']?.toString() ?? '',
+            'RDisc': row['RDisc']?.toString() ?? '',
+            'Net': row['Net']?.toString() ?? '',
+            'Vat': row['Vat']?.toString() ?? '',
+            'freeVat': row['freeVat']?.toString() ?? '',
+            'cess': row['cess']?.toString() ?? '',
+            'Total': row['Total']?.toString() ?? '',
+            'Profit': row['Profit']?.toString() ?? '',
+            'Auto': row['Auto']?.toString() ?? '',
+            'Unit': row['Unit']?.toString() ?? '',
+            'UnitValue': row['UnitValue']?.toString() ?? '',
+            'Funit': row['Funit']?.toString() ?? '',
+            'FValue': row['FValue']?.toString() ?? '',
+            'commision': row['commision']?.toString() ?? '',
+            'GridID': row['GridID']?.toString() ?? '',
+            'takeprintstatus': row['takeprintstatus']?.toString() ?? '',
+            'QtyDiscPercent': row['QtyDiscPercent']?.toString() ?? '',
+            'QtyDiscount': row['QtyDiscount']?.toString() ?? '',
+            'ScheemDiscPercent': row['ScheemDiscPercent']?.toString() ?? '',
+            'ScheemDiscount': row['ScheemDiscount']?.toString() ?? '',
+            'CGST': row['CGST']?.toString() ?? '',
+            'SGST': row['SGST']?.toString() ?? '',
+            'IGST': row['IGST']?.toString() ?? '',
+            'adcess': row['adcess']?.toString() ?? '',
+            'netdisc': row['netdisc']?.toString() ?? '',
+            'taxrate': row['taxrate']?.toString() ?? '',
+            'SalesmanId': row['SalesmanId']?.toString() ?? '',
+            'Fcess': row['Fcess']?.toString() ?? '',
+            'Prate': row['Prate']?.toString() ?? '',
+            'Rprate': row['Rprate']?.toString() ?? '',
+            'location': row['location']?.toString() ?? '',
+            'Stype': row['Stype']?.toString() ?? '',
+            'LC': row['LC']?.toString() ?? '',
+            'ScanBarcode': row['ScanBarcode']?.toString() ?? '',
+            'Remark': row['Remark']?.toString() ?? '',
+            'FyID': row['FyID']?.toString() ?? '',
+            'Supplier': row['Supplier']?.toString() ?? '',
+            'Retail': row['Retail']?.toString() ?? '',
+            'spretail': row['spretail']?.toString() ?? '',
+            'wsrate': row['wsrate']?.toString() ?? '',
+  };
+
+  await DbHelperSaleper.insertParticular(rowData);
+}
+
+final saleDatainf = await fetch_sale_information22DataFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperSaleinf = SalesInformationDatabaseHelper.instance;
+for (var row in saleDatainf) {
+  Map<String, dynamic> rowData = {
+    'RealEntryNo': row['RealEntryNo']?.toString() ?? '', 
+        'EntryNo': row['EntryNo']?.toString() ?? '',
+        'InvoiceNo': row['InvoiceNo']?.toString() ?? '',
+        'DDate': row['DDate']?.toString() ?? '',
+        'BTime': row['BTime']?.toString() ?? '',
+        'Customer': row['Customer']?.toString() ?? '',
+        'Add1': row['Add1']?.toString() ?? '',
+        'Add2': row['Add2']?.toString() ?? '',
+        'Toname': row['Toname']?.toString() ?? '',
+        'TaxType': row['TaxType']?.toString() ?? '',
+        'GrossValue': row['GrossValue']?.toString() ?? '',
+        'Discount': row['Discount']?.toString() ?? '',
+        'NetAmount': row['NetAmount']?.toString() ?? '',
+        'cess': row['cess']?.toString() ?? '',
+        'Total': row['Total']?.toString() ?? '',
+        'loadingcharge': row['loadingcharge']?.toString() ?? '',
+        'OtherCharges': row['OtherCharges']?.toString() ?? '',
+        'OtherDiscount': row['OtherDiscount']?.toString() ?? '',
+        'Roundoff': row['Roundoff']?.toString() ?? '',
+        'GrandTotal': row['GrandTotal']?.toString() ?? '',
+        'SalesAccount': row['SalesAccount']?.toString() ?? '',
+        'SalesMan': row['SalesMan']?.toString() ?? '',
+        'Location': row['Location']?.toString() ?? '',
+        'Narration': row['Narration']?.toString() ?? '',
+        'Profit': row['Profit']?.toString() ?? '',
+        'CashReceived': row['CashReceived']?.toString() ?? '',
+        'BalanceAmount': row['BalanceAmount']?.toString() ?? '',
+        'Ecommision': row['Ecommision']?.toString() ?? '',
+        'labourCharge': row['labourCharge']?.toString() ?? '',
+        'OtherAmount': row['OtherAmount']?.toString() ?? '',
+        'Type': row['Type']?.toString() ?? '',
+        'PrintStatus': row['PrintStatus']?.toString() ?? '',
+        'CNo': row['CNo']?.toString() ?? '',
+        'CreditPeriod': row['CreditPeriod']?.toString() ?? '',
+        'DiscPercent': row['DiscPercent']?.toString() ?? '',
+        'SType': row['SType']?.toString() ?? '',
+        'VatEntryNo': row['VatEntryNo']?.toString() ?? '',
+        'tcommision': row['tcommision']?.toString() ?? '',
+        'commisiontype': row['commisiontype']?.toString() ?? '',
+        'cardno': row['cardno']?.toString() ?? '',
+        'takeuser': row['takeuser']?.toString() ?? '',
+        'PurchaseOrderNo': row['PurchaseOrderNo']?.toString() ?? '',
+        'ddate1': row['ddate1']?.toString() ?? '',
+        'deliverNoteNo': row['deliverNoteNo']?.toString() ?? '',
+        'despatchno': row['despatchno']?.toString() ?? '',
+        'despatchdate': row['despatchdate']?.toString() ?? '',
+        'Transport': row['Transport']?.toString() ?? '',
+        'Destination': row['Destination']?.toString() ?? '',
+        'Transfer_Status': row['Transfer_Status']?.toString() ?? '',
+        'TenderCash': row['TenderCash']?.toString() ?? '',
+        'TenderBalance': row['TenderBalance']?.toString() ?? '',
+        'returnno': row['returnno']?.toString() ?? '',
+        'returnamt': row['returnamt']?.toString() ?? '',
+        'vatentryname': row['vatentryname']?.toString() ?? '',
+        'otherdisc1': row['otherdisc1']?.toString() ?? '',
+        'salesorderno': row['salesorderno']?.toString() ?? '',
+        'systemno': row['systemno']?.toString() ?? '',
+        'deliverydate': row['deliverydate']?.toString() ?? '',
+        'QtyDiscount': row['QtyDiscount']?.toString() ?? '',
+        'ScheemDiscount': row['ScheemDiscount']?.toString() ?? '',
+        'Add3': row['Add3']?.toString() ?? '',
+        'Add4': row['Add4']?.toString() ?? '',
+        'BankName': row['BankName']?.toString() ?? '',
+        'CCardNo': row['CCardNo']?.toString() ?? '',
+        'SMInvoice': row['SMInvoice']?.toString() ?? '',
+        'Bankcharges': row['Bankcharges']?.toString() ?? '',
+        'CGST': row['CGST']?.toString() ?? '',
+        'SGST': row['SGST']?.toString() ?? '',
+        'IGST': row['IGST']?.toString() ?? '',
+        'mrptotal': row['mrptotal']?.toString() ?? '',
+        'adcess': row['adcess']?.toString() ?? '',
+        'BillType': row['BillType']?.toString() ?? '',
+        'discuntamount': row['discuntamount']?.toString() ?? '',
+        'unitprice': row['unitprice']?.toString() ?? '',
+        'lrno': row['lrno']?.toString() ?? '',
+        'evehicleno': row['evehicleno']?.toString() ?? '',
+        'ewaybillno': row['ewaybillno']?.toString() ?? '',
+        'RDisc': row['RDisc']?.toString() ?? '',
+        'subsidy': row['subsidy']?.toString() ?? '',
+        'kms': row['kms']?.toString() ?? '',
+        'todevice': row['todevice']?.toString() ?? '',
+        'Fcess': row['Fcess']?.toString() ?? '',
+        'spercent': row['spercent']?.toString() ?? '',
+        'bankamount': row['bankamount']?.toString() ?? '',
+        'FcessType': row['FcessType']?.toString() ?? '',
+        'receiptAmount': row['receiptAmount']?.toString() ?? '',
+        'receiptDate': row['receiptDate']?.toString() ?? '',
+        'JobCardno': row['JobCardno']?.toString() ?? '',
+        'WareHouse': row['WareHouse']?.toString() ?? '',
+        'CostCenter': row['CostCenter']?.toString() ?? '',
+        'CounterClose': row['CounterClose']?.toString() ?? '',
+        'CashAccountID': row['CashAccountID']?.toString() ?? '',
+        'ShippingName': row['ShippingName']?.toString() ?? '',
+        'ShippingAdd1': row['ShippingAdd1']?.toString() ?? '',
+        'ShippingAdd2': row['ShippingAdd2']?.toString() ?? '',
+        'ShippingAdd3': row['ShippingAdd3']?.toString() ?? '',
+        'ShippingGstNo': row['ShippingGstNo']?.toString() ?? '',
+        'ShippingState': row['ShippingState']?.toString() ?? '',
+        'ShippingStateCode': row['ShippingStateCode']?.toString() ?? '',
+        'RateType': row['RateType']?.toString() ?? '',
+        'EmiAc': row['EmiAc']?.toString() ?? '',
+        'EmiAmount': row['EmiAmount']?.toString() ?? '',
+        'EmiRefNo': row['EmiRefNo']?.toString() ?? '',
+        'RedeemPoint': row['RedeemPoint']?.toString() ?? '',
+        'IRNNo': row['IRNNo']?.toString() ?? '',
+        'signedinvno': row['signedinvno']?.toString() ?? '',
+        'signedQrCode': row['signedQrCode']?.toString() ?? '',
+        'Salesman1': row['Salesman1']?.toString() ?? '',
+        'TCSPer': row['TCSPer']?.toString() ?? '',
+        'TCS': row['TCS']?.toString() ?? '',
+        'app': row['app']?.toString() ?? '',
+        'TotalQty': row['TotalQty']?.toString() ?? '',
+        'InvoiceLetter': row['InvoiceLetter']?.toString() ?? '',
+        'AckDate': row['AckDate']?.toString() ?? '',
+        'AckNo': row['AckNo']?.toString() ?? '',
+        'Project': row['Project']?.toString() ?? '',
+        'PlaceofSupply': row['PlaceofSupply']?.toString() ?? '',
+        'tenderRefNo': row['tenderRefNo']?.toString() ?? '',
+        'IsCancel': row['IsCancel']?.toString() ?? '',
+        'FyID': row['FyID']?.toString() ?? '',
+        'm_invoiceno': row['m_invoiceno']?.toString() ?? '',
+        'PaymentTerms': row['PaymentTerms']?.toString() ?? '',
+        'WarrentyTerms': row['WarrentyTerms']?.toString() ?? '',
+        'QuotationEntryNo': row['QuotationEntryNo']?.toString() ?? '',
+        'CreditNoteNo': row['CreditNoteNo']?.toString() ?? '',
+        'CreditNoteAmount': row['CreditNoteAmount']?.toString() ?? '',
+        'Careoff': row['Careoff']?.toString() ?? '',
+        'CareoffAmount': row['CareoffAmount']?.toString() ?? '',
+        'DeliveryStatus': row['DeliveryStatus']?.toString() ?? '',
+        'SOrderBilled': row['SOrderBilled']?.toString() ?? '',
+        'isCashCounter': row['isCashCounter']?.toString() ?? '',
+        'Discountbarcode': row['Discountbarcode']?.toString() ?? '',
+        'ExcEntryNo': row['ExcEntryNo']?.toString() ?? '',
+        'ExcEntryAmt': row['ExcEntryAmt']?.toString() ?? '',
+        'FxCurrency': row['FxCurrency']?.toString() ?? '',
+        'FxValue': row['FxValue']?.toString() ?? '',
+        'CntryofOrgin': row['CntryofOrgin']?.toString() ?? '',
+        'ContryFinalDest': row['ContryFinalDest']?.toString() ?? '',
+        'PrecarriageBy': row['PrecarriageBy']?.toString() ?? '',
+        'PlacePrecarrier': row['PlacePrecarrier']?.toString() ?? '',
+        'PortofLoading': row['PortofLoading']?.toString() ?? '',
+        'Portofdischarge': row['Portofdischarge']?.toString() ?? '',
+        'FinalDestination': row['FinalDestination']?.toString() ?? '',
+        'CtnNo': row['CtnNo']?.toString() ?? '',
+        'Totalctn': row['Totalctn']?.toString() ?? '',
+        'Netwt': row['Netwt']?.toString() ?? '',
+        'grosswt': row['grosswt']?.toString() ?? '',
+        'Blno': row['Blno']?.toString() ?? '',
+  };
+
+  await DbHelperSaleinf.insertSale(rowData);
+}
 //       final AccTransLedgerData = await fetchDataFromMSSQLAccTransations();
 //  if (productData.isEmpty) {
 //         ScaffoldMessenger.of(context).showSnackBar(
@@ -411,6 +950,7 @@ for (var row in CompanyLedgerData) {
       );
     }
   }
+
 
 // void sync() async {
 //   final dbHelper = LedgerDatabaseHelper.instance;
@@ -504,7 +1044,7 @@ Future<void> performBackup() async {
           onTap: () {
           backupToLocalDatabase(); 
           //sync();
-          performBackup();
+          //performBackup();
           //updateOpeningBalances();
           },
           child: Container(
