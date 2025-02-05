@@ -153,6 +153,7 @@ class StockDatabaseHelper {
           isMOP INTEGER NOT NULL
         )
       ''');
+      
     }}}
 
   Future<int> insertStockData(Map<String, dynamic> data) async {
@@ -411,12 +412,12 @@ Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
     return result;
   }
 
-   Future<Map<String, dynamic>?> getLedgerDetailsByName(String ledgerName) async {
+   Future<Map<String, dynamic>?> getStockDetailsByName(String ledgerName) async {
     final db = await instance.database;
     final result = await db.query(
-      'LedgerNames',
-      columns: ['Ledcode AS LedId', 'Mobile','OpeningBalance'],
-      where: 'LedName = ?',
+      'product_registration',
+      columns: ['itemcode',],
+      where: 'itemname = ?',
       whereArgs: [ledgerName],
     );
     if (result.isNotEmpty) {

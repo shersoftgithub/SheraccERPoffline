@@ -50,11 +50,13 @@ class _AddpaymantState extends State<Addpaymant> {
   final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
   final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
   final DiscPerc = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
+  final Discount = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
   final totalAmt = (rate * qty) ;
       final taxvalue= (totalAmt*tax)/100;
 final netamt=(totalAmt - taxvalue);
 final PercenDisc = (totalAmt * DiscPerc)/100;
 final finalAmt=(totalAmt - PercenDisc);
+final ffiinalamt=(finalAmt + taxvalue);
   final creditsale = SalesCredit(
     invoiceId: 0,
     date: "", 
@@ -71,7 +73,7 @@ final finalAmt=(totalAmt - PercenDisc);
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) =>SalesOrder(salesCredit: creditsale,itemDetails:itemDetails,),
+      builder: (context) =>SalesOrder(salesCredit: creditsale,itemDetails:itemDetails,discPerc: DiscPerc,discnt : Discount,net :netamt,tot:ffiinalamt,tax:taxvalue),
     ),
   );
 }
@@ -497,108 +499,7 @@ final finalAmt=(totalAmt - PercenDisc);
             ),
           ),
            SizedBox(height: screenHeight*0.02,),
-        //   Container(
-        //     padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01),
-        //     child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        //       children: [
-        //         Container(
-        // child: Column(
-        //   crossAxisAlignment: CrossAxisAlignment.start,
-        //   children: [
-        //   Text(
-                  
-        //           'Discount',
-        //           style: formFonts(14, Colors.black),
-        //         ),
-        //     SizedBox(height: screenHeight * 0.01),
-        //     Container(
-        //       width: 173,
-        //       child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        //         children: [
-        //           Container(
-        //              height: 35, 
-        //             width: 75,
-        //             decoration: BoxDecoration(
-        //               borderRadius: BorderRadius.circular(5),
-        //               color: Colors.white,
-        //               border: Border.all(color: Appcolors().searchTextcolor),
-        //             ),
-        //              child: TextFormField(
-        //               style: getFontsinput(14, Colors.black),
-        //                      controller: _DiscountController,
-        //                       keyboardType: TextInputType.number,
-        //                       obscureText: false,
-        //                      // onChanged: _onRateChanged,
-        //                       decoration: InputDecoration(
-        //                         border: InputBorder.none,
-        //                         contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
-        //                       ),
-        //                     ),
-        //           ),
-        //           SizedBox(width: screenHeight*0.019,),
-        //           Icon(Icons.percent),
-        //           Container(
-        //        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.0023,vertical: 0.026),
-
-        //          height: 35, 
-        //         width: 55,
-        //         decoration: BoxDecoration(
-        //           borderRadius: BorderRadius.circular(5),
-        //           color: Colors.white,
-        //           border: Border.all(color: Appcolors().searchTextcolor),
-        //         ),
-        //          child: TextFormField(
-        //           style: getFontsinput(14, Colors.black),
-        //                  controller: _Discpercentroller,
-        //                   keyboardType: TextInputType.number,
-        //                   obscureText: false,
-        //                  // onChanged: _onRateChanged,
-        //                   decoration: InputDecoration(
-        //                     border: InputBorder.none,
-        //                     contentPadding: EdgeInsets.symmetric(vertical: 12,horizontal: 5),
-        //                   ),
-        //                 ),
-        //       ),
-        //         ],
-        //       ),
-        //     ),
-        //   ],
-        // ),
-        //     ),
-        //     SizedBox(height: screenHeight*0.02,),
-        //      Container(
-        // child: Column(
-        //   crossAxisAlignment: CrossAxisAlignment.start,
-        //   children: [
-        //   Text(
-                  
-        //           'Net Amount',
-        //           style: formFonts(14, Colors.black),
-        //         ),
-        //     SizedBox(height: screenHeight * 0.01),
-        //     GestureDetector(
-        //       child: Container(
-        //        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01,vertical: 0.026),
-
-        //          height: 35, 
-        //         width: 173,
-        //         decoration: BoxDecoration(
-        //           borderRadius: BorderRadius.circular(5),
-        //           color: Colors.white,
-        //           border: Border.all(color: Appcolors().searchTextcolor),
-        //         ),
-        //         child: Padding(
-        //           padding: const EdgeInsets.symmetric(vertical: 6),
-        //           child: Text("${netamt}",style: getFontsinput(14, Colors.black),),
-        //         ),
-        //       ),
-        //     ),
-        //   ],
-        // ),
-        //     )
-        //       ],
-        //     ),
-        //   ),
+       
         
        SizedBox(height: screenHeight*0.04,),
       Container(

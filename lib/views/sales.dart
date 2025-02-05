@@ -9,7 +9,9 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -23,8 +25,12 @@ class SalesOrder extends StatefulWidget {
   final SalesCredit? salesCredit;
   final SalesCredit? salesDebit;
 final List<Map<String, String>>? itemDetails;
-
-  const SalesOrder({super.key, this.salesCredit,this.salesDebit,this.itemDetails});
+final double? discPerc; 
+final double? discnt;
+final double? net;
+final double? tot;
+final double? tax;
+  const SalesOrder({super.key, this.salesCredit,this.salesDebit,this.itemDetails,this.discPerc,this.discnt,this.net,this.tot,this.tax});
   @override
   State<SalesOrder> createState() => _SalesOrderState();
 }
@@ -270,44 +276,278 @@ final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
     );
   }
 }
-void _saveDataSaleperti() async {
+
+void _saveDataSaleinfor22() async {
   try {
-    final db = await SalesInformationDatabaseHelper.instance.database;
+     final db = await SalesInformationDatabaseHelper2.instance.database;
      final lastRow = await db.rawQuery(
-      'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1'
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
     );
     int newAuto = 1;
       if (lastRow.isNotEmpty) {
       final lastData = lastRow.first;
-newAuto = (lastData['Auto'] as int? ?? 0) + 1;
+newAuto = (lastData['RealEntryNo'] as int? ?? 0) + 1;
       
     }
-final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;  
-// final double discount = widget.salesCredit?.discount ?? 0.0;  
+    final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_CustomerController.text);
 
+    if (ledgerDetails == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ledger not found for customer: ${_CustomerController.text}')),
+      );
+      return;
+    }
+
+    final String ledCode = ledgerDetails['LedId'] ?? '';
+    if (_InvoicenoController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invoice number is required!')),
+      );
+      return;
+    }
+    if (_dateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Date is required!')),
+      );
+      return;
+    }
+
+    final transactionData = {
+      'RealEntryNo': newAuto, 
+      'EntryNo': _InvoicenoController.text, 
+      'InvoiceNo': _InvoicenoController.text,
+      'DDate': _dateController.text,
+      'BTime': _dateController.text,
+      'Customer': ledCode,
+      'Add1': 0, 
+      'Add2': 0,
+      'Toname': _CustomerController.text,
+      'TaxType': 'GST', 
+      'GrossValue': finalAmt,
+      'Discount': 0.00,
+      'NetAmount': finalAmt,
+      'cess': 0.00,
+      'Total': finalAmt,
+      'loadingcharge': 0.00,
+      'OtherCharges': 0.00,
+      'OtherDiscount': 0.00,
+      'Roundoff': 0.00,
+      'GrandTotal': finalAmt,
+      'SalesAccount': 0, // Example default value
+      'SalesMan': 0, // Add sales rep if available
+      'Location': 1, // Add location if available
+      'Narration': 0,
+      'Profit': 0.00,
+      'CashReceived': 0.00,
+      'BalanceAmount': finalAmt,
+      'Ecommision': 0.00,
+      'labourCharge': 0.00,
+      'OtherAmount': 0.00,
+      'Type': 0,
+      'PrintStatus': 0,
+      'CNo': 0,
+      'CreditPeriod': 0,
+      'DiscPercent': 0.00,
+      'SType': 2,
+      'VatEntryNo': 0,
+      'tcommision': 0.00,
+      'commisiontype': 0,
+      'cardno': 0,
+      'takeuser': 0,
+      'PurchaseOrderNo': 0,
+      'ddate1': 1,
+      'deliverNoteNo': 0,
+      'despatchno': 0,
+      'despatchdate':  _dateController.text,
+      'Transport': 0,
+      'Destination': 0,
+      'Transfer_Status': 0,
+      'TenderCash': 0.00,
+      'TenderBalance': 0.00,
+      'returnno': 0,
+      'returnamt': 0.00,
+      'vatentryname': 0,
+      'otherdisc1': 0.00,
+      'salesorderno': 0,
+      'systemno': 0,
+      'deliverydate': _dateController.text,
+      'QtyDiscount': 0.00,
+      'ScheemDiscount': 0.00,
+      'Add3': 0,
+      'Add4': 0,
+      'BankName': 0,
+      'CCardNo': 0,
+      'SMInvoice': 0,
+      'Bankcharges': 0.00,
+      'CGST': 0.00,
+      'SGST': 0.00,
+      'IGST': 0.00,
+      'mrptotal': 0.00,
+      'adcess': 0.00,
+      'BillType': 0,
+      'discuntamount': 0.00,
+      'unitprice': 0.00,
+      'lrno': 0,
+      'evehicleno': 0,
+      'ewaybillno': 0,
+      'RDisc': 0.00,
+      'subsidy': 0.00,
+      'kms': 0.00,
+      'todevice': 0,
+      'Fcess': 0.00,
+      'spercent': 0.00,
+      'bankamount': 0.00,
+      'FcessType': 0,
+      'receiptAmount': 0.00,
+      'receiptDate': 0,
+      'JobCardno': 0,
+      'WareHouse': 0,
+      'CostCenter': 0,
+      'CounterClose': 0,
+      'CashAccountID': ledCode,
+      'ShippingName': 0,
+      'ShippingAdd1': 0,
+      'ShippingAdd2': 0,
+      'ShippingAdd3': 0,
+      'ShippingGstNo': 0,
+      'ShippingState': 0,
+      'ShippingStateCode': 0,
+      'RateType': 0,
+      'EmiAc': 0,
+      'EmiAmount': 0.00,
+      'EmiRefNo': 0,
+      'RedeemPoint': 0,
+      'IRNNo': 0,
+      'signedinvno': 0,
+      'signedQrCode': 0,
+      'Salesman1': 0,
+      'TCSPer': 0.00,
+      'TCS': 0.00,
+      'app': 0,
+      'TotalQty': widget.salesCredit!.qty, 
+      'InvoiceLetter': 0,
+      'AckDate': 0,
+      'AckNo': 0,
+      'Project': 0,
+      'PlaceofSupply': 0,
+      'tenderRefNo': 0,
+      'IsCancel': 0,
+      'FyID': 2,
+      'm_invoiceno': _InvoicenoController.text,
+      'PaymentTerms': 0,
+      'WarrentyTerms': 0,
+      'QuotationEntryNo': 0,
+      'CreditNoteNo': 0,
+      'CreditNoteAmount': 0.00,
+      'Careoff': 0,
+      'CareoffAmount': 0.00,
+      'DeliveryStatus': 0,
+      'SOrderBilled': 0,
+      'isCashCounter': 0,
+      'Discountbarcode': 0,
+      'ExcEntryNo': 0,
+      'ExcEntryAmt': 0.00,
+      'FxCurrency': 0,
+      'FxValue': 0.00,
+      'CntryofOrgin': 0,
+      'ContryFinalDest': 0,
+      'PrecarriageBy': 0,
+      'PlacePrecarrier': 0,
+      'PortofLoading': 0,
+      'Portofdischarge': 0,
+      'FinalDestination': 0,
+      'CtnNo': 0,
+      'Totalctn': 0,
+      'Netwt': 0.00,
+      'grosswt': 0.00,
+      'Blno': 0
+    };
+
+    // Insert into database
+    await SalesInformationDatabaseHelper2.instance.insertSale(transactionData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {
+      _InvoicenoController.clear();
+      _dateController.clear();
+      _CustomerController.clear();
+    });
+
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
+
+void _saveDataSaleperti() async {
+  try {
+    final db = await SalesInformationDatabaseHelper.instance.database;
+    
+    // Get the last row from the Sales_Particulars table
+    final lastRow = await db.rawQuery(
+      'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1'
+    );
+    
+    int newAuto = 1;
+    int Newentryno = 1;
+    
+    if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+
+      // Safely cast to int from a num (which could be double or int)
+      newAuto = (lastData['Auto'] as num? ?? 0).toInt();
+      Newentryno = (lastData['EntryNo'] as num? ?? 0).toInt();     
+    }
+
+    final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;  
+
+    // Fetch stock details and ledger details
+    final stockDetails = await StockDatabaseHelper.instance
+        .getStockDetailsByName(widget.salesCredit!.itemName);
     final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
         .getLedgerDetailsByName(_CustomerController.text);
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+    final String itemcode = stockDetails?['itemcode'] ?? 'Unknown';
+    
+    final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
+        .getStockSaleDetailsByName(itemcode);
+    
+    final String Ucode = stocksaleDetails?['Uniquecode'] ?? 'Unknown';
+    final String itemDisc = stocksaleDetails?['Disc'] ?? 'Unknown';
+    final String prate = stocksaleDetails?['Disc'] ?? 'Unknown';
+     final String rprate = stocksaleDetails?['RealPrate'] ?? 'Unknown';
+final entry=Newentryno+1;
+final cgst = (widget.tax!) / 2;
+final sgst = (widget.tax!) / 2;
+    // Prepare the transaction data to insert into the Sales_Particulars table
     final transactionData = {
       'DDate': _dateController.text,
-      'EntryNo': _InvoicenoController.text,
-      'UniqueCode': 0,
-      'ItemID': 0,
+      'EntryNo': entry,
+      'UniqueCode': Ucode,
+      'ItemID': itemcode,
       'serialno': 0,
       'Rate': 0.0,
       'RealRate': 0.0,
       'Qty': widget.salesCredit!.qty,
       'freeQty': 0.0,
       'GrossValue': finalAmt,
-      'DiscPersent': 0.0,
-      'Disc': 0.0,
+      'DiscPersent': widget.discPerc,
+      'Disc': widget.discnt,
       'RDisc': 0.0,
-      'Net': finalAmt,
+      'Net': widget.net,
       'Vat': 0.0,
       'freeVat': 0.0,
       'cess': 0.0,
-      'Total': finalAmt,
+      'Total': widget.tot,
       'Profit': 0.0,
       'Auto': newAuto,
       'Unit': 0,
@@ -318,19 +558,19 @@ final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
       'GridID': 0,
       'takeprintstatus': 0,
       'QtyDiscPercent': 0.0,
-      'QtyDiscount': 0.0,
+      'QtyDiscount':itemDisc,
       'ScheemDiscPercent': 0.0,
       'ScheemDiscount': 0.0,
-      'CGST': 0.0,
-      'SGST': 0.0,
+      'CGST': cgst,
+      'SGST': sgst,
       'IGST': 0.0,
       'adcess': 0.0,
       'netdisc': 0.0,
-      'taxrate': 0,
+      'taxrate': widget.tax,
       'SalesmanId': 0,
       'Fcess': 0.0,
-      'Prate': 0.0,
-      'Rprate': 0.0,
+      'Prate': prate,
+      'Rprate': rprate,
       'location': 0,
       'Stype': 0,
       'LC': 0.0,
@@ -343,27 +583,34 @@ final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
       'wsrate': 0.0,
     };
 
+    // Insert the data into the Sales_Particulars table
     await SalesInformationDatabaseHelper.instance.insertParticular(transactionData);
 
+    // Check if the ledger details exist
     if (ledgerDetails != null) {
-
-    
+      // Perform any necessary operations for ledger details if available
     } else {
       print('Ledger not found for name: ${_CustomerController.text}');
     }
+
+    // Show a success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Saved successfully')),
     );
+
+    // Update UI if needed
     setState(() {
-      
+      // Your UI update code here
     });
   } catch (e) {
+    // Catch any errors and show a message
     print('Error while saving data: $e');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error saving data: $e')),
     );
   }
 }
+
 void _saveData() async {
   try {
     final qtyToReduce = widget.salesCredit!.qty.toDouble();
@@ -763,6 +1010,7 @@ Future<void> _fetchItems({String? customer}) async {
               //_saveData2();
               //_saveDataSaleinfor();
               _saveDataSaleperti();
+              //_saveDataSaleinfor22();
               },
             child: Container(
               width: 175,height: 53,

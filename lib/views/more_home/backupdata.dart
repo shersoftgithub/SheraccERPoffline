@@ -5,7 +5,9 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -22,9 +24,27 @@ class Backupdata extends StatefulWidget {
 
 class _BackupdataState extends State<Backupdata> {
   final connection = MssqlConnection.getInstance();
+ Future<List<Map<String, dynamic>>> fetchDataFromMSSQL() async {
+    try {
+      final query = 'SELECT * FROM Stock';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for Stock data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for Stock: $rawData');
+    } catch (e) {
+      print('Error fetching data from Stock: $e');
+      rethrow;
+    }
+  }
   // Fetch data from Stock table in MSSQL
-  Future<List<Map<String, dynamic>>> fetchDataFromMSSQL() async {
+  Future<List<Map<String, dynamic>>> fetchDataFromMSSQLStock() async {
     try {
       final query = 'SELECT * FROM Stock';
       final rawData = await MsSQLConnectionPlatform.instance.getData(query);
@@ -286,6 +306,25 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
       rethrow;
     }
   }
+   Future<List<Map<String, dynamic>>> fetchDataUnitFromMSSQL() async {
+    try {
+      final query = 'SELECT * FROM Unit_Details';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for Unit_Details data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for Unit_Details: $rawData');
+    } catch (e) {
+      print('Error fetching data from Unit_Details: $e');
+      rethrow;
+    }
+  }
 // Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
 //   try {
 //     // Define the query to fetch clean data from the database
@@ -355,6 +394,55 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
   // Backup both Stock and Product_Registration to local SQLite database
   Future<void> backupToLocalDatabase() async {
     try {
+final stockData2 = await fetchDataFromMSSQLStock();
+
+      if (stockData2.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Stock')),
+        );
+        return;
+      }
+
+      final dbHelper2 = SaleReferenceDatabaseHelper.instance;
+      for (var row in stockData2) {
+        Map<String, dynamic> rowData = {
+           'Uniquecode': row['Uniquecode']?.toString(),
+          'ItemId': row['ItemId']?.toString(),
+          'serialno': row['serialno']?.toString(),
+          'supplier': row['supplier']?.toString(),
+          'Qty': (row['Qty'] is num) ? row['Qty'].toDouble() : 0.0,
+          'Disc': (row['Disc'] is num) ? row['Disc'].toDouble() : 0.0,
+          'Free': (row['Free'] is num) ? row['Free'].toDouble() : 0.0,
+          'Prate': (row['Prate'] is num) ? row['Prate'].toDouble() : 0.0,
+          'Amount': (row['Amount'] is num) ? row['Amount'].toDouble() : 0.0,
+          'TaxType': row['TaxType']?.toString(),
+          'Category': row['Category']?.toString().isNotEmpty == true
+              ? row['Category']?.toString()
+              : 'Uncategorized',
+          'SRate': (row['SRate'] is num) ? row['SRate'].toDouble() : 0.0,
+          'Mrp': (row['Mrp'] is num) ? row['Mrp'].toDouble() : 0.0,
+          'Retail': (row['Retail'] is num) ? row['Retail'].toDouble() : 0.0,
+          'SpRetail': (row['SpRetail'] is num) ? row['SpRetail'].toDouble() : 0.0,
+          'WsRate': (row['WsRate'] is num) ? row['WsRate'].toDouble() : 0.0,
+          'Branch': row['Branch']?.toString(),
+          'RealPrate': (row['RealPrate'] is num) ? row['RealPrate'].toDouble() : 0.0,
+          'Location': row['Location']?.toString(),
+          'EstUnique': row['EstUnique']?.toString() ?? 'DefaultEstUnique',
+          'Locked': row['Locked']?.toString(),
+          'expDate': row['expDate']?.toString(),
+          'Brand': row['Brand']?.toString(),
+          'Company': row['Company']?.toString(),
+          'Size': row['Size']?.toString(),
+          'Color': row['Color']?.toString(),
+          'obarcode': row['obarcode']?.toString(),
+          'todevice': row['todevice']?.toString(),
+          'Pdate': row['Pdate']?.toString(),
+          'Cbarcode': row['Cbarcode']?.toString() ?? 'Default',
+          'SktSales': (row['SktSales'] is int) ? row['SktSales'] : 0,
+        };
+        await dbHelper2.insertStock(rowData);
+      }
+
       final stockData = await fetchDataFromMSSQL();
 
       if (stockData.isEmpty) {
@@ -750,7 +838,7 @@ final saleDatainf = await fetch_sale_information22DataFromMSSQL();
         );
         return;
       }
-      final DbHelperSaleinf = SalesInformationDatabaseHelper.instance;
+      final DbHelperSaleinf = SalesInformationDatabaseHelper2.instance;
 for (var row in saleDatainf) {
   Map<String, dynamic> rowData = {
     'RealEntryNo': row['RealEntryNo']?.toString() ?? '', 
@@ -904,6 +992,29 @@ for (var row in saleDatainf) {
   };
 
   await DbHelperSaleinf.insertSale(rowData);
+}
+final unitData = await fetchDataUnitFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperUnit = SaleReferenceDatabaseHelper.instance;
+for (var row in unitData) {
+  Map<String, dynamic> rowData = {
+    'ItemId': row['ItemId']?.toString() ?? '',  
+      'PUnit': row['PUnit']?.toString() ?? '',
+      'SUnit': row['SUnit']?.toString() ?? '',
+      'Unit': row['Unit']?.toString() ?? '',
+      'Conversion': row['Conversion']?.toString() ?? '0', 
+      'Auto': row['Auto']?.toString() ?? '0',
+      'Rate': row['Rate']?.toString() ?? '0',
+      'Barcode': row['Barcode']?.toString() ?? '',
+      'IsGatePass': row['IsGatePass']?.toString() ?? '0',
+  };
+
+  await DbHelperUnit.insertunit(rowData);
 }
 //       final AccTransLedgerData = await fetchDataFromMSSQLAccTransations();
 //  if (productData.isEmpty) {
