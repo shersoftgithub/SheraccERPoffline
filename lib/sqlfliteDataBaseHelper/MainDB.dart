@@ -408,7 +408,7 @@ Future<double> getDebitAmountForLedger(String ledgerName) async {
     final db = await instance.database;
     final result = await db.query(
       'LedgerNames',
-      columns: ['Ledcode AS LedId', 'Mobile','OpeningBalance'],
+      columns: ['Ledcode AS LedId', 'Mobile','OpeningBalance','add1','add2','add3','add4'],
       where: 'LedName = ?',
       whereArgs: [ledgerName],
     );

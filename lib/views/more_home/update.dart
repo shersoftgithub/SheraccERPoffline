@@ -101,6 +101,22 @@ Future<void> syncRVParticularsToMSSQL() async {
   try {
     final localData = await RV_DatabaseHelper.instance.fetchPVParticulars();
 
+    final lastRowQuery = '''
+      SELECT TOP 1 auto, ddate FROM RV_Particulars ORDER BY ddate DESC, auto DESC
+    ''';
+    final lastRowResult = await MsSQLConnectionPlatform.instance.getData(lastRowQuery);
+
+    int lastAuto = 0;
+    String lastDdate = "";
+
+    if (lastRowResult is String) {
+      final decodedLastRow = jsonDecode(lastRowResult);
+      if (decodedLastRow is List && decodedLastRow.isNotEmpty) {
+        lastAuto = (decodedLastRow.first['auto'] ?? 0) as int;
+        lastDdate = decodedLastRow.first['ddate']?.toString() ?? "";
+      }
+    }
+
     for (var row in localData) {
       final auto = int.tryParse(row['auto'].toString()) ?? 0;
       final entryNo = double.tryParse(row['EntryNo'].toString()) ?? 0.0;
@@ -110,6 +126,8 @@ Future<void> syncRVParticularsToMSSQL() async {
       final total = double.tryParse(row['Total'].toString()) ?? 0.0;
       final narration = row['Narration'].toString().replaceAll("'", "''");
       final ddate = row['ddate'].toString();
+      final fyid = row['FyID'].toString();
+      final fmid = row['FrmID'].toString();
 
       final checkQuery = "SELECT COUNT(*) AS count FROM RV_Particulars WHERE auto = $auto";
       final checkResult = await MsSQLConnectionPlatform.instance.getData(checkQuery);
@@ -120,6 +138,7 @@ Future<void> syncRVParticularsToMSSQL() async {
           final count = decodedCheck.first['count'] ?? 0;
 
           if (count > 0) {
+            // Step 3: Update existing record
             final updateQuery = '''
               UPDATE RV_Particulars 
               SET 
@@ -129,26 +148,36 @@ Future<void> syncRVParticularsToMSSQL() async {
                 Discount = $discount, 
                 Total = $total, 
                 Narration = '$narration', 
-                ddate = '$ddate' 
+                ddate = '$ddate',
+                FyID = '$fyid',
+                FrmID = '$fmid'
               WHERE auto = $auto
             ''';
             await MsSQLConnectionPlatform.instance.writeData(updateQuery);
             print("Updated record: $auto");
           } else {
-            // **Insert without 'auto' column (SQL Server will auto-generate it)**
+            // Step 4: Insert new record with auto incremented
+            lastAuto += 1;
+
             final insertQuery = '''
-              INSERT INTO RV_Particulars (Name, Amount, Discount, Total, Narration, ddate)
-              VALUES ( 
+SET IDENTITY_INSERT RV_Particulars ON;
+              INSERT INTO RV_Particulars (auto, EntryNo, Name, Amount, Discount, Total, Narration, ddate, FyID, FrmID)
+              VALUES (
+                $lastAuto, 
+                $entryNo,
                 $name, 
                 $amount, 
                 $discount, 
                 $total, 
                 '$narration', 
-                '$ddate'
-              )
+                '$ddate',
+                '$fyid' ,
+                '$fmid' 
+              );
+              SET IDENTITY_INSERT RV_Particulars OFF;
             ''';
             await MsSQLConnectionPlatform.instance.writeData(insertQuery);
-            print("Inserted new record (auto-generated ID & EntryNo)");
+            print("Inserted new record with auto: $lastAuto");
           }
         }
       }
@@ -158,19 +187,36 @@ Future<void> syncRVParticularsToMSSQL() async {
   }
 }
 
+
 Future<void> syncPVParticularsToMSSQL() async {
   try {
     final localData = await PV_DatabaseHelper.instance.fetchPVParticulars();
+final lastRowQuery = '''
+      SELECT TOP 1 auto, ddate FROM PV_Particulars ORDER BY ddate DESC, auto DESC
+    ''';
+    final lastRowResult = await MsSQLConnectionPlatform.instance.getData(lastRowQuery);
 
+    int lastAuto = 0;
+    String lastDdate = "";
+
+    if (lastRowResult is String) {
+      final decodedLastRow = jsonDecode(lastRowResult);
+      if (decodedLastRow is List && decodedLastRow.isNotEmpty) {
+        lastAuto = (decodedLastRow.first['auto'] ?? 0) as int;
+        lastDdate = decodedLastRow.first['ddate']?.toString() ?? "";
+      }
+    }
     for (var row in localData) {
-      // Convert necessary fields to the correct type
+      final auto = int.tryParse(row['auto'].toString()) ?? 0;
+       final entryno = int.tryParse(row['EntryNo'].toString()) ?? 0;
       final name = int.tryParse(row['Name'].toString()) ?? 0; 
       final amount = double.tryParse(row['Amount'].toString()) ?? 0.0; 
       final discount = double.tryParse(row['Discount'].toString()) ?? 0.0; 
       final total = double.tryParse(row['Total'].toString()) ?? 0.0; 
       final narration = row['Narration'].toString().replaceAll("'", "''"); 
       final ddate = row['ddate'].toString();
-
+      final fyid = row['FyID'].toString();
+      final fmid = row['FrmID'].toString();
       final checkQuery = "SELECT COUNT(*) AS count FROM PV_Particulars WHERE Name = $name AND ddate = '$ddate'";
       final checkResult = await MsSQLConnectionPlatform.instance.getData(checkQuery);
 
@@ -183,26 +229,34 @@ Future<void> syncPVParticularsToMSSQL() async {
             final updateQuery = '''
               UPDATE PV_Particulars 
               SET 
+              EntryNo = $entryno,
                 Amount = $amount, 
                 Discount = $discount, 
                 Total = $total, 
-                Narration = '$narration'
+                Narration = '$narration',
+                FyID= '$fyid',
+                FrmID='$fmid'
               WHERE Name = $name AND ddate = '$ddate'
             ''';
             await MsSQLConnectionPlatform.instance.writeData(updateQuery);
             print("Updated record for Name: $name and ddate: $ddate");
           } else {
-            // **Insert without 'auto' and 'EntryNo' (SQL Server will auto-generate them)**
             final insertQuery = '''
-              INSERT INTO PV_Particulars (Name, Amount, Discount, Total, Narration, ddate)
+          SET IDENTITY_INSERT PV_Particulars ON;
+              INSERT INTO PV_Particulars (auto,EntryNo,Name, Amount, Discount, Total, Narration, ddate,FyID,FrmID)
               VALUES (
+              $lastAuto,
+              $entryno,
                 $name, 
                 $amount, 
                 $discount, 
                 $total, 
                 '$narration', 
-                '$ddate'
-              )
+                '$ddate',
+                '$fyid' ,
+                '$fmid'
+              );
+              SET IDENTITY_INSERT PV_Particulars OFF;
             ''';
             await MsSQLConnectionPlatform.instance.writeData(insertQuery);
             print("Inserted new record (auto-generated ID)");

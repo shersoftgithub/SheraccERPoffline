@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/paymant_model.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
@@ -30,6 +31,7 @@ class _PaymentFormState extends State<PaymentForm> {
    @override
   void initState() {
     super.initState();
+    _fetchStockData2();
     fetchData();
   // _fetchLedgerBalances();
    _fetchLedger();
@@ -234,7 +236,19 @@ void _saveDataPV_Perticular() async {
         .getLedgerDetailsByName(_selectlnamesController.text);
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+  String selectedDate = _dateController.text;
+int selectedFyID = 0; 
 
+for (var fyRecord in fy) {
+  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
+  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
+  DateTime selected = DateTime.parse(selectedDate);  
+
+  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
+    break;  
+  }
+}
     final transactionData = {
       'auto': newAuto.toString(), 
       'EntryNo': newEntryNo.toString(), 
@@ -245,6 +259,9 @@ void _saveDataPV_Perticular() async {
       'Discount': _DiscountController.text,
       'Narration': _narrationController.text,
       'Name': ledCode,
+      'FyID':selectedFyID,
+      'FrmID':1,
+      
     };
 
     await PV_DatabaseHelper.instance.insertPVParticulars(transactionData);
@@ -269,6 +286,18 @@ void _saveDataPV_Perticular() async {
     );
   }
 }
+List fy=[];
+ Future<void> _fetchStockData2() async {
+    try {
+            List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllfyid();
+      print('Fetched stock data: $data');
+      setState(() {
+      fy   = data;
+      });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
+  }
 
 void _saveDataPV_Information() async {
   try {
@@ -316,7 +345,19 @@ void _saveDataPV_Information() async {
         .getLedgerDetailsByName(_selectlnamesController.text);
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+   String selectedDate = _dateController.text;
+int selectedFyID = 0; 
 
+for (var fyRecord in fy) {
+  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
+  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
+  DateTime selected = DateTime.parse(selectedDate);  
+
+  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
+    break;  
+  }
+}
     final transactionData = {
       'DDATE': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
       'AMOUNT': amount,
@@ -330,7 +371,7 @@ void _saveDataPV_Information() async {
       'MonthDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
       'app': lastApp,            
       'Transfer_Status': lastTransferStatus, 
-      'FyID': lastFyID,          
+      'FyID': selectedFyID,          
       'EntryNo': newEntryNo,     
       'FrmID': lastFrmID,        
       'pviCurrency': lastPviCurrency,  
@@ -384,9 +425,6 @@ double total = ((double.tryParse(_balanceController.text) ?? 0.0) - (double.tryP
 
 print('Total: $total');
 double _TotalController=_total;
-
-
-
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -420,7 +458,7 @@ double _TotalController=_total;
             child: GestureDetector(
               onTap: () {
                 // _saveData();
-                // _saveDataPV_Perticular();
+                 _saveDataPV_Perticular();
                 _saveDataPV_Information();
               },
               child: SizedBox(

@@ -180,7 +180,7 @@ void _showLedgerWithFilters() {
                     child: EasyAutocomplete(
                         controller: ledgernamesController,
                         suggestions: names,
-                           
+
                         onSubmitted: (value) {
                                   },
                         decoration: InputDecoration(

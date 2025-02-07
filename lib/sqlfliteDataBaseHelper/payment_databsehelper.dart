@@ -37,7 +37,9 @@ class PV_DatabaseHelper {
         Total REAL,
         Narration TEXT,
         ddate TEXT,
-        CashAccount TEXT
+        CashAccount TEXT,
+        FyID TEXT,
+        FrmID TEXT
       );
     ''');
 
@@ -71,6 +73,16 @@ class PV_DatabaseHelper {
       );
     ''');
   }
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  if (oldVersion < 2) {  
+    await db.execute('''
+      ALTER TABLE PV_Particulars
+      ADD COLUMN FyID TEXT;
+      ADD COLUMN FrmID TEXT;
+    ''');
+  }
+}
+
 
   Future<void> insertPVInformation(Map<String, dynamic> data) async {
     final db = await database;

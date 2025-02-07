@@ -26,7 +26,7 @@ class RV_DatabaseHelper {
     var databasesPath = await getDatabasesPath();
     String path = join(databasesPath, _databaseName);
     
-    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
+    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate,onUpgrade: _onUpgrade);
   }
 
   // Create tables in the database
@@ -41,7 +41,9 @@ class RV_DatabaseHelper {
         Total REAL,
         Narration TEXT,
         ddate TEXT,
-        CashAccount TEXT
+        CashAccount TEXT,
+        FyID TEXT,
+        FrmID TEXT
       );
     ''');
 
@@ -70,13 +72,18 @@ class RV_DatabaseHelper {
     ''');
 
   }
-
-  // Insert data into PV_Particulars table
+ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  if (oldVersion < 2) {  
+    await db.execute('''
+      ALTER TABLE PV_Particulars
+      ADD COLUMN FyID TEXT;
+      ADD COLUMN FrmID TEXT;
+    ''');
+  }
+}
   Future<void> insertPVParticulars(List<Map<String, dynamic>> data) async {
     final db = await database;
-    
-    // Insert data into the table, or replace it if the primary key already exists
-    Batch batch = db.batch();
+        Batch batch = db.batch();
     for (var row in data) {
       batch.insert(
         'RV_Particulars',

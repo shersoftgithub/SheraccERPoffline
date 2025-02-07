@@ -19,12 +19,11 @@ class SaleReferenceDatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,  // Define the initial version
+      version: 2,  
       onCreate: _createDB,
     );
   }
 
-  // Creating the sale_reference table
   Future<void> _createDB(Database db, int version) async {
      await db.execute('''
       CREATE TABLE IF NOT EXISTS stock(
@@ -74,9 +73,33 @@ class SaleReferenceDatabaseHelper {
     IsGatePass INTEGER NOT NULL
   )
 ''');
+  await db.execute('''
+  CREATE TABLE IF NOT EXISTS FinancialYear(
+    Fyid TEXT NOT NULL,
+    Frmdate TEXT NOT NULL,
+    Todate TEXT NOT NULL
+   
+  )
+''');
   }
+Future<void> insertfyid(Map<String, dynamic> data) async {
+    final db = await database;
+    try {
+      final result = await db.insert(
+        'FinancialYear',
+        data,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
 
-  // Insert data into the sale_reference table
+      if (result > 0) {
+        print('FinancialYear Inserted: $data');
+      } else {
+        print(' Failed to insert FinancialYear.');
+      }
+    } catch (e) {
+      print(' Error inserting into FinancialYear: $e');
+    }
+  }
   Future<void> insertStock(Map<String, dynamic> data) async {
     final db = await database;
     try {
@@ -122,7 +145,14 @@ Future<void> insertunit(Map<String, dynamic> data) async {
       throw Exception("Failed to fetch sale references: $e");
     }
   }
-
+ Future<List<Map<String, dynamic>>> getAllfyid() async {
+    final db = await database;
+    try {
+      return await db.query('FinancialYear');
+    } catch (e) {
+      throw Exception("Failed to fetch FinancialYear references: $e");
+    }
+  }
   // Get sale reference by SaleId
   Future<Map<String, dynamic>?> getSaleReferenceBySaleId(String saleId) async {
     final db = await database;
@@ -142,7 +172,20 @@ Future<void> insertunit(Map<String, dynamic> data) async {
     final db = await instance.database;
     final result = await db.query(
       'stock',
-      columns: ['Uniquecode','Disc','Pdate','RealPrate'],
+      columns: ['Uniquecode','Disc','Pdate','RealPrate','Prate'],
+      where: 'ItemId = ?',
+      whereArgs: [ledgerName],
+    );
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
+   Future<Map<String, dynamic>?> getStockunitDetailsByName(String ledgerName) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'Unit_Details',
+      columns: ['Unit'],
       where: 'ItemId = ?',
       whereArgs: [ledgerName],
     );

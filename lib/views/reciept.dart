@@ -11,6 +11,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart'
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
@@ -36,6 +37,7 @@ class _PaymentFormState extends State<Reciept> {
    @override
   void initState() {
     super.initState();
+    _fetchfyData();
    // _fetchLedgerBalances();
    _fetchLedger();
    fetchData();
@@ -206,21 +208,34 @@ void _saveDataRV_Perticular() async {
   try {
     final db = await RV_DatabaseHelper.instance.database;
 
-    // Fetch the highest auto and EntryNo values
-    final lastRow = await db.rawQuery(
-      'SELECT MAX(auto) AS maxAuto, MAX(EntryNo) AS maxEntryNo FROM RV_Particulars'
-    );
+final lastDateRow = await db.rawQuery(
+  'SELECT ddate FROM RV_Particulars ORDER BY ddate DESC LIMIT 1'
+);
 
-    int newAuto = 1;
-    int newEntryNo = 1;
+int newAuto = 1;
+double newEntryNo = 1.0; // Ensure it's a double
 
-    if (lastRow.isNotEmpty) {
-      final lastAuto = int.tryParse(lastRow.first['maxAuto']?.toString() ?? '0') ?? 0;
-      final lastEntryNo = int.tryParse(lastRow.first['maxEntryNo']?.toString() ?? '0') ?? 0;
+if (lastDateRow.isNotEmpty) {
+  final lastDate = lastDateRow.first['ddate']?.toString() ?? '';
 
-      newAuto = lastAuto + 1;
-      newEntryNo = lastEntryNo + 1;
-    }
+  final lastRow = await db.rawQuery(
+    'SELECT auto, EntryNo FROM RV_Particulars WHERE ddate = ? ORDER BY auto DESC LIMIT 1',
+    [lastDate]
+  );
+
+  if (lastRow.isNotEmpty) {
+    final lastAuto = int.tryParse(lastRow.first['auto']?.toString() ?? '0') ?? 0;
+    final lastEntryNo = double.tryParse(lastRow.first['EntryNo']?.toString() ?? '0') ?? 0.0; // FIXED: Correct key lookup
+
+    print("Fetched lastAuto: $lastAuto, lastEntryNo: $lastEntryNo"); // Debugging
+
+    newAuto = lastAuto + 1;
+    newEntryNo = lastEntryNo + 1.0; // Ensure increment as double
+  }
+}
+
+
+print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo"); // Debugging
 
     final double amount = double.tryParse(_amountController.text) ?? 0.0;
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
@@ -231,7 +246,19 @@ void _saveDataRV_Perticular() async {
         .getLedgerDetailsByName(_selectlnamesController.text);
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+String selectedDate = _dateController.text;
+int selectedFyID = 0; 
 
+for (var fyRecord in fy) {
+  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
+  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
+  DateTime selected = DateTime.parse(selectedDate);  
+
+  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
+    break;  
+  }
+}
     final transactionData = {
       'auto': newAuto.toString(), // Highest auto + 1
       'EntryNo': newEntryNo.toString(), // Highest EntryNo + 1
@@ -242,6 +269,8 @@ void _saveDataRV_Perticular() async {
       'Discount': _DiscountController.text,
       'Narration': _narrationController.text,
       'Name': ledCode,
+      'FyID':selectedFyID,
+      'FrmID':2,
     };
 
     await RV_DatabaseHelper.instance.insertRVParticulars(transactionData);
@@ -266,6 +295,19 @@ void _saveDataRV_Perticular() async {
     );
   }
 }
+
+List fy=[];
+ Future<void> _fetchfyData() async {
+    try {
+            List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllfyid();
+      print('Fetched stock data: $data');
+      setState(() {
+      fy   = data;
+      });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
+  }
 
 void _saveDataRV_Information() async {
   try {
@@ -313,6 +355,19 @@ lastPviCurrencyValue = int.tryParse(lastData['pviCurrencyValue'].toString()) ?? 
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
  final newEntryNo2=newEntryNo+1;
+  String selectedDate = _dateController.text;
+int selectedFyID = 0; 
+
+for (var fyRecord in fy) {
+  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
+  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
+  DateTime selected = DateTime.parse(selectedDate);  
+
+  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
+    break;  
+  }
+}
     final transactionData = {
       'DDATE': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
       'AMOUNT': amount,
@@ -326,7 +381,7 @@ lastPviCurrencyValue = int.tryParse(lastData['pviCurrencyValue'].toString()) ?? 
       'MonthDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
       'app': lastApp,            
       'Transfer_Status': lastTransferStatus, 
-      'FyID': lastFyID,          
+      'FyID': selectedFyID,          
       'EntryNo': newEntryNo2,     
       'FrmID': lastFrmID,        
       'pviCurrency': lastPviCurrency,  
@@ -397,7 +452,7 @@ double _TotalController=_total;
             child: GestureDetector(
               onTap: () {
                // _saveData();
-                //_saveDataRV_Perticular();
+                _saveDataRV_Perticular();
                 _saveDataRV_Information();
               },
               child: SizedBox(

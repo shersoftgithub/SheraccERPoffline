@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
@@ -168,6 +169,7 @@ Future<void> syncSalesInformationToMSSQL() async {
   }
 }
 
+
 Future<void> syncSalesInformationToMSSQL2() async {
   try {
     final localData = await SalesInformationDatabaseHelper2.instance.getSalesData();
@@ -184,7 +186,7 @@ Future<void> syncSalesInformationToMSSQL2() async {
 
         if (value is String) {
           if (_isDateString(value)) {
-            return "'${_convertToSQLDate(value)}'"; // Ensure correct date format
+            return _convertToSQLDate(value); // Ensure correct date format
           }
           return "'${value.trim().replaceAll("'", "''")}'"; // Escape single quotes & trim spaces
         }
@@ -203,13 +205,20 @@ Future<void> syncSalesInformationToMSSQL2() async {
 
           if (count > 0) {
             // **Update existing record (EXCLUDING RealEntryNo)**
-            final updateSet = List.generate(filteredColumns.length, 
-                (i) => "${filteredColumns[i]} = ${filteredValues[i]}").join(", ");
-            final updateQuery = '''
-              UPDATE Sales_Information SET $updateSet WHERE RealEntryNo = $realEntryNo
-            ''';
-            await MsSQLConnectionPlatform.instance.writeData(updateQuery);
-            print("✅ Updated Sales_Information for RealEntryNo: $realEntryNo");
+            final updateSet = List.generate(filteredColumns.length, (i) {
+              if (filteredValues[i] == 'NULL') return null; // Skip NULL values
+              return "${filteredColumns[i]} = ${filteredValues[i]}";
+            }).where((element) => element != null).join(", ");
+
+            if (updateSet.isNotEmpty) { // Only update if there are valid fields
+              final updateQuery = '''
+                UPDATE Sales_Information SET $updateSet WHERE RealEntryNo = $realEntryNo
+              ''';
+              await MsSQLConnectionPlatform.instance.writeData(updateQuery);
+              print("✅ Updated Sales_Information for RealEntryNo: $realEntryNo");
+            } else {
+              print("⚠️ Skipped update for RealEntryNo: $realEntryNo (No valid values)");
+            }
           } else {
             // **Insert new record (INCLUDING RealEntryNo)**
             final insertQuery = '''
@@ -231,30 +240,30 @@ Future<void> syncSalesInformationToMSSQL2() async {
 
 // **Helper function to detect date strings**
 bool _isDateString(String value) {
-  final datePattern = RegExp(r'^\d{2}/\d{2}/\d{4}$'); // Matches dd/MM/yyyy
+  final datePattern = RegExp(r'^\d{2}/\d{2}/\d{4}$|^\d{4}-\d{2}-\d{2}$'); // Matches dd/MM/yyyy OR yyyy-MM-dd
   return datePattern.hasMatch(value);
 }
 
-String _convertToSQLDate(String value) {
+String _convertToSQLDate(String inputDate) {
   try {
-    // **Check if it's already in a valid format**
-    if (RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(value)) {
-      return value; // Already in YYYY-MM-DD
+    DateTime parsedDate;
+
+    if (inputDate.contains("/")) {
+      parsedDate = DateFormat("dd/MM/yyyy").parse(inputDate);
+    } else if (inputDate.contains("-")) {
+      parsedDate = DateFormat("yyyy-MM-dd").parse(inputDate);
+    } else {
+      return 'NULL'; // Return NULL for invalid formats
     }
 
-    // **Attempt to convert dd/MM/yyyy → YYYY-MM-DD**
-    final parts = value.split(RegExp(r'[/.-]')); // Handle "/", ".", "-"
-    if (parts.length == 3) {
-      final day = parts[0].padLeft(2, '0');
-      final month = parts[1].padLeft(2, '0');
-      final year = parts[2];
-      return '$year-$month-$day';
-    }
+    // Convert to MSSQL expected format: 'yyyy-MM-dd HH:mm:ss'
+    return "'${DateFormat("yyyy-MM-dd HH:mm:ss").format(parsedDate)}'";
   } catch (e) {
-    print("❌ Error converting date: $value -> $e");
+    print("⚠️ Date conversion error: $e for input: $inputDate");
+    return 'NULL'; // Handle invalid date values safely
   }
-  return 'NULL'; // Return NULL if conversion fails
 }
+
 
 
 
@@ -293,14 +302,16 @@ String _convertToSQLDate(String value) {
         break;
         case "Update":
         //backupAndSyncData();
-        // syncPVParticularsToMSSQL();
-        // syncRVParticularsToMSSQL();
+        
         //syncSalesInformationToMSSQL();
         //syncSalesParticularsToMSSQL();
-        //syncPVInformationToMSSQL();
-        // Update update = Update();
-        // update.syncRVInformationToMSSQL();
-        syncSalesInformationToMSSQL2();
+        
+        Update update = Update();
+        //update.syncRVInformationToMSSQL();
+        // update.syncRVParticularsToMSSQL();
+        // update.syncPVInformationToMSSQL();
+         update.syncPVParticularsToMSSQL();
+        //syncSalesInformationToMSSQL2();
         break;
       default:
         print("Unknown option selected: $item");
