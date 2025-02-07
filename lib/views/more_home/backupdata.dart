@@ -113,7 +113,7 @@ final query = '''
 
 Future<List<Map<String, dynamic>>> fetch_P_vPerticularsDataFromMSSQL() async {
    try {
-      final query = 'SELECT  auto,EntryNo,Name,Amount,Discount,Total,Narration,ddate FROM PV_Particulars';
+      final query = 'SELECT  auto,EntryNo,Name,Amount,Discount,Total,Narration,ddate,FyID,FrmID FROM PV_Particulars';
       final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
       if (rawData is String) {
@@ -133,7 +133,7 @@ Future<List<Map<String, dynamic>>> fetch_P_vPerticularsDataFromMSSQL() async {
 
 Future<List<Map<String, dynamic>>> fetch_R_vPerticularsDataFromMSSQL() async {
    try {
-      final query = 'SELECT  auto,EntryNo,Name,Amount,Discount,Total,Narration,ddate FROM RV_Particulars';
+      final query = 'SELECT  auto,EntryNo,Name,Amount,Discount,Total,Narration,ddate,FyID,FrmID FROM RV_Particulars';
       final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
       if (rawData is String) {
@@ -309,6 +309,25 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
    Future<List<Map<String, dynamic>>> fetchDataUnitFromMSSQL() async {
     try {
       final query = 'SELECT * FROM Unit_Details';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for Unit_Details data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for Unit_Details: $rawData');
+    } catch (e) {
+      print('Error fetching data from Unit_Details: $e');
+      rethrow;
+    }
+  }
+    Future<List<Map<String, dynamic>>> fetchDatafyFromMSSQL() async {
+    try {
+      final query = 'SELECT Fyid,Frmdate,Todate FROM FinancialYear';
       final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
       if (rawData is String) {
@@ -631,6 +650,8 @@ for (var row in paymentData) {
     'Total': row['Total']?.toString() ?? '',
     'Narration': row['Narration']?.toString() ?? '',
     'ddate': row['ddate']?.toString() ?? '',
+    'FyID': row['FyID']?.toString() ?? '',
+    'FrmID': row['FrmID']?.toString() ?? '',
   };
 
   await DbHelperpay.insertPVParticulars(rowData);
@@ -680,13 +701,17 @@ final recimentData = await fetch_R_vPerticularsDataFromMSSQL();
 for (var row in recimentData) {
   Map<String, dynamic> rowData = {
     'auto': row['auto']?.toString() ?? '', 
-    'EntryNo': row['EntryNo']?.toString() ?? '',
+     'EntryNo': (row['EntryNo'] is int) 
+      ? (row['EntryNo'] as int).toDouble()  // Convert int to double if necessary
+      : (row['EntryNo'] as double?),
     'Name': row['Name']?.toString() ?? '',
     'Amount': row['Amount']?.toString() ?? '',
     'Discount': row['Discount']?.toString() ?? '',
     'Total': row['Total']?.toString() ?? '',
     'Narration': row['Narration']?.toString() ?? '',
     'ddate': row['ddate']?.toString() ?? '',
+     'FyID': row['FyID']?.toString() ?? '',
+    'FrmID': row['FrmID']?.toString() ?? '',
   };
 
   await DbHelperReci.insertRVParticulars(rowData);
@@ -1016,6 +1041,22 @@ for (var row in unitData) {
 
   await DbHelperUnit.insertunit(rowData);
 }
+final fyData = await fetchDatafyFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperfy = SaleReferenceDatabaseHelper.instance;
+for (var row in fyData) {
+  Map<String, dynamic> rowData = {
+    'Fyid': row['Fyid']?.toString() ?? '',  
+      'Frmdate': row['Frmdate']?.toString() ?? '',
+      'Todate': row['Todate']?.toString() ?? '',
+  };
+  await DbHelperfy.insertfyid(rowData);
+}
 //       final AccTransLedgerData = await fetchDataFromMSSQLAccTransations();
 //  if (productData.isEmpty) {
 //         ScaffoldMessenger.of(context).showSnackBar(
@@ -1155,7 +1196,7 @@ Future<void> performBackup() async {
           onTap: () {
           backupToLocalDatabase(); 
           //sync();
-          //performBackup();
+          performBackup();
           //updateOpeningBalances();
           },
           child: Container(
