@@ -69,107 +69,6 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
     super.dispose();
   }
 
-Future<void> syncSalesInformationToMSSQL() async {
-  try {
-    final localData = await SalesInformationDatabaseHelper.instance.getSalesData();
-
-    final latestEntryQuery = "SELECT MAX(RealEntryNo) AS lastEntry FROM Sales_Information";
-    final latestEntryResult = await MsSQLConnectionPlatform.instance.getData(latestEntryQuery);
-    int nextRealEntryNo = 1;
-
-    if (latestEntryResult is String) {
-      final decodedLatest = jsonDecode(latestEntryResult);
-      if (decodedLatest is List && decodedLatest.isNotEmpty) {
-        nextRealEntryNo = (decodedLatest.first['lastEntry'] ?? 0) + 1;
-      }
-    }
-
-    for (var row in localData) {
-      final rentryNo = row['RealEntryNo']?.toString() ?? '';  
-      final invoiceNo = row['InvoiceNo']?.toString() ?? '';  
-      final dDate = row['DDate']?.toString() ?? ''; 
-      final customer = row['Customer']?.toString() ?? '0'; 
-      final toName = row['Toname']?.toString()?.replaceAll("'", "''") ?? ''; 
-      final discount = double.tryParse(row['Discount']?.toString() ?? '0') ?? 0.0;
-      final netAmount = double.tryParse(row['NetAmount']?.toString() ?? '0') ?? 0.0;
-      final total = double.tryParse(row['Total'].toString()) ?? 0.0;
-      final totalQty = int.tryParse(row['TotalQty'].toString()) ?? 0;
-
-      // ✅ Skip invalid records
-      if (invoiceNo.isEmpty || customer == '0' || totalQty == 0) {
-        print("⚠️ Skipping invalid record: InvoiceNo = $invoiceNo, Customer = $customer, TotalQty = $totalQty");
-        continue;
-      }
-
-      // 🔍 Check if record already exists in MSSQL
-      final checkQuery = '''
-        SELECT RealEntryNo FROM Sales_Information 
-        WHERE InvoiceNo = '$invoiceNo'
-      ''';
-      final checkResult = await MsSQLConnectionPlatform.instance.getData(checkQuery);
-
-      bool recordExists = false;
-      int existingRealEntryNo = 0;
-
-      if (checkResult is String) {
-        final decodedCheck = jsonDecode(checkResult);
-        if (decodedCheck is List && decodedCheck.isNotEmpty) {
-          recordExists = true;
-          existingRealEntryNo = decodedCheck.first['RealEntryNo'] ?? 0;
-        }
-      }
-
-      if (recordExists) {
-        final updateQuery = '''
-          UPDATE Sales_Information 
-          SET 
-            DDate = '$dDate', 
-            Customer = '$customer', 
-            Toname = '$toName', 
-            Discount = $discount, 
-            NetAmount = $netAmount, 
-            Total = $total, 
-            TotalQty = $totalQty
-          WHERE RealEntryNo = $existingRealEntryNo
-        ''';
-        await MsSQLConnectionPlatform.instance.writeData(updateQuery);
-        print("✅ Updated record: RealEntryNo = $existingRealEntryNo, InvoiceNo = $invoiceNo");
-      } else {
-        // ✅ Insert new record with correct RealEntryNo
-        final insertQuery = '''
-          INSERT INTO Sales_Information (RealEntryNo, InvoiceNo, DDate, Customer, Toname, Discount, NetAmount, Total, TotalQty)
-          VALUES (
-            $nextRealEntryNo,
-            '$invoiceNo', 
-            '$dDate', 
-            '$customer', 
-            '$toName', 
-            $discount, 
-            $netAmount, 
-            $total, 
-            $totalQty
-          )
-          
-  SET IDENTITY_INSERT Sales_Information OFF;
-        ''';
-        try {
-          await MsSQLConnectionPlatform.instance.writeData(insertQuery);
-          print("✅ Inserted new record with RealEntryNo: $nextRealEntryNo (InvoiceNo = $invoiceNo)");
-
-          // Increment for next insert
-          nextRealEntryNo++;
-        } catch (e) {
-          print("❌ Error inserting record for InvoiceNo = $invoiceNo: $e");
-        }
-      }
-    }
-
-  } catch (e) {
-    print("❌ Error syncing Sales_Information to MSSQL: $e");
-  }
-}
-
-
 Future<void> syncSalesInformationToMSSQL2() async {
   try {
     final localData = await SalesInformationDatabaseHelper2.instance.getSalesData();
@@ -207,6 +106,9 @@ Future<void> syncSalesInformationToMSSQL2() async {
             // **Update existing record (EXCLUDING RealEntryNo)**
             final updateSet = List.generate(filteredColumns.length, (i) {
               if (filteredValues[i] == 'NULL') return null; // Skip NULL values
+              if (_isDateColumn(filteredColumns[i])) {
+                return "${filteredColumns[i]} = CAST(${filteredValues[i]} AS DATETIME)";
+              }
               return "${filteredColumns[i]} = ${filteredValues[i]}";
             }).where((element) => element != null).join(", ");
 
@@ -224,7 +126,7 @@ Future<void> syncSalesInformationToMSSQL2() async {
             final insertQuery = '''
               SET IDENTITY_INSERT Sales_Information ON;
               INSERT INTO Sales_Information (RealEntryNo, ${filteredColumns.join(", ")}) 
-              VALUES ($realEntryNo, ${filteredValues.join(", ")});
+              VALUES ($realEntryNo, ${filteredValues.map((v) => _isDateColumn(v) ? "CAST($v AS DATETIME)" : v).join(", ")});
               SET IDENTITY_INSERT Sales_Information OFF;
             ''';
             await MsSQLConnectionPlatform.instance.writeData(insertQuery);
@@ -244,6 +146,7 @@ bool _isDateString(String value) {
   return datePattern.hasMatch(value);
 }
 
+// **Convert date formats properly for MSSQL**
 String _convertToSQLDate(String inputDate) {
   try {
     DateTime parsedDate;
@@ -253,7 +156,7 @@ String _convertToSQLDate(String inputDate) {
     } else if (inputDate.contains("-")) {
       parsedDate = DateFormat("yyyy-MM-dd").parse(inputDate);
     } else {
-      return 'NULL'; // Return NULL for invalid formats
+      return 'NULL'; 
     }
 
     // Convert to MSSQL expected format: 'yyyy-MM-dd HH:mm:ss'
@@ -264,6 +167,11 @@ String _convertToSQLDate(String inputDate) {
   }
 }
 
+// **Identify Date Columns in the Table (Modify this list as needed)**
+bool _isDateColumn(String columnName) {
+  List<String> dateColumns = ["DDate","BTime","ddate1", "despatchdate", "receiptDate"]; // Add your date column names here
+  return dateColumns.contains(columnName);
+}
 
 
 
@@ -301,17 +209,18 @@ String _convertToSQLDate(String inputDate) {
         _showClearDataDialog();
         break;
         case "Update":
-        //backupAndSyncData();
+        backupAndSyncData();
         
-        //syncSalesInformationToMSSQL();
         //syncSalesParticularsToMSSQL();
         
-        Update update = Update();
+        //Update update = Update();
         //update.syncRVInformationToMSSQL();
         // update.syncRVParticularsToMSSQL();
-        // update.syncPVInformationToMSSQL();
-         update.syncPVParticularsToMSSQL();
+         //update.syncPVInformationToMSSQL();
+         //update.syncPVParticularsToMSSQL();
         //syncSalesInformationToMSSQL2();
+        //update.syncSalesinformationToMSSQL();
+        //update.syncStockQtyToMSSQL();
         break;
       default:
         print("Unknown option selected: $item");
@@ -365,9 +274,7 @@ String _convertToSQLDate(String inputDate) {
 //   return await db.query(DatabaseHelper.table); // Assuming you want all rows from the ledger_table
 // }
 Future<void> backupAndSyncData() async {
-  
-  //await LedgerTransactionsDatabaseHelper.instance.fetchAndInsertIntoSQLite();
-  await LedgerTransactionsDatabaseHelper.instance.syncLedgerNamesToMSSQL();
+    await LedgerTransactionsDatabaseHelper.instance.syncLedgerNamesToMSSQL();
 }
 
 

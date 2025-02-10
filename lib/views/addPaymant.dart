@@ -152,12 +152,6 @@ Future<void> _onItemnameChanged2(String value) async {
     _taxController.text = details[0]["tax"] ?? "N/A"; 
   }
 
-  // Handle no data case
-  if (details.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No data found for "$value".')),
-    );
-  }
 }
 
 

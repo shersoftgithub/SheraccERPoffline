@@ -3,9 +3,115 @@ import 'dart:convert';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 
 final class Update{
+
+  Future<void> updateMSSQLLedger(Map<String, dynamic> ledgerData) async {
+  try {
+    if (ledgerData['Ledcode'] == null || ledgerData['Ledcode'].toString().trim().isEmpty) {
+      throw Exception('Ledcode is required and cannot be null or empty');
+    }
+    if (ledgerData['LedName'] == null || ledgerData['LedName'].toString().trim().isEmpty) {
+      throw Exception('LedName is required and cannot be null or empty');
+    }
+    String escapeString(String? value) {
+      return value != null ? "'${value.replaceAll("'", "''")}'" : "NULL";
+    }
+
+    final ledcode = ledgerData['Ledcode'];
+    final ledName = escapeString(ledgerData['LedName']);
+    final lhId = ledgerData['lh_id'] ?? 0;
+    final add1 = escapeString(ledgerData['add1']);
+    final add2 = escapeString(ledgerData['add2']);
+    final add3 = escapeString(ledgerData['add3']);
+    final add4 = escapeString(ledgerData['add4']);
+    final city = escapeString(ledgerData['city']);
+    final route = escapeString(ledgerData['route']);
+    final state = escapeString(ledgerData['state']);
+    final mobile = escapeString(ledgerData['Mobile']);
+    final pan = escapeString(ledgerData['pan']);
+    final email = escapeString(ledgerData['Email']);
+    final gstno = escapeString(ledgerData['gstno']);
+    final cAmount = ledgerData['CAmount'] ?? 0.0;
+    final active = (ledgerData['Active'] == true) ? 1 : 0; 
+    final salesMan = escapeString(ledgerData['SalesMan']);
+    final location = escapeString(ledgerData['Location']);
+    final orderDate = escapeString(ledgerData['OrderDate']);
+    final deliveryDate = escapeString(ledgerData['DeliveryDate']);
+    final cPerson = escapeString(ledgerData['CPerson']);
+    final costCenter = escapeString(ledgerData['CostCenter']);
+    final franchisee = escapeString(ledgerData['Franchisee']);
+    final salesRate = ledgerData['SalesRate'] ?? 0.0;
+    final subGroup = escapeString(ledgerData['SubGroup']);
+    final secondName = escapeString(ledgerData['SecondName']);
+    final userName = escapeString(ledgerData['UserName']);
+    final password = escapeString(ledgerData['Password']);
+    final customerType = escapeString(ledgerData['CustomerType']);
+    final otp = escapeString(ledgerData['OTP']);
+    final maxDiscount = ledgerData['maxDiscount'] ?? 0.0;
+
+   final query = '''
+  SET IDENTITY_INSERT LedgerNames ON;
+
+  MERGE INTO LedgerNames AS target
+  USING (VALUES (
+    '$ledcode', $ledName, $lhId, $add1, $add2, $add3, $add4, $city, $route, $state,
+    $mobile, $pan, $email, $gstno, $cAmount, $active, $salesMan, $location,
+    $orderDate, $deliveryDate, $cPerson, $costCenter, $franchisee, $salesRate,
+    $subGroup, $secondName, $userName, $password, $customerType, $otp, $maxDiscount
+  )) 
+  AS source (
+    Ledcode, LedName, lh_id, add1, add2, add3, add4, city, route, state,
+    Mobile, pan, Email, gstno, CAmount, Active, SalesMan, Location,
+    OrderDate, DeliveryDate, CPerson, CostCenter, Franchisee, SalesRate,
+    SubGroup, SecondName, UserName, Password, CustomerType, OTP, maxDiscount
+  )
+  ON target.Ledcode = source.Ledcode
+  WHEN MATCHED THEN
+    UPDATE SET
+      LedName = source.LedName, lh_id = source.lh_id, add1 = source.add1,
+      add2 = source.add2, add3 = source.add3, add4 = source.add4, city = source.city,
+      route = source.route, state = source.state, Mobile = source.Mobile, pan = source.pan,
+      Email = source.Email, gstno = source.gstno, CAmount = source.CAmount,
+      Active = source.Active, SalesMan = source.SalesMan, Location = source.Location,
+      OrderDate = source.OrderDate, DeliveryDate = source.DeliveryDate,
+      CPerson = source.CPerson, CostCenter = source.CostCenter, Franchisee = source.Franchisee,
+      SalesRate = source.SalesRate, SubGroup = source.SubGroup, SecondName = source.SecondName,
+      UserName = source.UserName, Password = source.Password, CustomerType = source.CustomerType,
+      OTP = source.OTP, maxDiscount = source.maxDiscount
+  WHEN NOT MATCHED THEN
+    INSERT (
+      Ledcode, LedName, lh_id, add1, add2, add3, add4, city, route, state,
+      Mobile, pan, Email, gstno, CAmount, Active, SalesMan, Location,
+      OrderDate, DeliveryDate, CPerson, CostCenter, Franchisee, SalesRate,
+      SubGroup, SecondName, UserName, Password, CustomerType, OTP, maxDiscount
+    )
+    VALUES (
+      source.Ledcode, source.LedName, source.lh_id, source.add1, source.add2, source.add3,
+      source.add4, source.city, source.route, source.state, source.Mobile, source.pan,
+      source.Email, source.gstno, source.CAmount, source.Active, source.SalesMan, source.Location,
+      source.OrderDate, source.DeliveryDate, source.CPerson, source.CostCenter, source.Franchisee,
+      source.SalesRate, source.SubGroup, source.SecondName, source.UserName, source.Password,
+      source.CustomerType, source.OTP, source.maxDiscount
+    );
+
+  SET IDENTITY_INSERT LedgerNames OFF;
+''';
+
+    print('Executing SQL query: $query');
+    final result = await MsSQLConnectionPlatform.instance!.writeData(query);
+    if (result != null) {
+      print('Query executed successfully: $result');
+    } else {
+      throw Exception('Query execution failed with null result');
+    }
+  } catch (e) {
+    print('Error executing query: $e');
+  }
+}
 
 Future<void> syncRVInformationToMSSQL() async {
   try {
@@ -191,29 +297,28 @@ SET IDENTITY_INSERT RV_Particulars ON;
 Future<void> syncPVParticularsToMSSQL() async {
   try {
     final localData = await PV_DatabaseHelper.instance.fetchPVParticulars();
-final lastRowQuery = '''
-      SELECT TOP 1 auto, ddate FROM PV_Particulars ORDER BY ddate DESC, auto DESC
+    final lastRowQuery = '''
+      SELECT TOP 1 auto, EntryNo FROM PV_Particulars ORDER BY auto DESC
     ''';
     final lastRowResult = await MsSQLConnectionPlatform.instance.getData(lastRowQuery);
 
     int lastAuto = 0;
-    String lastDdate = "";
+    int lastEntryNo = 0;
 
     if (lastRowResult is String) {
       final decodedLastRow = jsonDecode(lastRowResult);
       if (decodedLastRow is List && decodedLastRow.isNotEmpty) {
         lastAuto = (decodedLastRow.first['auto'] ?? 0) as int;
-        lastDdate = decodedLastRow.first['ddate']?.toString() ?? "";
+        lastEntryNo = ((decodedLastRow.first['EntryNo'] ?? 0) as num).toInt(); // ✅ Fixed conversion
       }
     }
+
     for (var row in localData) {
-      final auto = int.tryParse(row['auto'].toString()) ?? 0;
-       final entryno = int.tryParse(row['EntryNo'].toString()) ?? 0;
-      final name = int.tryParse(row['Name'].toString()) ?? 0; 
-      final amount = double.tryParse(row['Amount'].toString()) ?? 0.0; 
-      final discount = double.tryParse(row['Discount'].toString()) ?? 0.0; 
-      final total = double.tryParse(row['Total'].toString()) ?? 0.0; 
-      final narration = row['Narration'].toString().replaceAll("'", "''"); 
+      final name = int.tryParse(row['Name'].toString()) ?? 0;
+      final amount = double.tryParse(row['Amount'].toString()) ?? 0.0;
+      final discount = double.tryParse(row['Discount'].toString()) ?? 0.0;
+      final total = double.tryParse(row['Total'].toString()) ?? 0.0;
+      final narration = row['Narration'].toString().replaceAll("'", "''");
       final ddate = row['ddate'].toString();
       final fyid = row['FyID'].toString();
       final fmid = row['FrmID'].toString();
@@ -229,37 +334,39 @@ final lastRowQuery = '''
             final updateQuery = '''
               UPDATE PV_Particulars 
               SET 
-              EntryNo = $entryno,
                 Amount = $amount, 
                 Discount = $discount, 
                 Total = $total, 
                 Narration = '$narration',
-                FyID= '$fyid',
-                FrmID='$fmid'
+                FyID = '$fyid',
+                FrmID = '$fmid'
               WHERE Name = $name AND ddate = '$ddate'
             ''';
             await MsSQLConnectionPlatform.instance.writeData(updateQuery);
             print("Updated record for Name: $name and ddate: $ddate");
           } else {
+            lastAuto += 1;
+            lastEntryNo += 1;
+
             final insertQuery = '''
-          SET IDENTITY_INSERT PV_Particulars ON;
-              INSERT INTO PV_Particulars (auto,EntryNo,Name, Amount, Discount, Total, Narration, ddate,FyID,FrmID)
+              SET IDENTITY_INSERT PV_Particulars ON;
+              INSERT INTO PV_Particulars (auto, EntryNo, Name, Amount, Discount, Total, Narration, ddate, FyID, FrmID)
               VALUES (
-              $lastAuto,
-              $entryno,
+                $lastAuto,
+                $lastEntryNo,
                 $name, 
                 $amount, 
                 $discount, 
                 $total, 
                 '$narration', 
                 '$ddate',
-                '$fyid' ,
+                '$fyid',
                 '$fmid'
               );
               SET IDENTITY_INSERT PV_Particulars OFF;
             ''';
             await MsSQLConnectionPlatform.instance.writeData(insertQuery);
-            print("Inserted new record (auto-generated ID)");
+            print("Inserted new record with auto: $lastAuto, EntryNo: $lastEntryNo");
           }
         }
       }
@@ -268,6 +375,7 @@ final lastRowQuery = '''
     print("Error syncing PV_Particulars to MSSQL: $e");
   }
 }
+
 
 
 Future<void> syncPVInformationToMSSQL() async {
@@ -306,7 +414,6 @@ Future<void> syncPVInformationToMSSQL() async {
           final count = decodedCheck.first['count'] ?? 0;
 
           if (count > 0) {
-            // **Update existing record**
             final updateQuery = '''
               UPDATE PV_Information 
               SET 
@@ -417,7 +524,6 @@ Future<void> syncSalesParticularsToMSSQL() async {
       final spretail = double.tryParse(row['spretail'].toString()) ?? 0.0;
       final wsrate = double.tryParse(row['wsrate'].toString()) ?? 0.0;
 
-      // Check if the record exists
       final checkQuery = '''
         SELECT COUNT(*) AS count FROM Sales_Particulars WHERE Auto = $auto
       ''';
@@ -429,7 +535,6 @@ Future<void> syncSalesParticularsToMSSQL() async {
           final count = decodedCheck.first['count'] ?? 0;
 
           if (count > 0) {
-            // **Update existing record**
             final updateQuery = '''
               UPDATE Sales_Particulars 
               SET 
@@ -452,7 +557,6 @@ Future<void> syncSalesParticularsToMSSQL() async {
             await MsSQLConnectionPlatform.instance.writeData(updateQuery);
             print("Updated Sales_Particulars for Auto: $auto");
           } else {
-            // **Insert new record**
             final insertQuery = '''
               INSERT INTO Sales_Particulars (
                 DDate, EntryNo, UniqueCode, ItemID, serialno, Rate, RealRate, Qty, freeQty, 
@@ -482,5 +586,61 @@ Future<void> syncSalesParticularsToMSSQL() async {
     print("Error syncing Sales_Particulars to MSSQL: $e");
   }
 }
+
+
+Future<void> syncStockQtyToMSSQL() async {
+  try {
+    final localData = await StockDatabaseHelper.instance.getAllProducts();
+    
+    final fetchQuery = "SELECT Uniquecode, ItemId, Qty FROM stock";
+    final fetchResult = await MsSQLConnectionPlatform.instance.getData(fetchQuery);
+
+    if (fetchResult is! String) {
+      print("❌ Failed to fetch stock data from MSSQL.");
+      return;
+    }
+
+    final decodedFetch = jsonDecode(fetchResult);
+    if (decodedFetch is! List) {
+      print("❌ Invalid MSSQL stock data format.");
+      return;
+    }
+
+    final Map<String, Map<String, dynamic>> mssqlStockMap = {
+      for (var row in decodedFetch)
+        "${row['Uniquecode']}_${row['ItemId']}": {
+          "Qty": double.tryParse(row['Qty'].toString()) ?? 0.0
+        }
+    };
+
+    for (var row in localData) {
+      final itemId = row['ItemId'].toString();
+      final uniqueCode = row['id'].toString(); 
+      final localQty = double.tryParse(row['Qty'].toString()) ?? 0.0;
+      final lookupKey = "${uniqueCode}_$itemId";
+
+      final mssqlQty = mssqlStockMap[lookupKey]?['Qty'] ?? 0.0;
+
+      if (localQty != mssqlQty) { 
+        final updateQuery = '''
+          UPDATE stock 
+          SET Qty = $localQty
+          WHERE Uniquecode = '$uniqueCode' AND ItemId = '$itemId'
+        ''';
+        print("🔄 Updating Qty for ItemId: $itemId | Uniquecode: $uniqueCode from $mssqlQty to $localQty");
+        await MsSQLConnectionPlatform.instance.writeData(updateQuery);
+      } else {
+        print("✅ No change for ItemId: $itemId (Qty remains $mssqlQty)");
+      }
+    }
+    
+  } catch (e) {
+    print("❌ Error syncing Stock Qty to MSSQL: $e");
+  }
+}
+
+
+
+
 
 }

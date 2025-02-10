@@ -35,6 +35,7 @@ class _SalesOrderState extends State<SalesOrder> {
   final TextEditingController _InvoicenoController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _CustomerController = TextEditingController();
+  bool isCustomerSelected = false;
   final TextEditingController _phonenoController = TextEditingController();
   final TextEditingController _totalamtController = TextEditingController();
   final TextEditingController _salerateController = TextEditingController();
@@ -183,17 +184,18 @@ Future<void> _fetchLastInvoiceId() async {
 // }
  int newinno = 1;  
   void invoice() async {
-    final db = await SalesInformationDatabaseHelper.instance.database;
+    final db = await SalesInformationDatabaseHelper2.instance.database;
     final lastRow = await db.rawQuery(
-      'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1',
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1',
     );
   
     int newAuto = 1;
     if (lastRow.isNotEmpty) {
       final lastData = lastRow.first;
-      newAuto = (lastData['EntryNo'] as num? ?? 0).toInt();
+      newAuto = (lastData['InvoiceNo'] as num? ?? 0).toInt();
     }    
     final newinno = newAuto + 1; 
+    
     setState(() {
       this.newinno = newinno;
     });
@@ -303,6 +305,27 @@ final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
     );
   }
 }
+String _convertToSQLDate(String inputDate) {
+  try {
+    DateTime parsedDate;
+
+    if (inputDate.contains("/")) {
+      parsedDate = DateFormat("dd/MM/yyyy").parse(inputDate);
+    } else if (inputDate.contains("-")) {
+      parsedDate = DateFormat("yyyy-MM-dd").parse(inputDate);
+    } else {
+      return 'NULL'; // Return NULL for invalid formats
+    }
+
+    // Convert to MSSQL expected format: 'yyyy-MM-dd HH:mm:ss'
+    return "'${DateFormat("yyyy-MM-dd HH:mm:ss").format(parsedDate)}'";
+  } catch (e) {
+    print("⚠️ Date conversion error: $e for input: $inputDate");
+    return 'NULL'; // Handle invalid date values safely
+  }
+}
+
+
 
 void _saveDataSaleinfor22() async {
   try {
@@ -312,10 +335,22 @@ void _saveDataSaleinfor22() async {
     );
     int newAuto = 1;
     int newentryno=1;
+    String DDate=''; 
+    String btime=''; 
+    String ddate1=''; 
+    String despatchdate=''; 
+    String receiptDate=''; 
+ 
+
       if (lastRow.isNotEmpty) {
       final lastData = lastRow.first;
 newAuto = (lastData['RealEntryNo'] as int? ?? 0) + 1;
       newentryno = (lastData['EntryNo'] as int? ?? 0) + 1;
+       DDate = lastData['DDate'] as String? ?? '';
+      btime =  lastData['BTime'] as String? ?? '';
+      ddate1 = lastData['ddate1'] as String? ?? '';
+      despatchdate = lastData['despatchdate'] as String? ?? '';
+      receiptDate = lastData['receiptDate'] as String? ?? '';
     }
     final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
     final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
@@ -372,8 +407,8 @@ for (var fyRecord in fy) {
       'RealEntryNo': newAuto, 
       'EntryNo': newentryno, 
       'InvoiceNo': _InvoicenoController.text,
-      'DDate': _dateController.text,
-      'BTime': _dateController.text,
+      'DDate':_dateController.text,
+      'BTime':_dateController.text,
       'Customer': ledCode,
       'Add1': add1, 
       'Add2': add2,
@@ -411,10 +446,10 @@ for (var fyRecord in fy) {
       'cardno': 0,
       'takeuser': 0,
       'PurchaseOrderNo': 0,
-      'ddate1': 1,
+      'ddate1': _dateController.text,
       'deliverNoteNo': 0,
       'despatchno': 0,
-      'despatchdate':  _dateController.text,
+      'despatchdate':_dateController.text,
       'Transport': 0,
       'Destination': 0,
       'Transfer_Status': 0,
@@ -426,7 +461,7 @@ for (var fyRecord in fy) {
       'otherdisc1': 0.00,
       'salesorderno': 0,
       'systemno': 0,
-      'deliverydate': _dateController.text,
+      'deliverydate': 0,
       'QtyDiscount': 0.00,
       'ScheemDiscount': 0.00,
       'Add3': add3,
@@ -455,7 +490,7 @@ for (var fyRecord in fy) {
       'bankamount': 0.00,
       'FcessType': 0,
       'receiptAmount': 0.00,
-      'receiptDate': 0,
+      'receiptDate': _dateController.text,
       'JobCardno': 0,
       'WareHouse': 0,
       'CostCenter': 0,
@@ -544,12 +579,9 @@ for (var fyRecord in fy) {
 void _saveDataSaleperti() async {
   try {
     final db = await SalesInformationDatabaseHelper.instance.database;
-    
-    // Get the last row from the Sales_Particulars table
-    final lastRow = await db.rawQuery(
+        final lastRow = await db.rawQuery(
       'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1'
     );
-    
     int newAuto = 1;
     int Newentryno = 1;
     
@@ -669,6 +701,7 @@ for (var fyRecord in fy) {
     );
   }
 }
+
 
 void _saveData() async {
   try {
@@ -930,7 +963,7 @@ Future<void> _fetchItems({String? customer}) async {
         _CashtotalamtController.text = totalAmt.toStringAsFixed(2);
   }
   _CashsalerateController.addListener(CashupdateTotalAmount);
-
+_InvoicenoController.text=newinno.toString();
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -1065,10 +1098,10 @@ Future<void> _fetchItems({String? customer}) async {
           GestureDetector(
             onTap: (){
              //_saveDataCash();
-              //_saveData();
+             
               //_saveData2();
-              //_saveDataSaleinfor();
-             //_saveDataSaleperti();
+               _saveData();
+             _saveDataSaleperti();
               _saveDataSaleinfor22();
               },
             child: Container(
@@ -1243,23 +1276,26 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               padding: EdgeInsets.only(left: 10,bottom: 10),
               child: SingleChildScrollView(
                  physics: NeverScrollableScrollPhysics(),
-                    child: EasyAutocomplete(
-                        controller: _CustomerController,
-                        suggestions: names,
-                        inputTextStyle: getFontsinput(14, Colors.black),
-                        onSubmitted: (value)async {
-   await _fetchLedgerDetails(value);
-   await _fetchItems(customer: value);
-   setState(() {
-                              _CustomerController.text = value; 
-                            });
-  },
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(bottom: 10)
-                        ),
-                        suggestionBackgroundColor: Appcolors().Scfold,
-                      ),
+                    child:EasyAutocomplete(
+      controller: _CustomerController,
+      suggestions: names,
+      inputTextStyle: getFontsinput(14, Colors.black),
+      onSubmitted: (value) async {
+        if (!isCustomerSelected) {
+          await _fetchLedgerDetails(value);
+          await _fetchItems(customer: value);
+          setState(() {
+            _CustomerController.text = value;
+            isCustomerSelected = true; // Lock further changes
+          });
+        }
+      },
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.only(bottom: 10),
+      ),
+      suggestionBackgroundColor: Appcolors().Scfold,
+    ),
                   ),
             )
                   ),
@@ -1271,7 +1307,10 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
              SizedBox(height: screenHeight*0.001,),
              GestureDetector(
         onTap: () {
-          
+           setState(() {
+      _CustomerController.clear();
+      isCustomerSelected = false;
+    });
           Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Addpaymant(
                           salesCredit: widget.salesCredit,

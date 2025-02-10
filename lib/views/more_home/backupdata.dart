@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
@@ -13,7 +12,6 @@ import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'dart:convert';
 
-import 'package:sqflite/sqflite.dart';
 
 class Backupdata extends StatefulWidget {
   const Backupdata({super.key});
@@ -408,11 +406,21 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
 
 
 
-
+bool _isLoading = false;
 
   // Backup both Stock and Product_Registration to local SQLite database
   Future<void> backupToLocalDatabase() async {
     try {
+
+      setState(() {
+      _isLoading = true; 
+    });
+
+    await Future.delayed(Duration(seconds: 5)); 
+
+    setState(() {
+      _isLoading = false; 
+    });
 final stockData2 = await fetchDataFromMSSQLStock();
 
       if (stockData2.isEmpty) {
@@ -1091,7 +1099,7 @@ for (var row in fyData) {
 //   // Inserting the rowData into the NewTable
 //   await DHelper.insertData(rowData);
 // }
-
+ 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Backup completed successfully!')),
       );
@@ -1199,19 +1207,22 @@ Future<void> performBackup() async {
           performBackup();
           //updateOpeningBalances();
           },
-          child: Container(
-            height: screenHeight * 0.04,
-            width: screenWidth * 0.2,
-            decoration: BoxDecoration(
-              color: Appcolors().maincolor,
-            ),
-            child: Center(
-              child: Text(
-                "BackUp Data",
-                style: getFonts(14, Colors.white),
-              ),
-            ),
-          ),
+          child:  Container(
+        height: screenHeight * 0.07,
+        width: screenWidth * 0.3,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          color: Appcolors().maincolor,
+        ),
+        child: Center(
+          child: _isLoading
+              ? CircularProgressIndicator() // Show loading indicator when _isLoading is true
+              : Text(
+                  "BackUp Data",
+                  style: getFonts(14, Colors.white),
+                ),
+        ),
+      ),
         ),
       ),
     );

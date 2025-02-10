@@ -61,26 +61,30 @@ Future<void> _saveData() async {
   try {
     final db = await LedgerTransactionsDatabaseHelper.instance.database;
 
-    final result = await db.rawQuery('SELECT MAX(Ledcode) as maxLedcode FROM LedgerNames');
-    String? maxLedCodeString = result.first['maxLedcode'] as String?;
-    int newLedCode = (int.tryParse(maxLedCodeString ?? '0') ?? 0) + 1;
+    // Fetch the highest Ledcode properly
+    final result = await db.rawQuery(
+      'SELECT Ledcode FROM LedgerNames ORDER BY CAST(Ledcode AS INTEGER) DESC LIMIT 1'
+    );
+
+    // Ensure the correct largest Ledcode is retrieved
+    int newLedCode = (result.isNotEmpty && result.first['Ledcode'] != null)
+        ? (int.tryParse(result.first['Ledcode'].toString()) ?? 0) + 1
+        : 1;  // Start from 1 if no records exist
 
     double receivedBalance = double.tryParse(_reievedAmtController.text) ?? 0.0;
     double payAmount = double.tryParse(_PayAmtController.text) ?? 0.0;
 
-
     final ledgerData = {
-      'Ledcode': newLedCode.toString(), 
-      
+      'Ledcode': newLedCode.toString(),
       'LedName': _LedgernameController.text,
       'add1': _adressController.text,
       'Mobile': _contactController.text,
       'CAmount': payAmount,
       'OpeningBalance': payAmount - receivedBalance,
-      'under':_underController.text,
-      'Debit':_reievedAmtController.text,
-      'date':_dateController.text,
-      'balance':receivedBalance
+      'under': _underController.text,
+      'Debit': _reievedAmtController.text,
+      'date': _dateController.text,
+      'balance': receivedBalance
     };
 
     await db.insert('LedgerNames', ledgerData);

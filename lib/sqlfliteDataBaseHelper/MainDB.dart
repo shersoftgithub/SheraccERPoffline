@@ -741,11 +741,11 @@ Future<void> syncLedgerNamesToMSSQL() async {
   final db = await database;
   final modifiedData = await db.query('LedgerNames'); 
   final modifiedData2 = await db.query('Account_Transactions');
-  for (var data in modifiedData) {
+  // for (var data in modifiedData) {
   
-    final ledgerCode = data['Ledcode'];
-        await updateMSSQLLedger(data);
-  }
+  //   final ledgerCode = data['Ledcode'];
+  //       await updateMSSQLLedger(data);
+  // }
   for (var data in modifiedData2) {
   
     final atledgerCode = data['Auto'];
@@ -859,6 +859,7 @@ Future<void> updateMSSQLLedger(Map<String, dynamic> ledgerData) async {
 
 Future<void> syncAccountTransactionsToMSSQL(Map<String, dynamic> transaction) async {
   try {
+    // Validate 'Auto' value
     var auto = transaction['Auto'];
     if (auto == null || auto.toString().trim().isEmpty) {
       throw Exception('Auto is required for updates.');
@@ -869,19 +870,22 @@ Future<void> syncAccountTransactionsToMSSQL(Map<String, dynamic> transaction) as
       throw Exception('Invalid Auto value: $auto. It must be numeric.');
     }
 
+    // Function to escape strings for SQL
     String escapeString(String? value) {
       return value != null && value.isNotEmpty ? "'${value.replaceAll("'", "''")}'" : "NULL";
     }
 
+    // Function to parse numbers safely
     num? parseNumber(dynamic value) {
       if (value == null || value.toString().trim().isEmpty) return null;
       return num.tryParse(value.toString());
     }
 
+    // Prepare fields
     final atDate = escapeString(transaction['atDate']);
     final atLedCode = escapeString(transaction['atLedCode']);
     final atType = escapeString(transaction['atType']);
-    final atEntryno = transaction['atEntryno'] != null ? transaction['atEntryno'].toString() : "NULL";
+    final atEntryno = transaction['atEntryno'] != null ? "'${transaction['atEntryno']}'" : "NULL";
     final atDebitAmount = parseNumber(transaction['atDebitAmount']) ?? 0;
     final atCreditAmount = parseNumber(transaction['atCreditAmount']) ?? 0;
     final atNarration = escapeString(transaction['atNarration']);
@@ -897,83 +901,56 @@ Future<void> syncAccountTransactionsToMSSQL(Map<String, dynamic> transaction) as
     final atFxDebit = parseNumber(transaction['atFxDebit']) ?? 0;
     final atFxCredit = parseNumber(transaction['atFxCredit']) ?? 0;
 
+    // SQL Query
     final query = '''
     SET IDENTITY_INSERT Account_Transactions ON;
 
-MERGE INTO Account_Transactions AS target
-USING (SELECT 
-    $autoValue AS Auto,
-    $atDate AS atDate, 
-    $atLedCode AS atLedCode, 
-    $atType AS atType, 
-    $atEntryno AS atEntryno, 
-    $atDebitAmount AS atDebitAmount, 
-    $atCreditAmount AS atCreditAmount, 
-    $atNarration AS atNarration, 
-    $atOpposite AS atOpposite, 
-    $atSalesEntryno AS atSalesEntryno, 
-    $atSalesType AS atSalesType, 
-    $atLocation AS atLocation, 
-    $atChequeNo AS atChequeNo, 
-    $atProject AS atProject, 
-    $atBankEntry AS atBankEntry, 
-    $atInvestor AS atInvestor, 
-    $atFyID AS atFyID, 
-    $atFxDebit AS atFxDebit, 
-    $atFxCredit AS atFxCredit
-) AS source
-ON target.Auto = source.Auto  -- Primary key check
-WHEN MATCHED THEN
-  UPDATE SET
-    atDate = source.atDate, 
-    atLedCode = source.atLedCode, 
-    atType = source.atType, 
-    atEntryno = source.atEntryno, 
-    atDebitAmount = source.atDebitAmount, 
-    atCreditAmount = source.atCreditAmount, 
-    atNarration = source.atNarration, 
-    atOpposite = source.atOpposite, 
-    atSalesEntryno = source.atSalesEntryno, 
-    atSalesType = source.atSalesType, 
-    atLocation = source.atLocation, 
-    atChequeNo = source.atChequeNo, 
-    atProject = source.atProject, 
-    atBankEntry = source.atBankEntry, 
-    atInvestor = source.atInvestor, 
-    atFyID = source.atFyID, 
-    atFxDebit = source.atFxDebit, 
-    atFxCredit = source.atFxCredit
-WHEN NOT MATCHED BY TARGET THEN
-  INSERT (
-    Auto, atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
-    atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
-    atChequeNo, atProject, atBankEntry, atInvestor, atFyID, 
-    atFxDebit, atFxCredit
-  )
-  VALUES (
-    source.Auto, source.atDate, source.atLedCode, source.atType, 
-    source.atEntryno, source.atDebitAmount, source.atCreditAmount, 
-    source.atNarration, source.atOpposite, source.atSalesEntryno, 
-    source.atSalesType, source.atLocation, source.atChequeNo, 
-    source.atProject, source.atBankEntry, source.atInvestor, 
-    source.atFyID, source.atFxDebit, source.atFxCredit
-  );
+    MERGE INTO Account_Transactions AS target
+    USING (SELECT 
+      $autoValue AS Auto, $atDate AS atDate, $atLedCode AS atLedCode, $atType AS atType,
+      $atEntryno AS atEntryno, $atDebitAmount AS atDebitAmount, $atCreditAmount AS atCreditAmount,
+      $atNarration AS atNarration, $atOpposite AS atOpposite, $atSalesEntryno AS atSalesEntryno,
+      $atSalesType AS atSalesType, $atLocation AS atLocation, $atChequeNo AS atChequeNo,
+      $atProject AS atProject, $atBankEntry AS atBankEntry, $atInvestor AS atInvestor,
+      $atFyID AS atFyID, $atFxDebit AS atFxDebit, $atFxCredit AS atFxCredit
+    ) AS source
+    ON target.Auto = source.Auto
+    WHEN MATCHED THEN
+      UPDATE SET 
+        atDate = source.atDate, atLedCode = source.atLedCode, atType = source.atType,
+        atEntryno = source.atEntryno, atDebitAmount = source.atDebitAmount, 
+        atCreditAmount = source.atCreditAmount, atNarration = source.atNarration, 
+        atOpposite = source.atOpposite, atSalesEntryno = source.atSalesEntryno, 
+        atSalesType = source.atSalesType, atLocation = source.atLocation, 
+        atChequeNo = source.atChequeNo, atProject = source.atProject, 
+        atBankEntry = source.atBankEntry, atInvestor = source.atInvestor, 
+        atFyID = source.atFyID, atFxDebit = source.atFxDebit, atFxCredit = source.atFxCredit
+    WHEN NOT MATCHED THEN
+      INSERT (Auto, atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+              atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+              atChequeNo, atProject, atBankEntry, atInvestor, atFyID, 
+              atFxDebit, atFxCredit)
+      VALUES ($autoValue, $atDate, $atLedCode, $atType, $atEntryno, 
+              $atDebitAmount, $atCreditAmount, $atNarration, $atOpposite, 
+              $atSalesEntryno, $atSalesType, $atLocation, $atChequeNo, 
+              $atProject, $atBankEntry, $atInvestor, $atFyID, 
+              $atFxDebit, $atFxCredit);
 
-
-
-SET IDENTITY_INSERT Account_Transactions OFF;
-
+    SET IDENTITY_INSERT Account_Transactions OFF;
     ''';
 
-
+    // Debugging output
     print('Executing SQL query: $query');
 
+    // Ensure MSSQL connection is available
     if (MsSQLConnectionPlatform.instance == null) {
       throw Exception('MsSQLConnectionPlatform is not initialized');
     }
 
+    // Execute the query
     final result = await MsSQLConnectionPlatform.instance!.writeData(query);
 
+    // Log success
     if (result != null) {
       print('Query executed successfully: $result');
     } else {
@@ -983,6 +960,7 @@ SET IDENTITY_INSERT Account_Transactions OFF;
     print('Error executing query: $e');
   }
 }
+
 
 
 

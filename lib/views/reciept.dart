@@ -149,6 +149,22 @@ Future<void> fetchData() async {
 
 void _saveData() async {
   try {
+    
+      final db = await LedgerTransactionsDatabaseHelper.instance.database;
+
+   final lastRow = await db.rawQuery(
+  'SELECT Auto FROM Account_Transactions ORDER BY Auto DESC LIMIT 1'
+);
+double newEntryNo = 1.0; 
+
+if (lastRow.isNotEmpty) {
+    final lastEntryNo = double.tryParse(lastRow.first['atEntryno']?.toString() ?? '0') ?? 0.0; // FIXED: Correct key lookup
+
+    print("Fetched lastAuto: lastEntryNo: $lastEntryNo"); // Debugging
+
+   
+    newEntryNo = lastEntryNo + 1.0; // Ensure increment as double
+  }
     final double amount = double.tryParse(_amountController.text) ?? 0.0;
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
     final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
@@ -158,7 +174,18 @@ void _saveData() async {
         .getLedgerDetailsByName(_selectlnamesController.text);
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+int selectedFyID = 0; 
+String selectedDate = _dateController.text;
+for (var fyRecord in fy) {
+  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
+  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
+  DateTime selected = DateTime.parse(selectedDate);  
 
+  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
+    break;  
+  }
+}
     final transactionData = {
       'atDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
       'atLedCode': ledCode,
@@ -169,6 +196,8 @@ void _saveData() async {
       'atDiscount': _DiscountController.text,
       'atNaration': _narrationController.text,
       'atLedName': _selectlnamesController.text,
+      'atEntryno': newEntryNo,
+      'atFyID': selectedFyID
     };
 
     await LedgerTransactionsDatabaseHelper.instance.insertAccTrans(transactionData);

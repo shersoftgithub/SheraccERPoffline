@@ -425,4 +425,18 @@ Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
     }
     return null;
   }
+
+  Future<Map<String, dynamic>?> getProductByIdAndItemId(int id, String itemId) async {
+  final db = await database; // Ensure database instance is initialized
+
+  final result = await db.query(
+    'stock', 
+    where: 'id = ? AND ItemId = ?',
+    whereArgs: [id, itemId],
+    limit: 1,
+  );
+
+  return result.isNotEmpty ? result.first : null;
+}
+
 }
