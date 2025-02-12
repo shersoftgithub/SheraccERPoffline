@@ -416,7 +416,7 @@ Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
     final db = await instance.database;
     final result = await db.query(
       'product_registration',
-      columns: ['itemcode',],
+      columns: ['itemcode','retail','wsrate','sprate'],
       where: 'itemname = ?',
       whereArgs: [ledgerName],
     );

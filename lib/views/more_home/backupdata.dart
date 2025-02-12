@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/companydb.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
@@ -342,6 +343,46 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
       rethrow;
     }
   }
+
+   Future<List<Map<String, dynamic>>> fetchDataLedgerheadsFromMSSQL() async {
+    try {
+      final query = 'SELECT lh_id,Mlh_id,lh_name,Active,lh_Code FROM LedgerHeads';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for LedgerHeads data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for LedgerHeads: $rawData');
+    } catch (e) {
+      print('Error fetching data from LedgerHeads: $e');
+      rethrow;
+    }
+  }
+
+  //    Future<List<Map<String, dynamic>>> fetchDataCompanyFromMSSQL() async {
+  //   try {
+  //     final query = 'SELECT * FROM Company';
+  //     final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+  //     if (rawData is String) {
+  //       final decodedData = jsonDecode(rawData);
+  //       if (decodedData is List) {
+  //         return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+  //       } else {
+  //         throw Exception('Unexpected JSON format for Company data: $decodedData');
+  //       }
+  //     }
+  //     throw Exception('Unexpected data format for Company: $rawData');
+  //   } catch (e) {
+  //     print('Error fetching data from Company: $e');
+  //     rethrow;
+  //   }
+  // }
 // Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
 //   try {
 //     // Define the query to fetch clean data from the database
@@ -1065,6 +1106,83 @@ for (var row in fyData) {
   };
   await DbHelperfy.insertfyid(rowData);
 }
+
+// final CompanyData = await fetchDataCompanyFromMSSQL();
+//  if (productData.isEmpty) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+//         );
+//         return;
+//       }
+//       final DbHelperCompany = CompanyDatabaseHelper.instance;
+// for (var row in CompanyData) {
+//   Map<String, dynamic> rowData = {
+//      'Code': row['Code']?.toString() ?? '',
+//      'Presumptive': row['Presumptive']?.toString() ?? '',
+//         'sname': row['sname']?.toString() ?? '',
+//         'name': row['name']?.toString() ?? '',
+//         'add1': row['add1']?.toString() ?? '',
+//         'add2': row['add2']?.toString() ?? '',
+//         'add3': row['add3']?.toString() ?? '',
+//         'add4': row['add4']?.toString() ?? '',
+//         'add5': row['add5']?.toString() ?? '',
+//         'PrintName': row['PrintName']?.toString() ?? '',
+//         'telephone': row['telephone']?.toString() ?? '',
+//         'email': row['email']?.toString() ?? '',
+//         'mobile': row['mobile']?.toString() ?? '',
+//         'tin': row['tin']?.toString() ?? '',
+//         'cst': row['cst']?.toString() ?? '',
+//         'kgst': row['kgst']?.toString() ?? '',
+//         'pin': row['pin']?.toString() ?? '',
+//         'sdate': row['sdate']?.toString() ?? '',
+//         'edate': row['edate']?.toString() ?? '',
+//         'DC': row['DC'] ?? 0,
+//         'GC': row['GC'] ?? 0,
+//         'TaxCollection': row['TaxCollection'] ?? 0,
+//         'TaxDueCollection': row['TaxDueCollection'] ?? 0,
+//         'BelowTurnOver': row['BelowTurnOver'] ?? 0,
+//         'TurnOverDate': row['TurnOverDate']?.toString() ?? '',
+//         'backhand': row['backhand']?.toString() ?? '',
+//         'Vbackhand': row['Vbackhand']?.toString() ?? '',
+//         'printertype': row['printertype']?.toString() ?? '',
+//         'PrintModel': row['PrintModel']?.toString() ?? '',
+//         'negativestock': row['negativestock'] ?? 0,
+//         'TaxCalcuLate': row['TaxCalcuLate'] ?? 0,
+//         'Editoption': row['Editoption'] ?? 0,
+//         'TaxCalculation': row['TaxCalculation']?.toString() ?? '',
+//         'profitshow': row['profitshow'] ?? 0,
+//         'cstPersentage': row['cstPersentage'] ?? 0.0,
+//         'Hidden': row['Hidden'] ?? 0,
+//         'PapperType': row['PapperType']?.toString() ?? '',
+//         'PrinterPort': row['PrinterPort']?.toString() ?? '',
+//         'Network': row['Network'] ?? 0,
+//         'NetWorkPort': row['NetWorkPort']?.toString() ?? '',
+//         'AUTO': row['AUTO'] ?? 0,
+//         'DACC': row['DACC'] ?? 0,
+//         'DLNO': row['DLNO']?.toString() ?? '',
+//         'DBName': row['DBName']?.toString() ?? '',
+//         'MDFPath': row['MDFPath']?.toString() ?? '',
+//         'LDFPath': row['LDFPath']?.toString() ?? '',
+//         'VDBName': row['VDBName']?.toString() ?? '',
+//         'VMDFPath': row['VMDFPath']?.toString() ?? '',
+//         'VLDFPath': row['VLDFPath']?.toString() ?? '',
+//         'CType': row['CType']?.toString() ?? '',
+//         'CCompany': row['CCompany'] ?? 0,
+//         'EXDuty': row['EXDuty'] ?? 0.0,
+//         'DACCAll': row['DACCAll'] ?? 0,
+//         'AddExDuty': row['AddExDuty'] ?? 0.0,
+//         'currencytype': row['CurrencyType']?.toString() ?? '',
+//         'stype': row['stype']?.toString() ?? '',
+//         'cess': row['cess'] ?? 0.0,
+//         'barcodecurrencytype': row['barcodecurrencytype']?.toString() ?? '',
+//         'secondfont': row['secondfont']?.toString() ?? '',
+//         's_currency': row['s_currency']?.toString() ?? '',
+//         'sheight': row['sheight']?.toString() ?? '',
+//         'CustomerCode': row['CustomerCode']?.toString() ?? '',
+//         'insDate': row['insDate']?.toString() ?? '',
+//   };
+//   await DbHelperCompany.insertCompany(rowData);
+// }
 //       final AccTransLedgerData = await fetchDataFromMSSQLAccTransations();
 //  if (productData.isEmpty) {
 //         ScaffoldMessenger.of(context).showSnackBar(
@@ -1143,6 +1261,20 @@ Future<void> performBackup() async {
       print("Error during backup: $e");
     }
   }
+Future<void> companyBackup(BuildContext context) async {
+  try {
+    await backupMSSQLToSQLite2();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Company backup completed successfully.'))
+    );
+    print("Backup completed successfully.");
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error during company backup: $e'))
+    );
+    print("Error during backup: $e");
+  }
+}
 
  
   @override
@@ -1200,12 +1332,37 @@ Future<void> performBackup() async {
         ],
       ),
       body: Center(
-        child: GestureDetector(
-          onTap: () {
-          backupToLocalDatabase(); 
-          //sync();
-          performBackup();
-          //updateOpeningBalances();
+        child: Column(
+          children: [
+            SizedBox(height: screenHeight*0.3,),
+            GestureDetector(
+              onTap: () {   
+             backupToLocalDatabase(); 
+              //sync();
+              //performBackup();
+              //updateOpeningBalances();
+              },
+              child:  Container(
+            height: screenHeight * 0.07,
+            width: screenWidth * 0.3,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Appcolors().maincolor,
+            ),
+            child: Center(
+              child: _isLoading
+                  ? CircularProgressIndicator() // Show loading indicator when _isLoading is true
+                  : Text(
+                      "BackUp Data",
+                      style: getFonts(14, Colors.white),
+                    ),
+            ),
+                  ),
+            ),
+            SizedBox(height: 20,),
+            GestureDetector(
+          onTap: () {   
+            companyBackup(context);        
           },
           child:  Container(
         height: screenHeight * 0.07,
@@ -1218,11 +1375,13 @@ Future<void> performBackup() async {
           child: _isLoading
               ? CircularProgressIndicator() // Show loading indicator when _isLoading is true
               : Text(
-                  "BackUp Data",
+                  "Company Data",
                   style: getFonts(14, Colors.white),
                 ),
         ),
       ),
+        ),
+          ],
         ),
       ),
     );

@@ -81,6 +81,8 @@ class SaleReferenceDatabaseHelper {
    
   )
 ''');
+
+
   }
 Future<void> insertfyid(Map<String, dynamic> data) async {
     final db = await database;

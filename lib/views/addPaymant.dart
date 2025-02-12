@@ -6,6 +6,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/more_home/update.dart';
 import 'package:sheraaccerpoff/views/sales.dart';
 
 class Addpaymant extends StatefulWidget {
@@ -57,6 +58,9 @@ final netamt=(totalAmt - taxvalue);
 final PercenDisc = (totalAmt * DiscPerc)/100;
 final finalAmt=(totalAmt - PercenDisc);
 final ffiinalamt=(finalAmt + taxvalue);
+  String taxStatus = selectedValue == 'With Tax' ? 'T' : 'NT';
+  final ffiinalamt2 = taxStatus == 'NT' ? (ffiinalamt - taxvalue) : (finalAmt + taxvalue);
+
   final creditsale = SalesCredit(
     invoiceId: 0,
     date: "", 
@@ -68,12 +72,12 @@ final ffiinalamt=(finalAmt + taxvalue);
     unit: unit,
     rate: rate,
     tax: tax,
-    totalAmt: finalAmt,
+    totalAmt: ffiinalamt2,
   );
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) =>SalesOrder(salesCredit: creditsale,itemDetails:itemDetails,discPerc: DiscPerc,discnt : Discount,net :netamt,tot:ffiinalamt,tax:taxvalue),
+      builder: (context) =>SalesOrder(salesCredit: creditsale,itemDetails:itemDetails,discPerc: DiscPerc,discnt : Discount,net :netamt,tot:ffiinalamt,tax:taxvalue,taxstatus: taxStatus,),
     ),
   );
 }
@@ -114,7 +118,9 @@ void _saveDataCash() {
      _fetchProductNames();
     _DiscountController.addListener(_onDiscountChanged);
     _Discpercentroller.addListener(_onPercentChanged);
+    _taxController.text;
   }
+  
   void _onItemnameChanged(String value) async {
   List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
   setState(() {
@@ -207,14 +213,22 @@ final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
 
  final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
   final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
-  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  var tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
   final DiscPerc = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
   final totalAmt = (rate * qty) ;
-      final taxvalue= (totalAmt*tax)/100;
+      var taxvalue= (totalAmt*tax)/100;
 final netamt=(totalAmt - taxvalue);
 final PercenDisc = (totalAmt * DiscPerc)/100;
 //_Discpercentroller.text = PercenDisc.toStringAsFixed(2);
-final finalAmt=(totalAmt - PercenDisc);
+
+ if (selectedValue == 'Without Tax') {
+  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  taxvalue = 0; // Negative tax value
+} else if (selectedValue == 'With Tax') {
+  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  taxvalue = (totalAmt * tax) / 100; // Positive tax value
+}
+  final finalAmt=((totalAmt - PercenDisc)+taxvalue);
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -466,19 +480,31 @@ final finalAmt=(totalAmt - PercenDisc);
         padding: EdgeInsets.symmetric(horizontal: 5),
         child: DropdownButton<String>(
           value: selectedValue,
+          dropdownColor: Appcolors().Scfold,
           onChanged: (String? newValue) {
-            setState(() {
-              selectedValue = newValue;
-            });
-          },
+  setState(() {
+  selectedValue = newValue;
+
+ if (selectedValue == 'Without Tax') {
+  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  taxvalue = 0; // Negative tax value
+} else if (selectedValue == 'With Tax') {
+  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  taxvalue = (totalAmt * tax) / 100; // Positive tax value
+}
+});
+
+},
+
           underline: SizedBox(), // Remove underline
-          isExpanded: true,  // Ensure dropdown fills the container width
+          isExpanded: true, 
           items: dropdownItems.map<DropdownMenuItem<String>>((String value) {
             return DropdownMenuItem<String>(
+            
               value: value,
               child: Text(
                 value,
-                style: TextStyle(color: Colors.black), // Customize the text style here
+                style: getFontsinput(14, Colors.black), 
               ),
             );
           }).toList(),
