@@ -185,7 +185,7 @@ void _showLedgerWithFilters() {
                     child: EasyAutocomplete(
                       suggestionBackgroundColor: Appcolors().Scfold,
                         controller: ledgernamesController,
-                       
+                       suggestions: ledgerNames,
                            
                         onSubmitted: (value) {
                                   },

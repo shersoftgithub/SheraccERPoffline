@@ -34,9 +34,7 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
 
   Future<void> _fetchStockData2() async {
     try {
-   //   List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getAllTransactions();
-            List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getAllTransactions();
-
+            List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
       print('Fetched stock data: $data');
       setState(() {
       paymentData   = data;
@@ -45,36 +43,51 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
       print('Error fetching stock data: $e');
     }
   }
+
 Future<void> _fetchFilteredData() async {
-   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
+  String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
+  List<Map<String, dynamic>> ledgerData = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
 
-  List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredRowsPay(
-    fromDate: widget.fromDate!,  
-    toDate: widget.toDate!,      
-    ledgerName: widget.ledgerName ?? '',  
+  Map<String, String> ledgerNameToCodeMap = {
+    for (var ledger in ledgerData) ledger['LedName'].toString(): ledger['Ledcode'].toString()
+  };
+
+ 
+  String? selectedLedgerCode = widget.ledgerName != null && widget.ledgerName!.isNotEmpty
+      ? ledgerNameToCodeMap[widget.ledgerName!]
+      : null;
+  List<Map<String, dynamic>> data = await PV_DatabaseHelper.instance.queryFilteredRowsPay(
+    fromDate: widget.fromDate!,
+    toDate: widget.toDate!,
+    ledgerName: selectedLedgerCode ?? '',  
   );
-
+  Map<String, String> ledgerCodeToNameMap = {
+    for (var ledger in ledgerData) ledger['Ledcode'].toString(): ledger['LedName'].toString()
+  };
   setState(() {
     Data = data.map((ledger) {
-      String? dateString = ledger['date'];
-      DateTime? ledgerDate;
-
-      if (dateString != null && dateString.isNotEmpty) {
+      String? ledCode = ledger['Name']?.toString();
+      String? ledName = ledgerCodeToNameMap[ledCode] ?? 'N/A';
+ String formattedDate = 'N/A';
+      if (ledger['ddate'] != null && ledger['ddate'].toString().isNotEmpty) {
         try {
-          ledgerDate = DateFormat('yyyy-MM-dd').parse(dateString);
+          DateTime parsedDate = DateTime.parse(ledger['ddate'].toString());
+          formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
         } catch (e) {
           print("Error parsing date: $e");
-          ledgerDate = DateTime.now();
         }
-      } else {
-        ledgerDate = DateTime.now();
       }
-
-      return {...ledger, 'date': ledgerDate};
+      return {
+        ...ledger,
+        'Name': ledName,
+        'ddate': formattedDate, 
+      };
     }).toList();
   });
 }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -134,49 +147,38 @@ Future<void> _fetchFilteredData() async {
               ),
               columnWidths: {
                 0: FixedColumnWidth(50),
-                1: FixedColumnWidth(100),
-                2: FixedColumnWidth(260),
+                1: FixedColumnWidth(120),
+                2: FixedColumnWidth(150),
                 3: FixedColumnWidth(150),
-                4: FixedColumnWidth(100),
-                5: FixedColumnWidth(100),
-                6: FixedColumnWidth(100),
-                7: FixedColumnWidth(100),
-                8: FixedColumnWidth(100),
+                4: FixedColumnWidth(150),
+                5: FixedColumnWidth(150),
+                6: FixedColumnWidth(150),
               },
               children: [
-                // Table header row
                 TableRow(
                   children: [
-                    _buildHeaderCell('id'),
                     _buildHeaderCell('No'),
                       _buildHeaderCell('Date'),
                       _buildHeaderCell('Debit'),
                       _buildHeaderCell('Credit'),
-                      // _buildHeaderCell('Debit'),
-                      // _buildHeaderCell('Credit'),
+                      
                        _buildHeaderCell('Name'),
                        _buildHeaderCell('Discount'),
-                      _buildHeaderCell('atType'),
+                      _buildHeaderCell('Narration'),
                   ],
                 ),
-                // Table data rows
                 ...Data.asMap().entries.map((entry) {
-                  int index = entry.key + 1; // Generate SiNo
+                  int index = entry.key + 1; 
                   Map<String, dynamic> data = entry.value;
                   return TableRow(
                     children: [
-                       _buildDataCell(data['Auto'].toString()),
-                      _buildDataCell(data['atLedCode'].toString()),
-                  _buildDataCell(data['atDate'] ?? 'N/A'),
-                  _buildDataCell(data['atDebitAmount'] != null 
-            ? data['atDebitAmount'].toStringAsFixed(2) 
-            : 'N/A'),  // Format to string with 2 decimal places
-                  _buildDataCell(data['atCreditAmount'] != null 
-            ? data['atCreditAmount'].toStringAsFixed(2) 
-            : '0.00'),  // Format to string with 2 decimal places
-                  _buildDataCell(data['atLedName'].toString()),
-                  _buildDataCell(data['atDiscount'].toString()),
-                  _buildDataCell(data['atType'].toString()),
+                    _buildDataCell(data['auto'].toString()), 
+                     _buildDataCell(data['ddate'].toString()), 
+                     _buildDataCell(data['Amount'] != null ? data['Amount'].toString() : 'N/A'), 
+                    _buildDataCell(data['Total'] != null ? data['Total'].toString() : 'N/A'), 
+                      _buildDataCell(data['Name'] ?? 'N/A'), 
+                      _buildDataCell(data['Discount'] != null ? data['Discount'].toString() : 'N/A'), 
+                       _buildDataCell(data['Narration'] ?? 'N/A'),
                       // _buildDataCell(index.toString()),
                       // _buildDataCell(data['atLedCode'].toString()),
                       // _buildDataCell(data['atEntryno'] ?? 'N/A'),
@@ -192,6 +194,17 @@ Future<void> _fetchFilteredData() async {
                     ],
                   );
                 }).toList(),
+                TableRow(
+      children: [
+        _buildDataCell(''),
+        _buildDataCell(''),
+        _buildDataCell2('Closing Balance'),
+        _buildDataCell(''),
+        _buildDataCell(''),
+        _buildDataCell(''),
+        _buildDataCell(''),
+      ],
+    ),
               ],
             ),
           ),
@@ -218,6 +231,16 @@ Future<void> _fetchFilteredData() async {
       child: Text(
         text,
         style: getFonts(12, Colors.black),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+   Widget _buildDataCell2(String text) {
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        style: getFonts(12, Colors.red),
         textAlign: TextAlign.center,
       ),
     );

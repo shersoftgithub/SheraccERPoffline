@@ -51,10 +51,10 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
     "Configure",
     "Settings",
     "Sync Data",
-    "Backup",
+    "Import",
     "Export Backup",
     "Clear Data",
-     "Update",
+     "Export",
   ];
 
   @override
@@ -81,19 +81,18 @@ Future<void> syncSalesInformationToMSSQL2() async {
       final filteredValues = filteredColumns.map((col) {
         var value = row[col];
 
-        if (value is num) return value.toString(); // Keep numbers as-is
+        if (value is num) return value.toString();
 
         if (value is String) {
           if (_isDateString(value)) {
-            return _convertToSQLDate(value); // Ensure correct date format
+            return _convertToSQLDate(value); 
           }
-          return "'${value.trim().replaceAll("'", "''")}'"; // Escape single quotes & trim spaces
+          return "'${value.trim().replaceAll("'", "''")}'"; 
         }
 
-        return 'NULL'; // Handle NULL values correctly
+        return 'NULL';
       }).toList();
 
-      // **Check if the record already exists**
       final checkQuery = "SELECT COUNT(*) AS count FROM Sales_Information WHERE RealEntryNo = $realEntryNo";
       final checkResult = await MsSQLConnectionPlatform.instance.getData(checkQuery);
 
@@ -112,7 +111,7 @@ Future<void> syncSalesInformationToMSSQL2() async {
               return "${filteredColumns[i]} = ${filteredValues[i]}";
             }).where((element) => element != null).join(", ");
 
-            if (updateSet.isNotEmpty) { // Only update if there are valid fields
+            if (updateSet.isNotEmpty) { 
               final updateQuery = '''
                 UPDATE Sales_Information SET $updateSet WHERE RealEntryNo = $realEntryNo
               ''';
@@ -140,13 +139,11 @@ Future<void> syncSalesInformationToMSSQL2() async {
   }
 }
 
-// **Helper function to detect date strings**
 bool _isDateString(String value) {
   final datePattern = RegExp(r'^\d{2}/\d{2}/\d{4}$|^\d{4}-\d{2}-\d{2}$'); // Matches dd/MM/yyyy OR yyyy-MM-dd
   return datePattern.hasMatch(value);
 }
 
-// **Convert date formats properly for MSSQL**
 String _convertToSQLDate(String inputDate) {
   try {
     DateTime parsedDate;
@@ -159,22 +156,70 @@ String _convertToSQLDate(String inputDate) {
       return 'NULL'; 
     }
 
-    // Convert to MSSQL expected format: 'yyyy-MM-dd HH:mm:ss'
     return "'${DateFormat("yyyy-MM-dd HH:mm:ss").format(parsedDate)}'";
   } catch (e) {
     print("⚠️ Date conversion error: $e for input: $inputDate");
-    return 'NULL'; // Handle invalid date values safely
+    return 'NULL'; 
   }
 }
-
-// **Identify Date Columns in the Table (Modify this list as needed)**
 bool _isDateColumn(String columnName) {
   List<String> dateColumns = ["DDate","BTime","ddate1", "despatchdate", "receiptDate"]; // Add your date column names here
   return dateColumns.contains(columnName);
 }
 
 
+void _showAuthDialog(BuildContext context) {
+  TextEditingController usernameController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
 
+  showDialog(
+    context: context,
+    barrierDismissible: false, 
+    builder: (context) {
+      return AlertDialog(
+        title: Text("Authentication Required",style: getFonts(16, Colors.black),),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: usernameController,
+              decoration: InputDecoration(labelText: "Username"),
+            ),
+            TextField(
+              controller: passwordController,
+              obscureText: true, 
+              decoration: InputDecoration(labelText: "Password"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); 
+            },
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              String username = usernameController.text.trim();
+              String password = passwordController.text.trim();
+
+              if (username == "admin" && password == "1234") {
+                Navigator.pop(context); 
+                Navigator.push(context, MaterialPageRoute(builder: (_) => ServerConfig())); 
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Invalid credentials!")),
+                );
+              }
+            },
+            child: Text("Login"),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   void navigateToPage(BuildContext context, String item) {
     switch (item) {
@@ -183,8 +228,7 @@ bool _isDateColumn(String columnName) {
                         context, MaterialPageRoute(builder: (_) => Company()));
         break;
       case "Configure":
-      Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => ServerConfig()));
+      _showAuthDialog(context);
         break;
       case "Settings":
       Navigator.push(
@@ -196,10 +240,10 @@ bool _isDateColumn(String columnName) {
       //                   context, MaterialPageRoute(builder: (_) => SyncButtonPage()));
         print("Syncing data...");
         break;
-      case "Backup":
+      case "Import":
       Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Backupdata()));
-        print("Backup...");
+        print("Import...");
         break;
       case "Export Backup":
       _showClearDataDialog2();
@@ -208,7 +252,7 @@ bool _isDateColumn(String columnName) {
       case "Clear Data":
         _showClearDataDialog();
         break;
-        case "Update":
+        case "Export":
         backupAndSyncData();
         
         //syncSalesParticularsToMSSQL();

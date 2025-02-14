@@ -364,6 +364,25 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
     }
   }
 
+ Future<List<Map<String, dynamic>>> fetchDataSettingsFromMSSQL() async {
+    try {
+      final query = 'SELECT Name,Status FROM Settings';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for Settings data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for Settings: $rawData');
+    } catch (e) {
+      print('Error fetching data from Settings: $e');
+      rethrow;
+    }
+  }
   //    Future<List<Map<String, dynamic>>> fetchDataCompanyFromMSSQL() async {
   //   try {
   //     final query = 'SELECT * FROM Company';

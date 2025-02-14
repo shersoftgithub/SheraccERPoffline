@@ -382,7 +382,7 @@ final String add4 = ledgerDetails?['add4'] ?? 'Unknown';
       );
       return;
     }
-
+   
     final String ledCode = ledgerDetails['LedId'] ?? '';
     if (_InvoicenoController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -406,6 +406,16 @@ final String add4 = ledgerDetails?['add4'] ?? 'Unknown';
         .getStockunitDetailsByName(itemcode);
 final cgst = (widget.tax!) / 2;
 final sgst = (widget.tax!) / 2;
+
+ final double total = (widget.tot is String)
+        ? double.tryParse(widget.tot as String) ?? 0.0
+        : (widget.tot as double?) ?? 0.0;
+final String prate = stocksaleDetails?['Prate']?.toString() ?? '0.0';
+    final double priceRate = double.tryParse(prate) ?? 0.0;
+    final num quantity = widget.salesCredit?.qty ?? 0;
+   final rate =widget.salesCredit?.rate?? 0;
+    final double profit = total - (priceRate * quantity);
+
 String selectedDate = _dateController.text;
 int selectedFyID = 0; 
 
@@ -445,7 +455,7 @@ for (var fyRecord in fy) {
       'SalesMan': 0, 
       'Location': 1, 
       'Narration': 0,
-      'Profit': 0.00,
+      'Profit': profit.toString(),
       'CashReceived': 0.00,
       'BalanceAmount': finalAmt,
       'Ecommision': 0.00,
@@ -592,6 +602,33 @@ for (var fyRecord in fy) {
   }
 }
 
+Future<double> calculateRealRate(double rate) async {
+  try {
+    if (companydata.isEmpty) {
+      print("No company data available.");
+      return rate;
+    }
+    Map<String, dynamic> selectedCompany = companydata.first;
+
+    String companyName = selectedCompany['Sname']?.toString() ?? 'Unknown';
+    String taxCalculation = selectedCompany['TaxCalculation']?.toString() ?? "PLUS";
+    double tax = widget.salesCredit?.tax ?? 0.0;
+    double cess = double.tryParse(selectedCompany['cess']?.toString() ?? '0.0') ?? 0.0;
+
+    print("Selected Company: $companyName");
+    print("Tax Calculation Type: $taxCalculation");
+    double realRate = (taxCalculation == "MINUS") ? (100 * rate) / (100 + tax) : rate;
+  
+    print("Calculated Real Rate: $realRate");
+    return realRate;
+  } catch (e) {
+    print("without tax realRate: $e");
+    return rate; 
+  }
+}
+
+
+
 
 void _saveDataSaleperti() async {
   try {
@@ -658,30 +695,34 @@ void _saveDataSaleperti() async {
       }
     }
 
-    Map<String, dynamic>? selectedCompany;
-    for (var company in companydata) {
-      if (company['Code'] == ledgerDetails?['Code']) {
-        selectedCompany = company;
-        break;
-      }
-    }
-        final realRate = ((100 * rate) / (100 + (widget.salesCredit?.tax??0)));
+ //   Map<String, dynamic>? selectedCompany;
 
-    double realRate2 = double.tryParse(realRate.toString()) ?? 0.0;
-    if (selectedCompany?['TaxCalculation'] == 'MINUS') {
-      double tax = widget.salesCredit?.tax?? 0.0;
-      double cess = double.tryParse(selectedCompany?['cess']?.toString() ?? '0.0') ?? 0.0;
-    final realRate2 = ((100 * rate) / (100 + (widget.salesCredit?.tax??0)));
-    }
+// for (var company in companydata) {
+//   if (company['Code'] == ledgerDetails?['Code']) {
+//     selectedCompany = {
+//       ...company, 
+//       'Sname': company['Sname'] ?? 'Unknown' 
+//     };
+//     break;
+//   }
+// }
+//         final realRate = ((100 * rate) / (100 + (widget.salesCredit?.tax??0)));
 
+//     double realRate2 = double.tryParse(realRate.toString()) ?? 0.0;
+//     if (selectedCompany?['TaxCalculation'] == 'MINUS') {
+//       double tax = widget.salesCredit?.tax?? 0.0;
+//       double cess = double.tryParse(selectedCompany?['cess']?.toString() ?? '0.0') ?? 0.0;
+//     final realRate2 = ((100 * rate) / (100 + (widget.salesCredit?.tax??0)));
+//     }
+double realRate = await calculateRealRate(rate);
     final transactionData = {
       'DDate': _dateController.text,
       'EntryNo': entry,
       'UniqueCode': Ucode,
       'ItemID': itemcode,
-      'serialno': realRate2,
+      'serialno': 0,
       'Rate': widget.salesCredit?.rate??0,  
-      'RealRate': 0,  
+      'RealRate': realRate,  
       'Qty': widget.salesCredit!.qty.toString(),  
       'freeQty': '0.0',
       'GrossValue': finalAmt.toString(),  
@@ -721,11 +762,11 @@ void _saveDataSaleperti() async {
       'LC': '0.0',
       'ScanBarcode': '0',
       'Remark': '0',
-      'FyID': selectedFyID.toString(),  // Convert int to String
+      'FyID': selectedFyID.toString(),  
       'Supplier': '0',
-      'Retail': retail,  // Already a String
-      'spretail': sprate,  // Already a String
-      'wsrate': wrate,  // Already a String
+      'Retail': retail,  
+      'spretail': sprate,  
+      'wsrate': wrate, 
     };
 
     await SalesInformationDatabaseHelper.instance.insertParticular(transactionData);

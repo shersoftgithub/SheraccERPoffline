@@ -417,6 +417,18 @@ Future<double> getDebitAmountForLedger(String ledgerName) async {
     }
     return null;
   }
+Future<List<Map<String, dynamic>>> fetchLedgerCodesAndNames() async {
+  final db = await database;
+  try {
+    return await db.query(
+      'LedgerNames',
+      columns: ['Ledcode', 'LedName'], 
+    );
+  } catch (e) {
+    print('Error fetching Ledcode and LedName: $e');
+    return [];
+  }
+}
 
 Future<List<Map<String, dynamic>>> queryFilteredRowsledger({
   DateTime? fromDate, 

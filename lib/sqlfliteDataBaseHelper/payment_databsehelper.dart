@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -192,5 +193,47 @@ Future<List<Map<String, dynamic>>> fetch_RV_InformationsDataFromMSSQL() async {
       rethrow;
     }
   }
+
+
+  Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
+  DateTime? fromDate, 
+  DateTime? toDate, 
+  String? ledgerName,
+}) async {
+  Database db = await instance.database;
+
+  List<String> whereClauses = [];
+  List<dynamic> whereArgs = [];
+
+  // Date filtering
+  if (fromDate != null && toDate != null) {
+    String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
+    String toDateString = DateFormat('yyyy-MM-dd').format(toDate);
+
+    whereClauses.add("DATE(ddate) BETWEEN DATE(?) AND DATE(?)");
+    whereArgs.addAll([fromDateString, toDateString]);
+  }
+
+  // Ledger name filtering
+  if (ledgerName != null && ledgerName.isNotEmpty) {
+    whereClauses.add('Name LIKE ?');
+    whereArgs.add('%$ledgerName%');
+  }
+
+  // Construct WHERE clause
+  String whereClause = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : '';
+
+  try {
+    return await db.query(
+      'PV_Particulars',
+      where: whereClause.isNotEmpty ? whereClause : null, 
+      whereArgs: whereClause.isNotEmpty ? whereArgs : null,
+    );
+  } catch (e) {
+    print("Error fetching filtered data: $e");
+    rethrow;
+  }
+}
+
     
 }
