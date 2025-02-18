@@ -64,9 +64,15 @@ class _SalesOrderState extends State<SalesOrder> {
       });
     }
   }
+  TextEditingController customername = TextEditingController();  
+String _selectedCustomer = "";  // Store selected customer
     @override
   void initState() {
     super.initState();
+     if (_selectedCustomer.isNotEmpty) {
+    customername.text = _selectedCustomer;  // Retain customer name across screens
+    isCustomerSelected = true;
+  }
     fetch_options();
     _fetchLedger();
     _fetchLastInvoiceId();
@@ -199,24 +205,26 @@ List companydata= [];
     }
   }
 
- int newinno = 1;  
-  void invoice() async {
-    final db = await SalesInformationDatabaseHelper2.instance.database;
-    final lastRow = await db.rawQuery(
-      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1',
-    );
+int newinno = 1; // Declare at class level
+
+void invoice() async {
+  final db = await SalesInformationDatabaseHelper2.instance.database;
   
-    int newAuto = 1;
-    if (lastRow.isNotEmpty) {
-      final lastData = lastRow.first;
-      newAuto = (lastData['InvoiceNo'] as num? ?? 0).toInt();
-    }    
-    final newinno = newAuto + 1; 
-    
-    setState(() {
-      this.newinno = newinno;
-    });
-  }
+  // Fetch last EntryNo, sorted in descending order
+  final lastRow = await db.rawQuery(
+    'SELECT EntryNo FROM Sales_Particulars ORDER BY EntryNo DESC LIMIT 1',
+  );
+
+  int lastEntryNo = lastRow.isNotEmpty ? (lastRow.first['EntryNo'] as int? ?? 0) : 0;
+  int updatedInno = lastEntryNo + 1; // Increment for the new invoice
+
+  setState(() {
+    newinno = updatedInno; // Correctly update class variable
+  });
+
+  print('New Invoice Number: $newinno'); // Debugging print
+}
+
 
 List fy=[];
  Future<void> _fetchfyData() async {
@@ -334,7 +342,6 @@ String _convertToSQLDate(String inputDate) {
       return 'NULL'; // Return NULL for invalid formats
     }
 
-    // Convert to MSSQL expected format: 'yyyy-MM-dd HH:mm:ss'
     return "'${DateFormat("yyyy-MM-dd HH:mm:ss").format(parsedDate)}'";
   } catch (e) {
     print("⚠️ Date conversion error: $e for input: $inputDate");
@@ -1185,10 +1192,9 @@ _InvoicenoController.text=newinno.toString();
           GestureDetector(
             onTap: (){
              //_saveDataCash();
-             
-              //_saveData2();
-              // _saveData();
-             _saveDataSaleperti();
+              _saveData2();
+              _saveData();
+              _saveDataSaleperti();
               //_saveDataSaleinfor22();
               },
             child: Container(
@@ -1205,13 +1211,12 @@ _InvoicenoController.text=newinno.toString();
     );
   }
 Widget _CreditScreenContent(double screenHeight,double screenWidth) {
-
+ String name=_CustomerController.text;
   var item = widget.itemDetails?[0];
     List<String>? keys = item?.keys.toList();
   
   List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
    double additem_total=widget.salesCredit?.totalAmt??0.0;
- final customername=_CustomerController;
     return Column(
       children: [
         SizedBox(height: screenHeight*0.02,),
@@ -1224,7 +1229,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
         children: [
         Text(
                 
-                'Invoice No',
+              'Invoice No',
                 style: formFonts(14, Colors.black),
               ),
           SizedBox(height: screenHeight * 0.01),
@@ -1236,27 +1241,26 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
     color: Colors.white,
     border: Border.all(color: Appcolors().searchTextcolor),
   ),
-  //child: Text('$newinno',style: getFontsinput(14, Colors.black),),
-  child: SingleChildScrollView(
-    physics: NeverScrollableScrollPhysics(),
-    child: EasyAutocomplete(
-        controller: _InvoicenoController,
-        suggestions: ledgerNamesAsString,
-           inputTextStyle: getFontsinput(14, Colors.black),
-        onSubmitted: (value) {
-          int selectedId = ledgerIds[ledgerNamesAsString.indexOf(value)];
-       // _fetchInvoiceData(selectedId);  
-        },
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.only(bottom: 23,left: 5),
-        ),
+  child: Text('$newinno',style: getFontsinput(14, Colors.black),),
+  // child: SingleChildScrollView(
+  //   physics: NeverScrollableScrollPhysics(),
+  //   child: EasyAutocomplete(
+  //       controller: _InvoicenoController,
+  //       suggestions: ledgerNamesAsString,
+  //          inputTextStyle: getFontsinput(14, Colors.black),
+  //       onSubmitted: (value) {
+  //         int selectedId = ledgerIds[ledgerNamesAsString.indexOf(value)];
+  //      // _fetchInvoiceData(selectedId);  
+  //       },
+  //       decoration: InputDecoration(
+  //         border: InputBorder.none,
+  //         contentPadding: EdgeInsets.only(bottom: 23,left: 5),
+  //       ),
       
-        suggestionBackgroundColor: Appcolors().Scfold,
-      ),
-  ),
-)
-,
+  //       suggestionBackgroundColor: Appcolors().Scfold,
+  //     ),
+  // ),
+),
         ],
       ),
     ),
@@ -1364,17 +1368,19 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               child: SingleChildScrollView(
                  physics: NeverScrollableScrollPhysics(),
                     child:EasyAutocomplete(
-      controller: customername,
+      controller: customername,  
       suggestions: names,
+
       inputTextStyle: getFontsinput(14, Colors.black),
       onSubmitted: (value) async {
         if (!isCustomerSelected) {
           await _fetchLedgerDetails(value);
           await _fetchItems(customer: value);
-          setState(() {
-            _CustomerController.text = value;
-            isCustomerSelected = true; // Lock further changes
-          });
+           setState(() {
+              _selectedCustomer = value;  // Store selected customer
+              customername.text = value;  // Assign it to the text field
+              isCustomerSelected = true; // Prevent further changes
+            });
         }
       },
       decoration: InputDecoration(
@@ -1395,9 +1401,10 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
              GestureDetector(
         onTap: () {
            setState(() {
-      _CustomerController.clear();
-      isCustomerSelected = false;
-    });
+          _selectedCustomer = "";
+          customername.clear();
+          isCustomerSelected = false;
+        });
           Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Addpaymant(
                           salesCredit: widget.salesCredit,
@@ -1550,102 +1557,106 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
   ),
 ),
         //SizedBox(height: screenHeight*0.2,),
-            Container(
+            SizedBox(
               height: screenHeight*0.3,
-              child: Expanded(
-                child: ListView.builder(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.022),
-                   itemCount: todayItems.length,
-                  itemBuilder: (context, index) {
-                    final item = todayItems[index];
-                    return  Container(
-                    padding: EdgeInsets.symmetric(vertical: screenHeight*0.01),
-                    width: screenWidth * 0.9,
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        child: Column(
-                          children: [
-                            Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        "Itemname",
-                        style: formFonts(12, Colors.black),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        ":  ${item['item_name']}",
-                        style: getFontsinput(12, Colors.black),
-                      ),
-                    ),
-                  ],
-                            ),
-                            Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        "Unit",
-                        style: formFonts(12, Colors.black),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        ":  ${item['unit']}",
-                        style: getFontsinput(12, Colors.black),
-                      ),
-                    ),
-                  ],
-                            ),
-                            Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        "Quantity",
-                        style: formFonts(12, Colors.black),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        ":  ${item['qty']}",
-                        style: getFontsinput(12, Colors.black),
-                      ),
-                    ),
-                  ],
-                            ),
-                            Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        "Rate",
-                        style: formFonts(12, Colors.black),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        ":  ${item['rate']}",
-                        style: getFontsinput(12, Colors.black),
-                      ),
-                    ),
-                  ],
-                            ),
-                          ],
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.022),
+                       itemCount: todayItems.length,
+                      itemBuilder: (context, index) {
+                        final item = todayItems[index];
+                        return  Container(
+                        padding: EdgeInsets.symmetric(vertical: screenHeight*0.01),
+                        width: screenWidth * 0.9,
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            child: Column(
+                              children: [
+                                Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            "Itemname",
+                            style: formFonts(12, Colors.black),
+                          ),
                         ),
-                      ),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            ":  ${item['item_name']}",
+                            style: getFontsinput(12, Colors.black),
+                          ),
+                        ),
+                      ],
+                                ),
+                                Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            "Unit",
+                            style: formFonts(12, Colors.black),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            ":  ${item['unit']}",
+                            style: getFontsinput(12, Colors.black),
+                          ),
+                        ),
+                      ],
+                                ),
+                                Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            "Quantity",
+                            style: formFonts(12, Colors.black),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            ":  ${item['qty']}",
+                            style: getFontsinput(12, Colors.black),
+                          ),
+                        ),
+                      ],
+                                ),
+                                Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            "Rate",
+                            style: formFonts(12, Colors.black),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            ":  ${item['rate']}",
+                            style: getFontsinput(12, Colors.black),
+                          ),
+                        ),
+                      ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                      }
+                     ,
+                      
                     ),
-                  );
-                  }
-                 ,
-                  
-                ),
+                  ),
+                ],
               ),
             )
       ],

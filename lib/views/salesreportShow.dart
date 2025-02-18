@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart'; // Adjust with your actual import
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -49,43 +51,87 @@ double totalAmount = 0.0;
       print('Error fetching stock data: $e');
     }
   }
- Future<void> _fetchFilteredData() async {
-  // Ensure the filters are passed correctly into the queryFilteredRows method
+
+   Future<void> _fetchFilteredData() async {
   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
+  List<Map<String, dynamic>> ledgerData = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
 
-  List<Map<String, dynamic>> data = await SaleDatabaseHelper.instance.queryFilteredRows(
-    fromDate: widget.fromDate,  // Pass the DateTime directly
+  Map<String, String> ledgerNameToCodeMap = {
+    for (var ledger in ledgerData) ledger['LedName'].toString(): ledger['Ledcode'].toString()
+  };
+
+ 
+  String? selectedLedgerCode = widget.customerName != null && widget.customerName!.isNotEmpty
+      ? ledgerNameToCodeMap[widget.customerName!]
+      : null;
+  List<Map<String, dynamic>> data = await SalesInformationDatabaseHelper2.instance.queryFilteredRowsPay(
+   fromDate: widget.fromDate,  // Pass the DateTime directly
     toDate: widget.toDate,  
-    itemName: widget.itemName, 
-    customer: widget.customerName ?? '', // Pass the customer name
+    // itemName: widget.itemName, 
+    // customer: widget.customerName ?? '',  
   );
-
+  Map<String, String> ledgerCodeToNameMap = {
+    for (var ledger in ledgerData) ledger['Ledcode'].toString(): ledger['LedName'].toString()
+  };
   setState(() {
     paymentData = data.map((ledger) {
-      String? dateString = ledger['date'];
-      DateTime? ledgerDate;
-
-      if (dateString != null && dateString.isNotEmpty) {
+      String? ledCode = ledger['Name']?.toString();
+      String? ledName = ledgerCodeToNameMap[ledCode] ?? 'N/A';
+ String formattedDate = 'N/A';
+      if (ledger['ddate'] != null && ledger['ddate'].toString().isNotEmpty) {
         try {
-          ledgerDate = DateFormat('yyyy-MM-dd').parse(dateString);
+          DateTime parsedDate = DateTime.parse(ledger['ddate'].toString());
+          formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
         } catch (e) {
           print("Error parsing date: $e");
-          ledgerDate = DateTime.now();
         }
-      } else {
-        ledgerDate = DateTime.now();
       }
-
-      return {...ledger, 'date': ledgerDate};
+      return {
+        ...ledger,
+        'Name': ledName,
+        'ddate': formattedDate, 
+      };
     }).toList();
-
-    totalAmount = paymentData.fold(0.0, (sum, item) {
-      double amount = double.tryParse(item[SaleDatabaseHelper.columnTotalAmt]?.toString() ?? '0') ?? 0.0;
-      return sum + amount;
-    });
   });
 }
+//  Future<void> _fetchFilteredData() async {
+//   // Ensure the filters are passed correctly into the queryFilteredRows method
+//   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
+//   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
+
+//   List<Map<String, dynamic>> data = await SaleDatabaseHelper.instance.queryFilteredRows(
+//     fromDate: widget.fromDate,  // Pass the DateTime directly
+//     toDate: widget.toDate,  
+//     itemName: widget.itemName, 
+//     customer: widget.customerName ?? '', // Pass the customer name
+//   );
+
+//   setState(() {
+//     paymentData = data.map((ledger) {
+//       String? dateString = ledger['date'];
+//       DateTime? ledgerDate;
+
+//       if (dateString != null && dateString.isNotEmpty) {
+//         try {
+//           ledgerDate = DateFormat('yyyy-MM-dd').parse(dateString);
+//         } catch (e) {
+//           print("Error parsing date: $e");
+//           ledgerDate = DateTime.now();
+//         }
+//       } else {
+//         ledgerDate = DateTime.now();
+//       }
+
+//       return {...ledger, 'date': ledgerDate};
+//     }).toList();
+
+//     totalAmount = paymentData.fold(0.0, (sum, item) {
+//       double amount = double.tryParse(item[SaleDatabaseHelper.columnTotalAmt]?.toString() ?? '0') ?? 0.0;
+//       return sum + amount;
+//     });
+//   });
+// }
 
 
 
@@ -230,8 +276,8 @@ Future<void> _fetchFilteredSalesData() async {
                     children: [
                        
                       _buildDataCell(data['RealEntryNo'].toString()),
-                  _buildDataCell(data['InvoiceNo'].toString()),
                   _buildDataCell(data['DDate'].toString()),
+                  _buildDataCell(data['Toname'].toString()),
                   _buildDataCell(data['Customer'].toString()),
                   _buildDataCell(data['Toname'].toString()),
                   _buildDataCell(data['Total'].toString()),

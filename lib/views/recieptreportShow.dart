@@ -29,10 +29,11 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
   void initState() {
     super.initState();
    // _fetchLedgerData();
-   _fetchFilteredData();
+    _fetchFilteredData();
    // _fetchLedgerData2();
   }
-Future<void> _fetchFilteredData() async {
+
+  Future<void> _fetchFilteredData() async {
   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
   List<Map<String, dynamic>> ledgerData = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();

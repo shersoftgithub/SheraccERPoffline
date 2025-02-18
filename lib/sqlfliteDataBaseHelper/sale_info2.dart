@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:intl/intl.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -348,4 +349,45 @@ Future<List<Map<String, dynamic>>> getSalesDataperticular() async {
       rethrow;
     }
 }
+
+Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
+  DateTime? fromDate, 
+  DateTime? toDate, 
+  String? ledgerName,
+}) async {
+  Database db = await instance.database;
+
+  List<String> whereClauses = [];
+  List<dynamic> whereArgs = [];
+
+  if (fromDate != null && toDate != null) {
+    String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
+    String toDateString = DateFormat('yyyy-MM-dd').format(toDate);
+
+    whereClauses.add("DATE(sp.DDate) BETWEEN DATE(?) AND DATE(?)");
+    whereArgs.addAll([fromDateString, toDateString]);
+  }
+
+  // Ledger Name Filtering (from Sales_Information.Toname)
+  if (ledgerName != null && ledgerName.isNotEmpty) {
+    whereClauses.add("si.Toname LIKE ?");
+    whereArgs.add('%$ledgerName%');
+  }
+
+  // Construct WHERE clause
+  String whereClause = whereClauses.isNotEmpty ? "WHERE ${whereClauses.join(' AND ')}" : "";
+
+  try {
+    return await db.rawQuery('''
+      SELECT sp.*, si.Toname
+      FROM Sales_Particulars sp
+      JOIN Sales_Information si ON sp.EntryNo = si.EntryNo
+      $whereClause
+    ''', whereArgs);
+  } catch (e) {
+    print("Error fetching filtered data: $e");
+    rethrow;
+  }
+}
+
 }

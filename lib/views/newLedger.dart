@@ -7,8 +7,10 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/more_home/settings.dart';
 
 class Newledger extends StatefulWidget {
   
@@ -37,6 +39,7 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     fetch_options();
+    _fetchUnder();
     //_loadUnderSuggestions();
     _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
   }
@@ -57,6 +60,24 @@ Map<String, bool> _checkboxStates = {
 
 bool isBasicDataSaved = false;  
 Ledger? tempLedger;  
+
+List<String> underlist = [];
+
+Future<void> _fetchUnder() async {
+  try {
+    List<String> data = await SaleReferenceDatabaseHelper.instance.getAllLedgerHeadNames();
+    print('Fetched stock data: $data');
+
+    setState(() {
+      underlist = data; // Directly assigning List<String>
+    });
+  } catch (e) {
+    print('Error fetching stock data: $e');
+  }
+}
+
+
+
 Future<void> _saveData() async {
   try {
     final db = await LedgerTransactionsDatabaseHelper.instance.database;
@@ -248,7 +269,7 @@ optionsDBHelper dbHelper = optionsDBHelper();
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
             child: GestureDetector(
               onTap: () {
-                
+                Navigator.of(context).push(MaterialPageRoute(builder: (context )=>Settings()));
               },
               child: SizedBox(
                 width: 20,
@@ -390,7 +411,7 @@ optionsDBHelper dbHelper = optionsDBHelper();
              child: SingleChildScrollView(
                child: EasyAutocomplete(
                    controller: _underController,
-                   suggestions: _underSuggestions,
+                   suggestions: underlist,
                      inputTextStyle: getFontsinput(14, Colors.black), 
                    onSubmitted: (value) {
                      _onUnderTextChanged(value);  

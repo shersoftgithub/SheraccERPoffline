@@ -22,6 +22,7 @@ import 'package:sheraaccerpoff/views/more_home/backupdata.dart';
 import 'package:sheraaccerpoff/views/more_home/company.dart';
 import 'package:sheraaccerpoff/views/more_home/configServer.dart';
 import 'package:sheraaccerpoff/views/more_home/export.dart';
+import 'package:sheraaccerpoff/views/more_home/settings.dart';
 import 'package:sheraaccerpoff/views/more_home/sync.dart';
 import 'package:sheraaccerpoff/views/more_home/update.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
@@ -167,7 +168,53 @@ bool _isDateColumn(String columnName) {
   return dateColumns.contains(columnName);
 }
 
+void _showAuthDialogsettings(BuildContext context) {
+  TextEditingController passwordController = TextEditingController();
 
+  showDialog(
+    context: context,
+    barrierDismissible: false, 
+    builder: (context) {
+      return AlertDialog(
+        title: Text("Authentication Required",style: getFonts(16, Colors.black),),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+           
+            TextField(
+              controller: passwordController,
+              obscureText: true, 
+              decoration: InputDecoration(labelText: "Password"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); 
+            },
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              String password = passwordController.text.trim();
+
+              if (password == "1234") {
+                Navigator.pop(context); 
+                Navigator.push(context, MaterialPageRoute(builder: (_) => Settings())); 
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Invalid credentials!")),
+                );
+              }
+            },
+            child: Text("Enter"),
+          ),
+        ],
+      );
+    },
+  );
+}
 void _showAuthDialog(BuildContext context) {
   TextEditingController usernameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
@@ -231,11 +278,10 @@ void _showAuthDialog(BuildContext context) {
       _showAuthDialog(context);
         break;
       case "Settings":
-      Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => CheckDatabaseScreen()));
+      _showAuthDialogsettings(context);
         break;
       case "Sync Data":
-      LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances();
+      
       //  Navigator.push(
       //                   context, MaterialPageRoute(builder: (_) => SyncButtonPage()));
         print("Syncing data...");
@@ -253,18 +299,8 @@ void _showAuthDialog(BuildContext context) {
         _showClearDataDialog();
         break;
         case "Export":
-        backupAndSyncData();
-        
-        //syncSalesParticularsToMSSQL();
-        
-        //Update update = Update();
-        //update.syncRVInformationToMSSQL();
-        // update.syncRVParticularsToMSSQL();
-         //update.syncPVInformationToMSSQL();
-         //update.syncPVParticularsToMSSQL();
-        //syncSalesInformationToMSSQL2();
-        //update.syncSalesinformationToMSSQL();
-        //update.syncStockQtyToMSSQL();
+        Navigator.push(
+        context, MaterialPageRoute(builder: (_) => Import()));
         break;
       default:
         print("Unknown option selected: $item");

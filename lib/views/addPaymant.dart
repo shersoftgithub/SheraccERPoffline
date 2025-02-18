@@ -2,10 +2,12 @@ import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sheraaccerpoff/models/salescredit_modal.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/more_home/settings.dart';
 import 'package:sheraaccerpoff/views/more_home/update.dart';
 import 'package:sheraaccerpoff/views/sales.dart';
 
@@ -27,6 +29,8 @@ class _AddpaymantState extends State<Addpaymant> {
   final TextEditingController _taxController=TextEditingController();
   final TextEditingController _DiscountController=TextEditingController();
   final TextEditingController _Discpercentroller=TextEditingController();
+  final TextEditingController _FreeItemcentroller=TextEditingController();
+  final TextEditingController _FreeQtycentroller=TextEditingController();
   List<String> _itemSuggestions = [];
     bool isCashSave = false;
 
@@ -116,11 +120,24 @@ void _saveDataCash() {
     super.initState();
     _fetchItemNames(); 
      _fetchProductNames();
+     _fetchSettings();
+     _fetchstock();
     _DiscountController.addListener(_onDiscountChanged);
     _Discpercentroller.addListener(_onPercentChanged);
     _taxController.text;
+     _rateController.text = _selectedRate ?? '';
   }
   
+     List<String> items = [];
+Future<void> _fetchstock() async {
+  List<String> itemids = await StockDatabaseHelper.instance.getAllItemcode();
+
+  setState(() {
+    items = itemids;
+
+  });
+}
+
   void _onItemnameChanged(String value) async {
   List<String> items = await SaleDatabaseHelper.instance.getAllUniqueItemname();
   setState(() {
@@ -206,6 +223,41 @@ final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
 
   List<String> dropdownItems = ['With Tax', 'Without Tax'];
 
+
+List settings=[];
+ Future<void> _fetchSettings() async {
+    try {
+      List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllsettings();
+      print('Fetched stock data: $data');
+      setState(() {
+        settings = data;
+      });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
+  }
+   bool _isKeyFreeUtemEnabled() {
+  return settings.any((element) =>
+      element['Name'] == 'KEY FREE ITEM' && element['Status'] == '1');
+}
+  bool _isKeyFreeQtyEnabled() {
+  return settings.any((element) =>
+      element['Name'] == 'KEY FREE QTY IN SALE' && element['Status'] == '1');
+}
+ bool _isKeyItembycodeEnabled() {
+  return settings.any((element) =>
+      element['Name'] == 'KEY ITEM BY CODE' && element['Status'] == '1');
+}
+ bool _isKeyLockSaleRateEnabled() {
+  return settings.any((element) =>
+      element['Name'] == 'KEY LOCK SALES RATE' && element['Status'] == '1');
+}
+bool _isKeyLockSaleDiscEnabled() {
+  return settings.any((element) =>
+      element['Name'] == 'KEY LOCK SALES DISCOUNT' && element['Status'] == '1');
+}
+
+
   @override
   Widget build(BuildContext context) {
      final screenWidth = MediaQuery.of(context).size.width;
@@ -223,10 +275,10 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
 
  if (selectedValue == 'Without Tax') {
   final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  taxvalue = 0; // Negative tax value
+  taxvalue = 0; 
 } else if (selectedValue == 'With Tax') {
   final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  taxvalue = (totalAmt * tax) / 100; // Positive tax value
+  taxvalue = (totalAmt * tax) / 100; 
 }
   final finalAmt=((totalAmt - PercenDisc)+taxvalue);
     return Scaffold(
@@ -260,7 +312,9 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
           Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: 10),
             child: GestureDetector(
-              onTap: () {},
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (context)=>Settings()));
+              },
               child: SizedBox(
                 width: 20,
                 height: 20,
@@ -297,7 +351,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                   inputTextStyle: getFontsinput(14, Colors.black),
                   suggestionBackgroundColor: Appcolors().Scfold,
                     controller: _itemnameController,
-                    suggestions: productNames,
+                    suggestions: _isKeyItembycodeEnabled() ? items : productNames,
                     onChanged: (value) {
     _onItemnameChanged2(value); 
   },
@@ -415,16 +469,25 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 7,vertical: 7),
-                child: Text(
-                  _selectedRate ?? "Select Rate",
-                  style: getFontsinput(14, Colors.black),
-                ),
+                child: TextField(
+  controller: _rateController, 
+  style: getFontsinput(14, Colors.black),
+  readOnly: _isKeyLockSaleRateEnabled(), 
+  enabled: !_isKeyLockSaleRateEnabled(),
+  decoration: InputDecoration(
+    border: InputBorder.none,
+    
+    hintText: "Select Rate",
+  ),
+  onChanged: (value) {
+ if (!_isKeyLockSaleRateEnabled()) {
+      _selectedRate = value; 
+    }  },
+),
               ),
                         ),
                       ),
-              
-                      // If dropdown is visible, show the item details
-                      if (_isDropdownVisible)
+                                    if (_isDropdownVisible)
                         Container(
               width: 170,
               margin: const EdgeInsets.only(top: 8),
@@ -487,16 +550,16 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
 
  if (selectedValue == 'Without Tax') {
   final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  taxvalue = 0; // Negative tax value
+  taxvalue = 0; 
 } else if (selectedValue == 'With Tax') {
   final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  taxvalue = (totalAmt * tax) / 100; // Positive tax value
+  taxvalue = (totalAmt * tax) / 100; 
 }
 });
 
 },
 
-          underline: SizedBox(), // Remove underline
+          underline: SizedBox(), 
           isExpanded: true, 
           items: dropdownItems.map<DropdownMenuItem<String>>((String value) {
             return DropdownMenuItem<String>(
@@ -519,7 +582,79 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
             ),
           ),
            SizedBox(height: screenHeight*0.02,),
-       
+       Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          if (_isKeyFreeUtemEnabled())
+            Container(
+              child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                      Text(
+                
+                'Free Item',
+                style: formFonts(14, Colors.black),
+              ),
+                        SizedBox(height: screenHeight * 0.01),
+                        GestureDetector(
+            child: Container(
+               height: 35, 
+              width: 173,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+              child: TextFormField(
+                       controller: _FreeItemcentroller,
+                        style: getFontsinput(14,Colors.black),
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.015,horizontal: screenHeight*0.01),
+                        ),
+                      ),
+            ),
+                        ),
+                      ],
+                    ),
+            ),
+              if (_isKeyFreeQtyEnabled())
+            Container(
+              child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                      Text(
+                
+                'Free Qty',
+                style: formFonts(14, Colors.black),
+              ),
+                        SizedBox(height: screenHeight * 0.01),
+                        GestureDetector(
+            child: Container(
+               height: 35, 
+              width: 173,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+              child: TextFormField(
+                       controller: _FreeQtycentroller,
+                        style: getFontsinput(14,Colors.black),
+                        obscureText: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.015,horizontal: screenHeight*0.01),
+                        ),
+                      ),
+            ),
+                        ),
+                      ],
+                    ),
+            ),
+        ],
+       ),
         
        SizedBox(height: screenHeight*0.04,),
       Container(
@@ -550,85 +685,88 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
           ),
          ),
          SizedBox(height: screenHeight*0.012,),
-          Container(
-                  child: Row(
-                    children: [
-                      Text("Discount",style: getFonts(12, Colors.black),),
-                      SizedBox(width: screenHeight*0.053,),
-                      Container(
-                        child: Row(
-                          children: [
-                            Container(
-                              height: screenHeight*0.05,width: screenWidth*0.2,
-                              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)),
-                  color: Colors.white,
-                  border: Border.all(color: Appcolors().searchTextcolor),
-                ),
-                              child: TextFormField(
-                  style: getFontsinput(14, Colors.black),
-                         controller: _Discpercentroller,
-                          keyboardType: TextInputType.number,
-                          obscureText: false,
-                         // onChanged: _onRateChanged,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.018,horizontal: screenHeight*0.01),
-                          ),
-                        ),
-                            ),
-                           
-                            Container(
-                              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(bottomRight: Radius.circular(5),topRight: Radius.circular(5)),
-                  color: Colors.white,
-                  border: Border.all(color: Appcolors().searchTextcolor),
-                ),
-                             height: screenHeight*0.05,width: screenWidth*0.1,
-                              child:  Icon(Icons.percent),
-                            ),
-                          ],
-                        ),
-                      ),
-                       SizedBox(width: screenHeight*0.02,),
-                      Container(
-                        child: Row(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                   borderRadius: BorderRadius.only(bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)),
-                  color: Colors.white,
-                  border: Border.all(color: Appcolors().searchTextcolor),
-                ),
-                             height: screenHeight*0.05,width: screenWidth*0.1,
-                              child:  Icon(Icons.currency_rupee),
-                            ),
-                            Container(
-                              height: screenHeight*0.05,width: screenWidth*0.2,
-                              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(bottomRight: Radius.circular(5),topRight: Radius.circular(5)),
-                  color: Colors.white,
-                  border: Border.all(color: Appcolors().searchTextcolor),
-                ),
-                              child: TextFormField(
-                  style: getFontsinput(14, Colors.black),
-                         controller: _DiscountController,
-                          keyboardType: TextInputType.number,
-                          obscureText: false,
-                         // onChanged: _onRateChanged,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.018,horizontal: screenHeight*0.01),
-                          ),
-                        ),
-                            ),
-                           
-                          ],
-                        ),
-                      )
-                    ],
+          Visibility(
+            visible: !_isKeyLockSaleDiscEnabled(),
+            child: Container(
+                    child: Row(
+                      children: [
+                        Text("Discount",style: getFonts(12, Colors.black),),
+                        SizedBox(width: screenHeight*0.053,),
+                        Container(
+                          child: Row(
+                            children: [
+                              Container(
+                                height: screenHeight*0.05,width: screenWidth*0.2,
+                                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)),
+                    color: Colors.white,
+                    border: Border.all(color: Appcolors().searchTextcolor),
                   ),
-                ),
+                                child: TextFormField(
+                    style: getFontsinput(14, Colors.black),
+                           controller: _Discpercentroller,
+                            keyboardType: TextInputType.number,
+                            obscureText: false,
+                           // onChanged: _onRateChanged,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.018,horizontal: screenHeight*0.01),
+                            ),
+                          ),
+                              ),
+                             
+                              Container(
+                                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(bottomRight: Radius.circular(5),topRight: Radius.circular(5)),
+                    color: Colors.white,
+                    border: Border.all(color: Appcolors().searchTextcolor),
+                  ),
+                               height: screenHeight*0.05,width: screenWidth*0.1,
+                                child:  Icon(Icons.percent),
+                              ),
+                            ],
+                          ),
+                        ),
+                         SizedBox(width: screenHeight*0.02,),
+                        Container(
+                          child: Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                     borderRadius: BorderRadius.only(bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)),
+                    color: Colors.white,
+                    border: Border.all(color: Appcolors().searchTextcolor),
+                  ),
+                               height: screenHeight*0.05,width: screenWidth*0.1,
+                                child:  Icon(Icons.currency_rupee),
+                              ),
+                              Container(
+                                height: screenHeight*0.05,width: screenWidth*0.2,
+                                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(bottomRight: Radius.circular(5),topRight: Radius.circular(5)),
+                    color: Colors.white,
+                    border: Border.all(color: Appcolors().searchTextcolor),
+                  ),
+                                child: TextFormField(
+                    style: getFontsinput(14, Colors.black),
+                           controller: _DiscountController,
+                            keyboardType: TextInputType.number,
+                            obscureText: false,
+                           // onChanged: _onRateChanged,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.018,horizontal: screenHeight*0.01),
+                            ),
+                          ),
+                              ),
+                             
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+          ),
                 SizedBox(height: screenHeight*0.01,),
                 Container(
                   child: Row(
@@ -810,7 +948,8 @@ TableRow _buildTableRow(String label, String? value) {
       GestureDetector(
         onTap: () {
           setState(() {
-            _selectedRate = value ?? "N/A"; 
+            _selectedRate = value ?? "N/A";
+            _rateController.text = value.toString(); 
             _isDropdownVisible = false; 
           });
         },

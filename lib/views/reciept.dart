@@ -14,6 +14,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dar
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/more_home/settings.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
 
 class Reciept extends StatefulWidget {
@@ -38,6 +39,7 @@ class _PaymentFormState extends State<Reciept> {
   void initState() {
     super.initState();
     _fetchfyData();
+    _fetchSettings();
    // _fetchLedgerBalances();
    _fetchLedger();
    fetchData();
@@ -56,6 +58,19 @@ class _PaymentFormState extends State<Reciept> {
     setState(() {
       _total = balance - amount - discount;
     });
+  }
+
+List settings=[];
+ Future<void> _fetchSettings() async {
+    try {
+      List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllsettings();
+      print('Fetched stock data: $data');
+      setState(() {
+        settings = data;
+      });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
   }
 
     List <String> names=[];
@@ -441,6 +456,48 @@ for (var fyRecord in fy) {
   }
 }
 
+ bool _isKeyLockSaleRateEnabled() {
+  return settings.any((element) =>
+      element['Name'] == 'KEY MULTI RV-PV' && element['Status'] == '1');
+}
+
+bool _isKeyLockCashAccSelected = false;
+
+void _settingCashAccChanged(String value) {
+  bool isKeyLock = settings.any((element) =>
+      element['Name'] == 'KEY LOCK CASH ACCOUNT' && element['Status'] == '1');
+
+  if (isKeyLock && value == 'KEY LOCK CASH ACCOUNT') {
+    setState(() {
+      _isKeyLockCashAccSelected = true;
+      _cashAccController.text = value; 
+    });
+  } else if (!_isKeyLockCashAccSelected) {
+    _cashAccController.text = value;
+  }
+}
+ List<Map<String, dynamic>> temporaryData = [];
+ void _addDataToTemporaryList() {
+    if (_amountController.text.isNotEmpty && _DiscountController.text.isNotEmpty) {
+      setState(() {
+        temporaryData.add({
+          'date':_dateController.text,
+          'name': _selectlnamesController.text,
+          'total': _total.toString(),
+          'amount': _amountController.text,
+          'discount': _DiscountController.text,
+          'narration': _narrationController.text,
+        });
+      });
+
+      // Optionally, clear the fields after adding
+      _amountController.clear();
+      _DiscountController.clear();
+      _narrationController.clear();
+      _TotalController.clear();
+      _selectlnamesController.clear();
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -476,6 +533,19 @@ double _TotalController=_total;
           ),
         ),
         actions: [
+          //   Padding(
+          //   padding: EdgeInsets.only(top: screenHeight * 0.020, right: screenHeight*0.02),
+          //   child: GestureDetector(
+          //     onTap: () {
+          //       Navigator.of(context).push(MaterialPageRoute(builder: (context)=>Settings()));
+          //     },
+          //     child: SizedBox(
+          //       width: 20,
+          //       height: 20,
+          //       child: Image.asset("assets/images/setting (2).png"),
+          //     ),
+          //   ),
+          // ),
           Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
             child: GestureDetector(
@@ -684,7 +754,56 @@ double _TotalController=_total;
       ),
     ),
       SizedBox(height: screenHeight * 0.02),
-            _paymentField("Narration",_narrationController,screenWidth, screenHeight)
+            _paymentField("Narration",_narrationController,screenWidth, screenHeight),
+
+             SizedBox(height: screenHeight*0.01,),
+     if (_isKeyLockSaleRateEnabled())
+            Padding(
+              padding: EdgeInsets.all(screenHeight * 0.03),
+              child: 
+              GestureDetector(
+                onTap: () {
+                  _addDataToTemporaryList();
+                },
+                child: Container(
+                  height: screenHeight * 0.05,
+                  width: screenWidth * 0.2,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    color: Color(0xFF0A1EBE),
+                  ),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add, color: Colors.white, size: 17),
+                        Text(
+                          "Add",
+                          style: getFonts(14, Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            ListView.builder(
+              shrinkWrap: true, // To avoid full screen usage
+              itemCount: temporaryData.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal:15),
+                  child: Card(
+                    color: Color.fromRGBO(225, 240, 255, 1),
+                    child: ListTile(
+                      title: Text("Date: ${temporaryData[index]['date']}  ||   LedgerName : ${temporaryData[index]['name']}  ||  Discount: ${temporaryData[index]['discount']}  ||  Total: ${temporaryData[index]['total']}",style: getFonts(12, Colors.black45),),
+                    ),
+                  ),
+                );
+              },
+            ),
+            SizedBox(height: screenHeight*0.01,)
       ],),
     )
           ],

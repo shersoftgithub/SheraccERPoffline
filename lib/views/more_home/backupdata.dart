@@ -346,7 +346,7 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
 
    Future<List<Map<String, dynamic>>> fetchDataLedgerheadsFromMSSQL() async {
     try {
-      final query = 'SELECT lh_id,Mlh_id,lh_name,Active,lh_Code FROM LedgerHeads';
+      final query = 'SELECT lh_id,Mlh_id,lh_name,lh_Code FROM LedgerHeads';
       final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
       if (rawData is String) {
@@ -365,24 +365,27 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
   }
 
  Future<List<Map<String, dynamic>>> fetchDataSettingsFromMSSQL() async {
-    try {
-      final query = 'SELECT Name,Status FROM Settings';
-      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+  try {
+    // Updated query to filter only names starting with 'KEY'
+    final query = "SELECT Name, Status FROM Settings WHERE Name LIKE 'KEY%'";
+    
+    final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
-      if (rawData is String) {
-        final decodedData = jsonDecode(rawData);
-        if (decodedData is List) {
-          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
-        } else {
-          throw Exception('Unexpected JSON format for Settings data: $decodedData');
-        }
+    if (rawData is String) {
+      final decodedData = jsonDecode(rawData);
+      if (decodedData is List) {
+        return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+      } else {
+        throw Exception('Unexpected JSON format for Settings data: $decodedData');
       }
-      throw Exception('Unexpected data format for Settings: $rawData');
-    } catch (e) {
-      print('Error fetching data from Settings: $e');
-      rethrow;
     }
+    throw Exception('Unexpected data format for Settings: $rawData');
+  } catch (e) {
+    print('Error fetching data from Settings: $e');
+    rethrow;
   }
+}
+
   //    Future<List<Map<String, dynamic>>> fetchDataCompanyFromMSSQL() async {
   //   try {
   //     final query = 'SELECT * FROM Company';
@@ -467,7 +470,7 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
 
 
 bool _isLoading = false;
-
+bool _isLoading2 = false;
   // Backup both Stock and Product_Registration to local SQLite database
   Future<void> backupToLocalDatabase() async {
     try {
@@ -1126,6 +1129,40 @@ for (var row in fyData) {
   await DbHelperfy.insertfyid(rowData);
 }
 
+final LedheadsData = await fetchDataLedgerheadsFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperledhead = SaleReferenceDatabaseHelper.instance;
+for (var row in LedheadsData) {
+  Map<String, dynamic> rowData = {
+    'lh_id': row['lh_id']?.toString() ?? '',  
+      'Mlh_id': row['Mlh_id']?.toString() ?? '',
+      'lh_name': row['lh_name']?.toString() ?? '',
+      'lh_Code': row['lh_Code']?.toString() ?? '',
+  };
+  await DbHelperledhead.insertLedgerheads(rowData);
+}
+
+final settingsData = await fetchDataSettingsFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelpersettings = SaleReferenceDatabaseHelper.instance;
+for (var row in settingsData) {
+  Map<String, dynamic> rowData = {
+    'Name': row['Name']?.toString() ?? '',  
+      'Status': row['Status']?.toString() ?? '',
+  };
+  await DbHelpersettings.insertSettings(rowData);
+}
+
 // final CompanyData = await fetchDataCompanyFromMSSQL();
 //  if (productData.isEmpty) {
 //         ScaffoldMessenger.of(context).showSnackBar(
@@ -1356,10 +1393,11 @@ Future<void> companyBackup(BuildContext context) async {
             SizedBox(height: screenHeight*0.3,),
             GestureDetector(
               onTap: () {   
-             backupToLocalDatabase(); 
+              backupToLocalDatabase(); 
               //sync();
-              //performBackup();
+              performBackup();
               //updateOpeningBalances();
+              LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances();
               },
               child:  Container(
             height: screenHeight * 0.07,
@@ -1391,7 +1429,7 @@ Future<void> companyBackup(BuildContext context) async {
           color: Appcolors().maincolor,
         ),
         child: Center(
-          child: _isLoading
+          child: _isLoading2
               ? CircularProgressIndicator() // Show loading indicator when _isLoading is true
               : Text(
                   "Company Data",

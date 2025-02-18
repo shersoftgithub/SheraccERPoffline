@@ -1,33 +1,105 @@
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:csv/csv.dart';
+import 'package:flutter/material.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
+import 'package:sheraaccerpoff/utility/colors.dart';
+import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/more_home/update.dart';
 
-Future<String> createCsvFile(List<Map<String, dynamic>> data) async {
-  List<List<dynamic>> rows = [];
+class Import extends StatefulWidget {
+  const Import({super.key});
 
-  // Adding headers
-  rows.add([
-    'ID', 'Ledger Name', 'Under', 'Address', 'Contact', 'Mail', 'Tax No', 'Price Level', 'Balance', 'Opening Balance', 'Received Balance', 'Pay Amount', 'Date'
-  ]);
+  @override
+  State<Import> createState() => _ImportState();
+}
 
-  for (var row in data) {
-    rows.add([
-      row['id'], row['ledger_name'], row['under'], row['address'], row['contact'],
-      row['mail'], row['tax_no'], row['price_level'], row['balance'], 
-      row['opening_balance'], row['received_balance'], row['pay_amount'], row['date']
-    ]);
+class _ImportState extends State<Import> {
+  bool _isLoading = false;
+  Future<void> backupAndSyncData() async {
+    await LedgerTransactionsDatabaseHelper.instance.syncLedgerNamesToMSSQL();
+}
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    return Scaffold(
+      backgroundColor: Appcolors().scafoldcolor,
+      appBar: AppBar(
+        toolbarHeight: screenHeight * 0.1,
+        backgroundColor: Appcolors().maincolor,
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: IconButton(
+            onPressed: () {
+            Navigator.pop(context);
+            },
+              icon: Icon(
+              Icons.arrow_back_ios_new_sharp,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
+        title: Center(
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: screenHeight * 0.02,
+              right: screenHeight * 0.01,
+            ),
+            child: Text(
+              "Export Data",
+              style: appbarFonts(screenWidth * 0.04, Colors.white),
+            ),
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(
+              top: screenHeight * 0.02,
+              right: screenHeight * 0.02,
+            ),
+            child: GestureDetector(
+              onTap: () {
+
+              },
+              child: Icon(
+                Icons.more_vert,
+                color: Colors.white,
+                size: 15,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Center(
+        child: GestureDetector(
+              onTap: () {   
+              Update update = Update();
+        //update.syncRVInformationToMSSQL();
+        // update.syncRVParticularsToMSSQL();
+         update.syncPVInformationToMSSQL();
+         //update.syncPVParticularsToMSSQL();
+        //syncSalesInformationToMSSQL2();
+        //update.syncSalesinformationToMSSQL();
+        //update.syncStockQtyToMSSQL();
+        backupAndSyncData();
+              },
+              child:  Container(
+            height: screenHeight * 0.07,
+            width: screenWidth * 0.3,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Appcolors().maincolor,
+            ),
+            child: Center(
+              child: _isLoading
+                  ? CircularProgressIndicator() // Show loading indicator when _isLoading is true
+                  : Text(
+                      "Export Data",
+                      style: getFonts(14, Colors.white),
+                    ),
+            ),
+                  ),
+            ),
+      ),
+    );
   }
-
-  // Get the application directory
-  final directory = await getApplicationDocumentsDirectory();
-  String path = '${directory.path}/ledger_data.csv';
-
-  // Create the file
-  File file = File(path);
-
-  // Convert data to CSV and write to file
-  String csvData = const ListToCsvConverter().convert(rows);
-  await file.writeAsString(csvData);
-
-  return path;
 }

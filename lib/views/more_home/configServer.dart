@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/syncDB.dart';
+import 'package:sheraaccerpoff/utility/colors.dart';
+import 'package:sheraaccerpoff/utility/fonts.dart';
 
 class ServerConfig extends StatefulWidget {
   @override
@@ -57,9 +59,57 @@ class _ServerConfigState extends State<ServerConfig> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
+            backgroundColor: Appcolors().scafoldcolor,
+
       appBar: AppBar(
-        title: Text('MSSQL Server Config'),
+        toolbarHeight: screenHeight * 0.1,
+        backgroundColor: Appcolors().maincolor,
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: IconButton(
+            onPressed: () {
+            Navigator.pop(context);
+            },
+              icon: Icon(
+              Icons.arrow_back_ios_new_sharp,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
+        title: Center(
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: screenHeight * 0.02,
+              right: screenHeight * 0.01,
+            ),
+            child: Text(
+              "DataBase Config",
+              style: appbarFonts(screenWidth * 0.04, Colors.white),
+            ),
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(
+              top: screenHeight * 0.02,
+              right: screenHeight * 0.02,
+            ),
+            child: GestureDetector(
+              onTap: () {
+
+              },
+              child: Icon(
+                Icons.more_vert,
+                color: Colors.white,
+                size: 15,
+              ),
+            ),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
