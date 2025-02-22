@@ -96,8 +96,33 @@ class SaleReferenceDatabaseHelper {
    
   )
 ''');
+await db.execute('''
+  CREATE TABLE IF NOT EXISTS SalesType(
+    iD TEXT NOT NULL,
+    Name TEXT NOT NULL,
+   Type TEXT NOT NULL
+  )
+''');
 
+  }
 
+  Future<void> insertStype(Map<String, dynamic> data) async {
+    final db = await database;
+    try {
+      final result = await db.insert(
+        'SalesType',
+        data,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (result > 0) {
+        print('SalesType Inserted: $data');
+      } else {
+        print(' Failed to insert SalesType.');
+      }
+    } catch (e) {
+      print(' Error inserting into SalesType: $e');
+    }
   }
   Future<void> insertSettings(Map<String, dynamic> data) async {
     final db = await database;
@@ -217,6 +242,14 @@ Future<void> insertunit(Map<String, dynamic> data) async {
   }
 }
 
+ Future<List<Map<String, dynamic>>> getAllStype() async {
+    final db = await database;
+    try {
+      return await db.query('SalesType');
+    } catch (e) {
+      throw Exception("Failed to fetch SalesType references: $e");
+    }
+  }
   Future<List<Map<String, dynamic>>> getAllsettings() async {
     final db = await database;
     try {

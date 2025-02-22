@@ -256,7 +256,10 @@ bool _isKeyLockSaleDiscEnabled() {
   return settings.any((element) =>
       element['Name'] == 'KEY LOCK SALES DISCOUNT' && element['Status'] == '1');
 }
-
+bool _isKeyLockMinSaleRateEnabled() {
+  return settings.any((element) =>
+      element['Name'] == 'KEY LOCK MINIMUM SALES RATE' && element['Status'] == '1');
+}
 
   @override
   Widget build(BuildContext context) {
@@ -480,9 +483,34 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
     hintText: "Select Rate",
   ),
   onChanged: (value) {
- if (!_isKeyLockSaleRateEnabled()) {
-      _selectedRate = value; 
-    }  },
+  double enteredRate = double.tryParse(value) ?? 0.0;
+  double mrpRate = double.tryParse(itemDetails[0]["mrp"]?.toString() ?? "0") ?? 0.0;
+
+  if (_isKeyLockMinSaleRateEnabled()) {
+    if (enteredRate > mrpRate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _rateController.text = mrpRate.toString();
+      });
+
+      _selectedRate = mrpRate.toString();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Rate cannot exceed MRP ($mrpRate)'),
+        ),
+      );
+    } else {
+      _selectedRate = value;
+    }
+  } else if (_isKeyLockSaleRateEnabled()) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _rateController.text = _selectedRate!;
+    });
+  } else {
+    _selectedRate = value;
+  }
+}
+
 ),
               ),
                         ),
@@ -532,12 +560,12 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                   ),
               SizedBox(height: screenHeight * 0.01),
              Container(
-      width: 173,  // Set the width of the container
-      height: 35,  // Set the height of the container
+      width: 173,  
+      height: 35,  
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(5),
         color: Colors.white,
-        border: Border.all(color: Colors.grey), // You can use Appcolors().searchTextcolor here
+        border: Border.all(color: Colors.grey), 
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 5),
@@ -562,7 +590,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
           underline: SizedBox(), 
           isExpanded: true, 
           items: dropdownItems.map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(
+          return DropdownMenuItem<String>(
             
               value: value,
               child: Text(

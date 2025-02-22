@@ -49,6 +49,18 @@ dependencies:
   network_info_plus: ^6.1.2
   shared_preferences: ^2.3.3
   fluttertoast: ^8.0.9
+  easy_pdf_viewer: ^1.0.8
+  pdf: ^3.10.4
+  open_filex: ^4.6.0
+  
+   
+  
+
+  
+  
+ 
+ 
+  
  
   
   

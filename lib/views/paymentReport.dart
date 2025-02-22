@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
@@ -9,6 +12,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/paymentreportShow.dart';
+
 
 class Paymentreport extends StatefulWidget {
   const Paymentreport({super.key});
@@ -212,6 +216,7 @@ void _showLedgerWithFilters() {
                       controller: selectledgernamesController,
                       suggestions:ledgerNames,
                       onSubmitted: (value) {
+                        selectledgernamesController.text=value;
                                 },
                                     decoration: InputDecoration(
                   border: UnderlineInputBorder(),

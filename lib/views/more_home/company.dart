@@ -20,10 +20,10 @@ class _CompanyState extends State<Company> {
   final TextEditingController _statecodeController =TextEditingController();
   @override
   Widget build(BuildContext context) {
-     final screenWidth = MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
-       backgroundColor: Appcolors().scafoldcolor,
+      backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
         toolbarHeight: MediaQuery.of(context).size.height * 0.1,
         backgroundColor: Appcolors().maincolor,

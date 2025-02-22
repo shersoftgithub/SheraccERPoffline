@@ -28,7 +28,17 @@ final double? net;
 final double? tot;
 final double? tax;
 final String? taxstatus;
-  const SalesOrder({super.key, this.salesCredit,this.salesDebit,this.itemDetails,this.discPerc,this.discnt,this.net,this.tot,this.tax,this.taxstatus});
+final double? discPercCC; 
+final double? discntCC;
+final double? netCC;
+final double? totCC;
+final double? taxCC;
+final String? taxstatusCC;
+final String? selectedType;
+final String? selectedid;
+  const SalesOrder({super.key, this.salesCredit,this.salesDebit,this.itemDetails,this.discPerc,this.discnt,this.net,this.tot,this.tax,this.taxstatus,this.selectedType,this.selectedid,
+  this.discPercCC,this.discntCC,this.netCC,this.totCC,this.taxCC,this.taxstatusCC,
+  });
   @override
   State<SalesOrder> createState() => _SalesOrderState();
 }
@@ -69,6 +79,7 @@ String _selectedCustomer = "";  // Store selected customer
     @override
   void initState() {
     super.initState();
+    invoice();
      if (_selectedCustomer.isNotEmpty) {
     customername.text = _selectedCustomer;  // Retain customer name across screens
     isCustomerSelected = true;
@@ -205,25 +216,25 @@ List companydata= [];
     }
   }
 
-int newinno = 1; // Declare at class level
+ 
 
-void invoice() async {
-  final db = await SalesInformationDatabaseHelper2.instance.database;
+// void invoice() async {
+//   final db = await SalesInformationDatabaseHelper2.instance.database;
   
-  // Fetch last EntryNo, sorted in descending order
-  final lastRow = await db.rawQuery(
-    'SELECT EntryNo FROM Sales_Particulars ORDER BY EntryNo DESC LIMIT 1',
-  );
+//   // Fetch last EntryNo, sorted in descending order
+//   final lastRow = await db.rawQuery(
+//     'SELECT EntryNo FROM Sales_Particulars ORDER BY EntryNo DESC LIMIT 1',
+//   );
 
-  int lastEntryNo = lastRow.isNotEmpty ? (lastRow.first['EntryNo'] as int? ?? 0) : 0;
-  int updatedInno = lastEntryNo + 1; // Increment for the new invoice
+//   int lastEntryNo = lastRow.isNotEmpty ? (lastRow.first['EntryNo'] as int? ?? 0) : 0;
+//   int updatedInno = lastEntryNo + 1; // Increment for the new invoice
 
-  setState(() {
-    newinno = updatedInno; // Correctly update class variable
-  });
+//   setState(() {
+//     newinno = updatedInno; 
+//   });
 
-  print('New Invoice Number: $newinno'); // Debugging print
-}
+//   print('New Invoice Number: $newinno'); // Debugging print
+// }
 
 
 List fy=[];
@@ -254,7 +265,7 @@ final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
       'atLedCode': ledCode,
       'atDebitAmount': finalAmt,
     'atCreditAmount': creditamt,
-      'atType': 'SALE',
+      'atType': widget.selectedType!.isNotEmpty ? widget.selectedType : 'SALE',
       'Caccount': _salerateController.text,
       //'atDiscount':,
       //'atNaration': _narrationController.text,
@@ -446,7 +457,7 @@ for (var fyRecord in fy) {
       'Customer': ledCode,
       'Add1': add1, 
       'Add2': add2,
-      'Toname': _CustomerController.text,
+      'Toname': _CustomerController.text.toString(),
       'TaxType': widget.taxstatus, 
       'GrossValue': finalAmt,
       'Discount': widget.discnt,
@@ -473,7 +484,7 @@ for (var fyRecord in fy) {
       'CNo': 0,
       'CreditPeriod': 0,
       'DiscPercent': 0.00,
-      'SType': 2,
+      'SType': widget.selectedid,
       'VatEntryNo': 0,
       'tcommision': 0.00,
       'commisiontype': 0,
@@ -643,14 +654,22 @@ void _saveDataSaleperti() async {
     final lastRow = await db.rawQuery(
       'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1'
     );
-
+final db2 = await SalesInformationDatabaseHelper2.instance.database;
+     final lastRowinfo = await db2.rawQuery(
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
+    );
     int newAuto = 1;
+    int newentryno=1;
     int Newentryno = 1;
-    
+    if (lastRowinfo.isNotEmpty) {
+      final lastData = lastRowinfo.first;
+      //newentryno = (lastData['EntryNo'] as int? ?? 0) + 1;
+      newentryno = (lastData['RealEntryNo'] as int? ?? 0) + 1;
+    }
     if (lastRow.isNotEmpty) {
       final lastData = lastRow.first;
       newAuto = (lastData['Auto'] as num? ?? 0).toInt();
-      Newentryno = (lastData['EntryNo'] as num? ?? 0).toInt();
+     // Newentryno = (lastData['EntryNo'] as num? ?? 0).toInt();
     }
 
     final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;  
@@ -676,7 +695,6 @@ void _saveDataSaleperti() async {
     final String rprate = stocksaleDetails?['RealPrate']?.toString() ?? '0.0';
     final String unit = unitsaleDetails?['Unit']?.toString() ?? 'Unknown';
 
-    final entry = Newentryno + 1;
     final double cgst = (widget.tax ?? 0.0) / 2;
     final double sgst = (widget.tax ?? 0.0) / 2;
 
@@ -724,7 +742,7 @@ void _saveDataSaleperti() async {
 double realRate = await calculateRealRate(rate);
     final transactionData = {
       'DDate': _dateController.text,
-      'EntryNo': entry,
+      'EntryNo': newentryno ,
       'UniqueCode': Ucode,
       'ItemID': itemcode,
       'serialno': 0,
@@ -765,7 +783,8 @@ double realRate = await calculateRealRate(rate);
       'Prate': prate,  
       'Rprate': rprate, 
       'location': '0',
-      'Stype': '0',
+      'Stype': widget.selectedid,
+
       'LC': '0.0',
       'ScanBarcode': '0',
       'Remark': '0',
@@ -1033,6 +1052,451 @@ Future<void> _fetchItems({String? customer}) async {
 }
 
 
+void _saveDataSalepertiCash() async {
+  try {
+    final db = await SalesInformationDatabaseHelper.instance.database;
+    final lastRow = await db.rawQuery(
+      'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1'
+    );
+final db2 = await SalesInformationDatabaseHelper2.instance.database;
+     final lastRowinfo = await db2.rawQuery(
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
+    );
+    int newAuto = 1;
+    int newentryno=1;
+    int Newentryno = 1;
+    if (lastRowinfo.isNotEmpty) {
+      final lastData = lastRowinfo.first;
+      newentryno = (lastData['EntryNo'] as int? ?? 0) + 1;
+    }
+    if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+      newAuto = (lastData['Auto'] as num? ?? 0).toInt();
+     // Newentryno = (lastData['EntryNo'] as num? ?? 0).toInt();
+    }
+
+    final double finalAmt = widget.salesDebit?.totalAmt ?? 0.0;  
+    final stockDetails = await StockDatabaseHelper.instance
+        .getStockDetailsByName(widget.salesDebit!.itemName);
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_CustomerController.text);
+
+    final String ledCode = ledgerDetails?['LedId']?.toString() ?? 'Unknown';
+    final String itemcode = stockDetails?['itemcode']?.toString() ?? 'Unknown';
+    final String retail = stockDetails?['retail']?.toString() ?? 'Unknown';
+    final String sprate = stockDetails?['sprate']?.toString() ?? 'Unknown';
+    final String wrate = stockDetails?['wsrate']?.toString() ?? 'Unknown';
+
+    final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
+        .getStockSaleDetailsByName(itemcode);
+    final unitsaleDetails = await SaleReferenceDatabaseHelper.instance
+        .getStockunitDetailsByName(itemcode);
+
+    final String Ucode = stocksaleDetails?['Uniquecode']?.toString() ?? 'Unknown';
+    final String itemDisc = stocksaleDetails?['Disc']?.toString() ?? '0.0';
+    final String prate = stocksaleDetails?['Prate']?.toString() ?? '0.0';
+    final String rprate = stocksaleDetails?['RealPrate']?.toString() ?? '0.0';
+    final String unit = unitsaleDetails?['Unit']?.toString() ?? 'Unknown';
+
+    final double cgst = (widget.taxCC ?? 0.0) / 2;
+    final double sgst = (widget.taxCC ?? 0.0) / 2;
+
+    final double total = (widget.totCC is String)
+        ? double.tryParse(widget.totCC as String) ?? 0.0
+        : (widget.totCC as double?) ?? 0.0;
+
+    final double priceRate = double.tryParse(prate) ?? 0.0;
+    final num quantity = widget.salesDebit?.qty ?? 0;
+   final rate =widget.salesDebit?.rate?? 0;
+    final double profit = total - (priceRate * quantity);
+    String selectedDate = _dateController.text;
+
+    int selectedFyID = 0;
+
+    for (var fyRecord in fy) {
+      DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());
+      DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());
+      DateTime selected = DateTime.parse(selectedDate);
+      if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+        selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;
+        break;
+      }
+    }
+
+ //   Map<String, dynamic>? selectedCompany;
+
+// for (var company in companydata) {
+//   if (company['Code'] == ledgerDetails?['Code']) {
+//     selectedCompany = {
+//       ...company, 
+//       'Sname': company['Sname'] ?? 'Unknown' 
+//     };
+//     break;
+//   }
+// }
+//         final realRate = ((100 * rate) / (100 + (widget.salesCredit?.tax??0)));
+
+//     double realRate2 = double.tryParse(realRate.toString()) ?? 0.0;
+//     if (selectedCompany?['TaxCalculation'] == 'MINUS') {
+//       double tax = widget.salesCredit?.tax?? 0.0;
+//       double cess = double.tryParse(selectedCompany?['cess']?.toString() ?? '0.0') ?? 0.0;
+//     final realRate2 = ((100 * rate) / (100 + (widget.salesCredit?.tax??0)));
+//     }
+double realRate = await calculateRealRate(rate);
+    final transactionData = {
+      'DDate': _dateController.text,
+      'EntryNo': newentryno,
+      'UniqueCode': Ucode,
+      'ItemID': itemcode,
+      'serialno': 0,
+      'Rate': widget.salesDebit?.rate??0,  
+      'RealRate': realRate,  
+      'Qty': widget.salesDebit!.qty.toString(),  
+      'freeQty': '0.0',
+      'GrossValue': finalAmt.toString(),  
+      'DiscPersent': widget.discPercCC.toString(), 
+      'Disc': widget.discntCC.toString(),  
+      'RDisc': '0.0',
+      'Net': widget.netCC.toString(), 
+      'Vat': '0.0',
+      'freeVat': '0.0',
+      'cess': '0.0',
+      'Total': total.toString(), 
+      'Profit': profit.toString(),  
+      'Auto': newAuto.toString(),  
+      'Unit': unit, 
+      'UnitValue': '0.0',
+      'Funit': '0',
+      'FValue': '0',
+      'commision': '0.0',
+      'GridID': '0',
+      'takeprintstatus': '0',
+      'QtyDiscPercent': '0.0',
+      'QtyDiscount': itemDisc,  
+      'ScheemDiscPercent': '0.0',
+      'ScheemDiscount': '0.0',
+      'CGST': cgst.toString(), 
+      'SGST': sgst.toString(),  
+      'IGST': '0.0',
+      'adcess': '0.0',
+      'netdisc': '0.0',
+      'taxrate': widget.taxCC.toString(),  
+      'SalesmanId': '0',
+      'Fcess': '0.0',
+      'Prate': prate,  
+      'Rprate': rprate, 
+      'location': '0',
+      'Stype': widget.selectedid,
+
+      'LC': '0.0',
+      'ScanBarcode': '0',
+      'Remark': '0',
+      'FyID': selectedFyID.toString(),  
+      'Supplier': '0',
+      'Retail': retail,  
+      'spretail': sprate,  
+      'wsrate': wrate, 
+    };
+
+    await SalesInformationDatabaseHelper.instance.insertParticular(transactionData);
+    
+    if (ledgerDetails != null) {
+      print('Ledger details found and data saved.');
+    } else {
+      print('Ledger not found for name: ${_CustomerController.text}');
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {});
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
+
+void _saveDataSaleinfor22Cash() async {
+  try {
+     final db = await SalesInformationDatabaseHelper2.instance.database;
+     final lastRow = await db.rawQuery(
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
+    );
+    int newAuto = 1;
+    int newentryno=1;
+    String DDate=''; 
+    String btime=''; 
+    String ddate1=''; 
+    String despatchdate=''; 
+    String receiptDate=''; 
+ 
+
+      if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+newAuto = (lastData['RealEntryNo'] as int? ?? 0) + 1;
+      newentryno = (lastData['EntryNo'] as int? ?? 0) + 1;
+       DDate = lastData['DDate'] as String? ?? '';
+      btime =  lastData['BTime'] as String? ?? '';
+      ddate1 = lastData['ddate1'] as String? ?? '';
+      despatchdate = lastData['despatchdate'] as String? ?? '';
+      receiptDate = lastData['receiptDate'] as String? ?? '';
+    }
+    final double finalAmt = widget.salesDebit?.totalAmt ?? 0.0;
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_CustomerController.text);
+final String add1 = ledgerDetails?['add1'] ?? 'Unknown';
+final String add2 = ledgerDetails?['add2'] ?? 'Unknown';
+final String add3 = ledgerDetails?['add3'] ?? 'Unknown';
+final String add4 = ledgerDetails?['add4'] ?? 'Unknown';
+    if (ledgerDetails == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ledger not found for customer: ${_CustomerController.text}')),
+      );
+      return;
+    }
+   
+    final String ledCode = ledgerDetails['LedId'] ?? '';
+    if (_InvoicenoController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invoice number is required!')),
+      );
+      return;
+    }
+    if (_dateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Date is required!')),
+      );
+      return;
+    }
+    final stockDetails = await StockDatabaseHelper.instance
+        .getStockDetailsByName(widget.salesDebit!.itemName);
+        final String itemcode = stockDetails?['itemcode'] ?? 'Unknown';
+    
+    final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
+        .getStockSaleDetailsByName(itemcode);
+        final unitsaleDetails = await SaleReferenceDatabaseHelper.instance
+        .getStockunitDetailsByName(itemcode);
+final cgst = (widget.taxCC!) / 2;
+final sgst = (widget.taxCC!) / 2;
+
+ final double total = (widget.totCC is String)
+        ? double.tryParse(widget.totCC as String) ?? 0.0
+        : (widget.totCC as double?) ?? 0.0;
+final String prate = stocksaleDetails?['Prate']?.toString() ?? '0.0';
+    final double priceRate = double.tryParse(prate) ?? 0.0;
+    final num quantity = widget.salesDebit?.qty ?? 0;
+   final rate =widget.salesDebit?.rate?? 0;
+    final double profit = total - (priceRate * quantity);
+
+String selectedDate = _dateController.text;
+int selectedFyID = 0; 
+
+for (var fyRecord in fy) {
+  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
+  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
+  DateTime selected = DateTime.parse(selectedDate);  
+
+  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
+    break;  
+  }
+}
+
+    final transactionData = {
+      'RealEntryNo': newAuto, 
+      'EntryNo': newentryno, 
+      'InvoiceNo': _InvoicenoController.text,
+      'DDate':_dateController.text,
+      'BTime':_dateController.text,
+      'Customer': ledCode,
+      'Add1': "NA", 
+      'Add2': 'NA',
+      'Toname': _CustomerController.text.toString(),
+      'TaxType': widget.taxstatusCC, 
+      'GrossValue': finalAmt,
+      'Discount': widget.discntCC,
+      'NetAmount': widget.netCC,
+      'cess': 0.00,
+      'Total': widget.totCC,
+      'loadingcharge': 0.00,
+      'OtherCharges': 0.00,
+      'OtherDiscount': 0.00,
+      'Roundoff': 0.00,
+      'GrandTotal': finalAmt,
+      'SalesAccount': 0, 
+      'SalesMan': 0, 
+      'Location': 1, 
+      'Narration': 0,
+      'Profit': profit.toString(),
+      'CashReceived': 0.00,
+      'BalanceAmount': finalAmt,
+      'Ecommision': 0.00,
+      'labourCharge': 0.00,
+      'OtherAmount': 0.00,
+      'Type': 0,
+      'PrintStatus': 0,
+      'CNo': 0,
+      'CreditPeriod': 0,
+      'DiscPercent': 0.00,
+      'SType': widget.selectedid,
+      'VatEntryNo': 0,
+      'tcommision': 0.00,
+      'commisiontype': 0,
+      'cardno': 0,
+      'takeuser': 0,
+      'PurchaseOrderNo': 0,
+      'ddate1': _dateController.text,
+      'deliverNoteNo': 0,
+      'despatchno': 0,
+      'despatchdate':_dateController.text,
+      'Transport': 0,
+      'Destination': 0,
+      'Transfer_Status': 0,
+      'TenderCash': 0.00,
+      'TenderBalance': 0.00,
+      'returnno': 0,
+      'returnamt': 0.00,
+      'vatentryname': 0,
+      'otherdisc1': 0.00,
+      'salesorderno': 0,
+      'systemno': 0,
+      'deliverydate': 0,
+      'QtyDiscount': 0.00,
+      'ScheemDiscount': 0.00,
+      'Add3': 'NA',
+      'Add4': 'NA',
+      'BankName': 0,
+      'CCardNo': 0,
+      'SMInvoice': 0,
+      'Bankcharges': 0.00,
+      'CGST': cgst,
+      'SGST': sgst,
+      'IGST': 0.00,
+      'mrptotal': 0.00,
+      'adcess': 0.00,
+      'BillType': 0,
+      'discuntamount': 0.00,
+      'unitprice': 0.00,
+      'lrno': 0,
+      'evehicleno': 0,
+      'ewaybillno': 0,
+      'RDisc': 0.00,
+      'subsidy': 0.00,
+      'kms': 0.00,
+      'todevice': 0,
+      'Fcess': 0.00,
+      'spercent': 0.00,
+      'bankamount': 0.00,
+      'FcessType': 0,
+      'receiptAmount': 0.00,
+      'receiptDate': _dateController.text,
+      'JobCardno': 0,
+      'WareHouse': 0,
+      'CostCenter': 0,
+      'CounterClose': 0,
+      'CashAccountID': 0,
+      'ShippingName': 0,
+      'ShippingAdd1': 0,
+      'ShippingAdd2': 0,
+      'ShippingAdd3': 0,
+      'ShippingGstNo': 0,
+      'ShippingState': 0,
+      'ShippingStateCode': 0,
+      'RateType': 0,
+      'EmiAc': 0,
+      'EmiAmount': 0.00,
+      'EmiRefNo': 0,
+      'RedeemPoint': 0,
+      'IRNNo': 0,
+      'signedinvno': 0,
+      'signedQrCode': 0,
+      'Salesman1': 0,
+      'TCSPer': 0.00,
+      'TCS': 0.00,
+      'app': 0,
+      'TotalQty': widget.salesDebit!.qty, 
+      'InvoiceLetter': 0,
+      'AckDate': 0,
+      'AckNo': 0,
+      'Project': 0,
+      'PlaceofSupply': 0,
+      'tenderRefNo': 0,
+      'IsCancel': 0,
+      'FyID': selectedFyID,
+      'm_invoiceno': _InvoicenoController.text,
+      'PaymentTerms': 0,
+      'WarrentyTerms': 0,
+      'QuotationEntryNo': 0,
+      'CreditNoteNo': 0,
+      'CreditNoteAmount': 0.00,
+      'Careoff': 0,
+      'CareoffAmount': 0.00,
+      'DeliveryStatus': 0,
+      'SOrderBilled': 0,
+      'isCashCounter': 0,
+      'Discountbarcode': 0,
+      'ExcEntryNo': 0,
+      'ExcEntryAmt': 0.00,
+      'FxCurrency': 0,
+      'FxValue': 0.00,
+      'CntryofOrgin': 0,
+      'ContryFinalDest': 0,
+      'PrecarriageBy': 0,
+      'PlacePrecarrier': 0,
+      'PortofLoading': 0,
+      'Portofdischarge': 0,
+      'FinalDestination': 0,
+      'CtnNo': 0,
+      'Totalctn': 0,
+      'Netwt': 0.00,
+      'grosswt': 0.00,
+      'Blno': 0
+    };
+
+    // Insert into database
+    await SalesInformationDatabaseHelper2.instance.insertSale(transactionData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {
+      _InvoicenoController.clear();
+      _dateController.clear();
+      _CustomerController.clear();
+    });
+
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+int updatedInno = 0; 
+ void invoice() async {
+    final db = await SalesInformationDatabaseHelper2.instance.database;
+    
+    // Fetch last EntryNo, sorted in descending order
+    final lastRow = await db.rawQuery(
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
+    );
+
+    int lastEntryNo = lastRow.isNotEmpty ? (lastRow.first['RealEntryNo'] as int? ?? 0) : 0;
+    int newInvoiceNo = lastEntryNo + 1; // Increment for the new invoice
+
+    // Update the UI
+    setState(() {
+      updatedInno = newInvoiceNo;
+    });
+
+    print('New Invoice Number: $updatedInno'); // Debugging print
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1057,7 +1521,7 @@ Future<void> _fetchItems({String? customer}) async {
         _CashtotalamtController.text = totalAmt.toStringAsFixed(2);
   }
   _CashsalerateController.addListener(CashupdateTotalAmount);
-_InvoicenoController.text=newinno.toString();
+//_InvoicenoController.text=newinno.toString();
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -1191,11 +1655,18 @@ _InvoicenoController.text=newinno.toString();
           ),
           GestureDetector(
             onTap: (){
+
+              if(isCreditSelected){
+               _saveDataSaleperti();
+              _saveDataSaleinfor22();
+              }else{
+                _saveDataSalepertiCash();
+                _saveDataSaleinfor22Cash();
+              }
              //_saveDataCash();
-              _saveData2();
-              _saveData();
-              _saveDataSaleperti();
-              //_saveDataSaleinfor22();
+              // _saveData2();
+              // _saveData();
+             
               },
             child: Container(
               width: 175,height: 53,
@@ -1211,6 +1682,7 @@ _InvoicenoController.text=newinno.toString();
     );
   }
 Widget _CreditScreenContent(double screenHeight,double screenWidth) {
+ 
  String name=_CustomerController.text;
   var item = widget.itemDetails?[0];
     List<String>? keys = item?.keys.toList();
@@ -1241,7 +1713,10 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
     color: Colors.white,
     border: Border.all(color: Appcolors().searchTextcolor),
   ),
-  child: Text('$newinno',style: getFontsinput(14, Colors.black),),
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: Text('$updatedInno',style: getFontsinput(14, Colors.black),),
+  ),
   // child: SingleChildScrollView(
   //   physics: NeverScrollableScrollPhysics(),
   //   child: EasyAutocomplete(
@@ -1368,7 +1843,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               child: SingleChildScrollView(
                  physics: NeverScrollableScrollPhysics(),
                     child:EasyAutocomplete(
-      controller: customername,  
+      controller: _CustomerController,  
       suggestions: names,
 
       inputTextStyle: getFontsinput(14, Colors.black),
@@ -1378,7 +1853,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
           await _fetchItems(customer: value);
            setState(() {
               _selectedCustomer = value;  // Store selected customer
-              customername.text = value;  // Assign it to the text field
+              _CustomerController.text = value;  // Assign it to the text field
               isCustomerSelected = true; // Prevent further changes
             });
         }

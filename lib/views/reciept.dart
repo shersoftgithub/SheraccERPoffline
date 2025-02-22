@@ -271,15 +271,15 @@ if (lastDateRow.isNotEmpty) {
     final lastAuto = int.tryParse(lastRow.first['auto']?.toString() ?? '0') ?? 0;
     final lastEntryNo = double.tryParse(lastRow.first['EntryNo']?.toString() ?? '0') ?? 0.0; // FIXED: Correct key lookup
 
-    print("Fetched lastAuto: $lastAuto, lastEntryNo: $lastEntryNo"); // Debugging
+    print("Fetched lastAuto: $lastAuto, lastEntryNo: $lastEntryNo");
 
     newAuto = lastAuto + 1;
-    newEntryNo = lastEntryNo + 1.0; // Ensure increment as double
+    newEntryNo = lastEntryNo + 1.0; 
   }
 }
 
 
-print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo"); // Debugging
+print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo"); 
 
     final double amount = double.tryParse(_amountController.text) ?? 0.0;
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
@@ -490,7 +490,6 @@ void _settingCashAccChanged(String value) {
         });
       });
 
-      // Optionally, clear the fields after adding
       _amountController.clear();
       _DiscountController.clear();
       _narrationController.clear();
@@ -498,6 +497,208 @@ void _settingCashAccChanged(String value) {
       _selectlnamesController.clear();
     }
   }
+
+  void _saveDataRV_Perticular2() async {
+  try {
+    final db = await PV_DatabaseHelper.instance.database;
+
+    final lastDateRow = await db.rawQuery(
+      'SELECT ddate FROM RV_Particulars ORDER BY ddate DESC LIMIT 1'
+    );
+
+    int newAuto = 1;
+    double newEntryNo = 1.0;
+
+    if (lastDateRow.isNotEmpty) {
+      final lastDate = lastDateRow.first['ddate']?.toString() ?? '';
+
+      final lastRow = await db.rawQuery(
+        'SELECT auto, EntryNo FROM RV_Particulars WHERE ddate = ? ORDER BY auto DESC LIMIT 1',
+        [lastDate]
+      );
+
+      if (lastRow.isNotEmpty) {
+        final lastAuto = int.tryParse(lastRow.first['auto']?.toString() ?? '0') ?? 0;
+        final lastEntryNo = double.tryParse(lastRow.first['EntryNo']?.toString() ?? '0') ?? 0.0;
+
+        newAuto = lastAuto + 1;
+        newEntryNo = lastEntryNo + 1.0;
+      }
+    }
+
+    final batch = db.batch(); // Start a batch transaction
+
+    for (var item in temporaryData) {
+      final double amount = double.tryParse(item['amount'].toString()) ?? 0.0;
+      final double discount = double.tryParse(item['discount'].toString()) ?? 0.0;
+      final double total = amount - discount;
+
+      final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+          .getLedgerDetailsByName(item['name'].toString());
+
+      final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+      String selectedDate = item['date'].toString();
+      int selectedFyID = 0;
+
+      for (var fyRecord in fy) {
+        DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());
+        DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());
+        DateTime selected = DateTime.parse(selectedDate);
+
+        if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+          selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;
+          break;
+        }
+      }
+
+      final transactionData = {
+        'auto': newAuto.toString(),
+        'EntryNo': newEntryNo.toString(),
+        'ddate': selectedDate.isNotEmpty ? selectedDate : 'Unknown',
+        'Amount':item['amt'].toString(),
+        'Total': item['total'].toString(),
+        'CashAccount': _cashAccController.text,
+        'Discount': item['discount'].toString(),
+        'Narration': item['narration'].toString(),
+        'Name': ledCode,
+        'FyID': selectedFyID,
+        'FrmID': 1,
+      };
+
+      batch.insert('RV_Particulars', transactionData);
+
+      newAuto++; // Increment auto for the next record
+      newEntryNo++; // Increment entry number for the next record
+    }
+
+    await batch.commit(noResult: true); // Execute batch insert
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully'))
+    );
+
+    setState(() {
+      temporaryData.clear(); // Clear temporary list after saving
+      _amountController.clear();
+      _balanceController.clear();
+      _DiscountController.clear();
+      _dateController.clear();
+      _cashAccController.clear();
+      _selectlnamesController.clear();
+      _narrationController.clear();
+    });
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e'))
+    );
+  }
+}
+void _saveDataRV_Information2() async {
+  try {
+    final db = await PV_DatabaseHelper.instance.database;
+
+    final lastRow = await db.rawQuery(
+      'SELECT * FROM RV_Particulars ORDER BY RealEntryNo DESC LIMIT 1'
+    );
+
+    int newEntryNo = 1;
+    String lastTakeUser = '';
+    int lastLocation = 0;
+    int lastProject = 0;
+    int lastSalesMan = 0;
+    int lastApp = 0;
+    int lastTransferStatus = 0;
+    int lastFyID = 0;
+    int lastFrmID = 0;
+    int lastPviCurrency = 0;
+    int lastPviCurrencyValue = 0;
+
+    if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+
+      newEntryNo = (lastData['RealEntryNo'] as int? ?? 0) + 1;  // Increment EntryNo correctly
+      lastTakeUser = lastData['takeuser'] as String? ?? '';
+      lastLocation = lastData['Location'] as int? ?? 0;
+      lastProject = lastData['Project'] as int? ?? 0;
+      lastSalesMan = lastData['SalesMan'] as int? ?? 0;
+      lastApp = lastData['app'] as int? ?? 0;
+      lastTransferStatus = lastData['Transfer_Status'] as int? ?? 0;
+      lastFyID = lastData['FyID'] as int? ?? 0;
+      lastFrmID = lastData['FrmID'] as int? ?? 0;
+      lastPviCurrency = lastData['pviCurrency'] as int? ?? 0;
+      lastPviCurrencyValue = lastData['pviCurrencyValue'] as int? ?? 0;
+    }
+
+    // Use a batch operation for efficiency
+    final batch = db.batch();
+
+    for (var entry in temporaryData) {
+      final double amount = double.tryParse(entry['amount'].toString()) ?? 0.0;
+      final double discount = double.tryParse(entry['discount'].toString()) ?? 0.0;
+      final double total = double.tryParse(entry['total'].toString()) ?? 0.0;
+
+      final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+          .getLedgerDetailsByName(entry['name'].toString());
+
+      final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+
+      String selectedDate = entry['date'] ?? '';
+      int selectedFyID = 0;
+
+      for (var fyRecord in fy) {
+        DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());
+        DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());
+        DateTime selected = DateTime.parse(selectedDate);
+
+        if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+          selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;
+          break;
+        }
+      }
+
+      final transactionData = {
+        'DDATE': selectedDate.isNotEmpty ? selectedDate : 'Unknown',
+        'AMOUNT': amount,
+        'Discount': discount,
+        'Total': total,
+        'CreditAccount': ledCode,
+        'takeuser': lastTakeUser,
+        'Location': lastLocation,
+        'Project': lastProject,
+        'SalesMan': lastSalesMan,
+        'MonthDate': selectedDate.isNotEmpty ? selectedDate : 'Unknown',
+        'app': lastApp,
+        'Transfer_Status': lastTransferStatus,
+        'FyID': selectedFyID,
+        'EntryNo': newEntryNo++,  
+        'FrmID': lastFrmID,
+        'pviCurrency': lastPviCurrency,
+        'pviCurrencyValue': lastPviCurrencyValue,
+        'pdate': selectedDate.isNotEmpty ? selectedDate : 'Unknown',
+      };
+
+      batch.insert('RV_Particulars', transactionData);
+    }
+
+    await batch.commit(noResult: true);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Data saved successfully!')),
+    );
+
+    setState(() {
+      temporaryData.clear();
+    });
+
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -550,9 +751,16 @@ double _TotalController=_total;
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
             child: GestureDetector(
               onTap: () {
-               // _saveData();
+
+                   if (_isKeyLockSaleRateEnabled()) {
+             _saveDataRV_Perticular2();
+            _saveDataRV_Information2();
+              } else {
+                 // _saveData();
                 _saveDataRV_Perticular();
                 _saveDataRV_Information();
+              }
+              
               },
               child: SizedBox(
                 width: 20,

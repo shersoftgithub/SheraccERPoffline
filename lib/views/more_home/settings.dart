@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:sheraaccerpoff/views/sales.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -14,11 +15,13 @@ class _SettingsState extends State<Settings> {
   bool _isExpanded = false;
   bool isexpand = false;
   List settings = [];
+  List stypelist=[];
 
   @override
   void initState() {
     super.initState();
     _fetchSettings();
+    _fetchSType();
   }
 
   Future<void> _fetchSettings() async {
@@ -32,7 +35,17 @@ class _SettingsState extends State<Settings> {
       print('Error fetching stock data: $e');
     }
   }
-
+Future<void> _fetchSType() async {
+    try {
+      List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllStype();
+      print('Fetched stock data: $data');
+      setState(() {
+        stypelist = data;
+      });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
+  }
   void _toggleCheckbox(int index, bool? value) async {
     setState(() {
       settings[index]['Status'] = value! ? '1' : '0'; 
@@ -132,20 +145,22 @@ class _SettingsState extends State<Settings> {
                     onPressed: () {
                       _showSalesOptionsDialog(); 
                     },
-                    child: Text("Sales option", style: drewerFonts()),
+                    child: Text("General option", style: drewerFonts()),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      _showSalesTypeDialog();
+                    },
                     child: Padding(
                       padding: const EdgeInsets.only(right: 10),
-                      child: Text("Receipt option", style: drewerFonts()),
+                      child: Text("Sale option", style: drewerFonts()),
                     ),
                   ),
                   TextButton(
                     onPressed: () {},
                     child: Padding(
                       padding: const EdgeInsets.only(right: 10),
-                      child: Text("Payment option", style: drewerFonts()),
+                      child: Text("", style: drewerFonts()),
                     ),
                   ),
                 ],
@@ -265,6 +280,86 @@ void _showSalesOptionsDialog() {
   );
 }
 
+void _showSalesTypeDialog() {
+  Map<int, bool> selectedItems = {};
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Sales Forms', style: drewerFonts()),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(stypelist.length, (index) {
+                    bool isChecked = selectedItems[index] ?? false;
+
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: isChecked,
+                          activeColor: isChecked ? Appcolors().maincolor : Colors.white,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              selectedItems[index] = value ?? false;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Text(
+                            stypelist[index]['Name'] ?? "",
+                            style: getFonts(14, Colors.black),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  String? selectedType;
+                  String? selectedID;
+                  selectedItems.forEach((index, isChecked) {
+                    if (isChecked) {
+                      selectedType = stypelist[index]['Type'];
+                      selectedID = stypelist[index]['iD'];
+                    }
+                  });
+
+                  if (selectedType != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SalesOrder(selectedType: selectedType!,selectedid: selectedID,),
+                      ),
+                    );
+                  }
+
+                  Navigator.of(context).pop(); 
+                },
+                child: Text('Submit'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); 
+                },
+                child: Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
 
 

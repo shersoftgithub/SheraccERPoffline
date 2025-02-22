@@ -144,7 +144,6 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     return await db.query('Sales_Information');
   }
 
-  // **Delete All Data (Optional)**
   Future<void> clearSalesTable() async {
     final db = await instance.database;
     await db.delete('Sales_Information');
@@ -167,9 +166,7 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     } else {
       print('Insertion failed. No row inserted.');
     }
-
-    // Verify the inserted record
-    final checkResult = await db.query(
+        final checkResult = await db.query(
       'Sales_Particulars',
       where: 'ParticularID = ?',
       whereArgs: [result],

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sheraaccerpoff/pdf_report/sale_pdf.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
@@ -7,6 +10,11 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart'; // Adjust with your actual import
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:easy_pdf_viewer/easy_pdf_viewer.dart';
 
 class ShowSalesReport extends StatefulWidget {
   final String? customerName;
@@ -34,25 +42,11 @@ double totalAmount = 0.0;
   @override
   void initState() {
     super.initState();
-    // _fetchFilteredData();
-    // _fetchFilteredSalesData(); 
-    _fetchStockData2();
+     
+    _fetchFilteredData();
   }
- Future<void> _fetchStockData2() async {
-    try {
-   //   List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getAllTransactions();
-            List<Map<String, dynamic>> data = await SalesInformationDatabaseHelper.instance.getSalesData();
-
-      print('Fetched stock data: $data');
-      setState(() {
-      paymentData   = data;
-      });
-    } catch (e) {
-      print('Error fetching stock data: $e');
-    }
-  }
-
-   Future<void> _fetchFilteredData() async {
+ 
+Future<void> _fetchFilteredData() async {
   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
   List<Map<String, dynamic>> ledgerData = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
@@ -61,126 +55,96 @@ double totalAmount = 0.0;
     for (var ledger in ledgerData) ledger['LedName'].toString(): ledger['Ledcode'].toString()
   };
 
- 
-  String? selectedLedgerCode = widget.customerName != null && widget.customerName!.isNotEmpty
-      ? ledgerNameToCodeMap[widget.customerName!]
-      : null;
+  // Fetch the filtered data with Rate and ItemID
   List<Map<String, dynamic>> data = await SalesInformationDatabaseHelper2.instance.queryFilteredRowsPay(
-   fromDate: widget.fromDate,  // Pass the DateTime directly
-    toDate: widget.toDate,  
-    // itemName: widget.itemName, 
-    // customer: widget.customerName ?? '',  
+    fromDate: widget.fromDate!,
+    toDate: widget.toDate!,
   );
+
   Map<String, String> ledgerCodeToNameMap = {
     for (var ledger in ledgerData) ledger['Ledcode'].toString(): ledger['LedName'].toString()
   };
+
   setState(() {
     paymentData = data.map((ledger) {
-      String? ledCode = ledger['Name']?.toString();
+      String? ledCode = ledger['Customer']?.toString();
       String? ledName = ledgerCodeToNameMap[ledCode] ?? 'N/A';
- String formattedDate = 'N/A';
-      if (ledger['ddate'] != null && ledger['ddate'].toString().isNotEmpty) {
+      String formattedDate = 'N/A';
+      
+      // Format date if available
+      if (ledger['DDate'] != null && ledger['DDate'].toString().isNotEmpty) {
         try {
-          DateTime parsedDate = DateTime.parse(ledger['ddate'].toString());
+          DateTime parsedDate = DateTime.parse(ledger['DDate'].toString());
           formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
         } catch (e) {
           print("Error parsing date: $e");
         }
       }
+
       return {
         ...ledger,
         'Name': ledName,
-        'ddate': formattedDate, 
+        'ddate': formattedDate,
+        'Rate': ledger['Rate']?.toString() ?? 'N/A', 
+        'ItemID': ledger['ItemID']?.toString() ?? 'N/A', 
       };
     }).toList();
   });
 }
-//  Future<void> _fetchFilteredData() async {
-//   // Ensure the filters are passed correctly into the queryFilteredRows method
-//   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
-//   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
 
-//   List<Map<String, dynamic>> data = await SaleDatabaseHelper.instance.queryFilteredRows(
-//     fromDate: widget.fromDate,  // Pass the DateTime directly
-//     toDate: widget.toDate,  
-//     itemName: widget.itemName, 
-//     customer: widget.customerName ?? '', // Pass the customer name
-//   );
+Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
+  final pdf = pw.Document();
 
-//   setState(() {
-//     paymentData = data.map((ledger) {
-//       String? dateString = ledger['date'];
-//       DateTime? ledgerDate;
-
-//       if (dateString != null && dateString.isNotEmpty) {
-//         try {
-//           ledgerDate = DateFormat('yyyy-MM-dd').parse(dateString);
-//         } catch (e) {
-//           print("Error parsing date: $e");
-//           ledgerDate = DateTime.now();
-//         }
-//       } else {
-//         ledgerDate = DateTime.now();
-//       }
-
-//       return {...ledger, 'date': ledgerDate};
-//     }).toList();
-
-//     totalAmount = paymentData.fold(0.0, (sum, item) {
-//       double amount = double.tryParse(item[SaleDatabaseHelper.columnTotalAmt]?.toString() ?? '0') ?? 0.0;
-//       return sum + amount;
-//     });
-//   });
-// }
-
-
-
-List<Map<String, dynamic>> salesData = [];
-  double openingBalance = 0.0;
-  double paidAmount = 0.0;
-  double receivedAmount = 0.0;
-Future<void> _fetchFilteredSalesData() async {
-  // Ensure the filters are passed correctly into the queryFilteredRows method
-  String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
-
-  List<Map<String, dynamic>> data = await SaleDatabaseHelper.instance.queryFilteredRows(
-    fromDate: widget.fromDate,  // Pass the DateTime directly
-    toDate: widget.toDate,      // Pass the DateTime directly
-    customer: widget.customerName ?? '',  // Pass the customer name
+  pdf.addPage(
+    pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (pw.Context context) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Sales Report',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Table.fromTextArray(
+              headers: [
+                'Invoice No', 'Date', 'Customer', 'Qty', 'Discount', 'Total', 'Rate', 'Item ID'
+              ],
+              data: paymentData.map((data) {
+                return [
+                  data['RealEntryNo'].toString(),
+                  data['InfoDDate'].toString(),
+                  data['Toname'].toString(),
+                  data['TotalQty'].toString(),
+                  data['Discount'].toString(),
+                  data['GrandTotal'].toString(),
+                  data['Rate'].toString(),
+                  data['ItemID'].toString(),
+                ];
+              }).toList(),
+            ),
+          ],
+        );
+      },
+    ),
   );
 
-  setState(() {
-    salesData = data;
-
-    totalAmount = salesData.fold(0.0, (sum, item) {
-      double amount = double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0;
-      return sum + amount;
-    });
-
-    // Fetch the ledger data for the customer (optional, depending on the use case)
-    //_fetchLedgerDataForCustomer(widget.customerName ?? '');
-  });
+  final output = await getExternalStorageDirectory();
+  final file = File("${output!.path}/sales_report.pdf");
+  await file.writeAsBytes(await pdf.save());
+  return file;
 }
 
-
-// Future<void> _fetchLedgerDataForCustomer(String customerName) async {
-//   List<Map<String, dynamic>> ledgerData = await DatabaseHelper.instance.queryFilteredRows(
-//      widget.fromDate,
-//      widget.toDate,
-//    customerName,
-//   );
-
-//   ledgerData.forEach((item) {
-//     if (item['ledger_name'] == customerName) {  
-//       openingBalance = (double.tryParse(item[DatabaseHelper.columnOpeningBalance]?.toString() ?? '0') ?? 0.0);
-//       paidAmount = (double.tryParse(item[DatabaseHelper.columnPayAmount]?.toString() ?? '0') ?? 0.0);
-//       receivedAmount = (double.tryParse(item[DatabaseHelper.columnReceivedBalance]?.toString() ?? '0') ?? 0.0);
-//     }
-//   });
-//   setState(() {});
-// }
-
+void _generateAndViewPDF() async {
+  File pdfFile = await generatePdf(paymentData);
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => SalePDFscreen(pdfFile),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +179,9 @@ Future<void> _fetchFilteredSalesData() async {
           ),
         ),
         actions: [
+           IconButton(onPressed: (){
+        _generateAndViewPDF();
+          }, icon: Icon(Icons.download,color: Colors.white,)),
           Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
             child: GestureDetector(
@@ -248,8 +215,8 @@ Future<void> _fetchFilteredSalesData() async {
                 3: FixedColumnWidth(100),
                 4: FixedColumnWidth(100),
                 5: FixedColumnWidth(100),
-                // 6: FixedColumnWidth(100),
-                // 7: FixedColumnWidth(100),
+                6: FixedColumnWidth(150),
+                7: FixedColumnWidth(100),
                 // 8: FixedColumnWidth(100),
                 // 9: FixedColumnWidth(100),
                 // 10: FixedColumnWidth(100),
@@ -259,28 +226,27 @@ Future<void> _fetchFilteredSalesData() async {
                   children: [
                     _buildHeaderCell('Invoice No'),
                     _buildHeaderCell('Date'),
-                    _buildHeaderCell('Sale Rate'),
-                    _buildHeaderCell('Customer'),
-                    _buildHeaderCell('Phone No'),
-                    _buildHeaderCell('Item Name'),
-                    // _buildHeaderCell('Quantity'),
-                    // _buildHeaderCell('Unit'),
-                    // _buildHeaderCell('Rate'),
-                    // _buildHeaderCell('Tax'),
+                    _buildHeaderCell('Cutomer Name'),
+                    _buildHeaderCell('Qty'),
+                     _buildHeaderCell('Dicount'),
+                    _buildHeaderCell('Total'),
+                     _buildHeaderCell('Rate'),
+                    _buildHeaderCell('itemId'),
                     // _buildHeaderCell('Total Amt'),
                   ],
                 ),
-                // Table data rows
                 ...paymentData.map((data) {
                   return TableRow(
                     children: [
                        
                       _buildDataCell(data['RealEntryNo'].toString()),
-                  _buildDataCell(data['DDate'].toString()),
+                  _buildDataCell(data['InfoDDate'].toString()),
                   _buildDataCell(data['Toname'].toString()),
-                  _buildDataCell(data['Customer'].toString()),
-                  _buildDataCell(data['Toname'].toString()),
-                  _buildDataCell(data['Total'].toString()),
+                  _buildDataCell(data['TotalQty'].toString()),
+                  _buildDataCell(data['Discount'].toString()),
+                  _buildDataCell(data['GrandTotal'].toString()),
+                  _buildDataCell(data['Rate'].toString()),
+                  _buildDataCell(data['ItemID'].toString()),
                       // _buildDataCell(data[SaleDatabaseHelper.columnId].toString()), // Invoice No
                       // _buildDataCell(DateFormat('dd-MM-yyyy').format(data[SaleDatabaseHelper.columnDate])),
 

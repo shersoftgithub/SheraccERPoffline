@@ -1,5 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:sheraaccerpoff/pdf_report/peyment_pdf.dart';
+import 'package:sheraaccerpoff/pdf_report/recieptpdf.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
@@ -8,6 +15,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class ShowPaymentReport extends StatefulWidget {
   final DateTime? fromDate;
@@ -30,6 +38,7 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
     super.initState();
   _fetchFilteredData();
    //_fetchStockData2();
+   
   }
 
   Future<void> _fetchStockData2() async {
@@ -89,6 +98,74 @@ Future<void> _fetchFilteredData() async {
 
 
 
+
+Future<File> generatePdf(List<Map<String, dynamic>> Data) async {
+  final pdf = pw.Document();
+
+  // Calculate total debit and credit
+  double totalDebit = 0;
+  double totalCredit = 0;
+
+  for (var report in Data) {
+    totalDebit += double.tryParse(report['Amount']?.toString() ?? '0') ?? 0;
+    totalCredit += double.tryParse(report['Total']?.toString() ?? '0') ?? 0;
+  }
+
+  double closingBalance = totalDebit - totalCredit;
+
+  pdf.addPage(
+    pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (pw.Context context) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Payment Report',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Table.fromTextArray(
+              headers: ['No', 'Date', 'Debit', 'Credit', 'Name', 'Discount', 'Narration'],
+              data: [
+                ...Data.map((report) {
+                  return [
+                    report['auto'].toString(),
+                    report['ddate'] ?? '',
+                    report['Amount']?.toString() ?? 'N/A',
+                    report['Total']?.toString() ?? 'N/A',
+                    report['Name'] ?? 'N/A',
+                    report['Discount']?.toString() ?? 'N/A',
+                    report['Narration'] ?? 'N/A',
+                  ];
+                }).toList(),
+                // Closing Balance Row
+                ['', '', 'Closing Balance', closingBalance.toStringAsFixed(2), '', '', ''],
+              ],
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
+  final output = await getExternalStorageDirectory();
+  final file = File("${output!.path}/payment_report.pdf");
+  await file.writeAsBytes(await pdf.save());
+  return file;
+}
+
+
+void _generateAndViewPDF() async {
+  File pdfFile = await generatePdf(Data);
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => PayPDFscreen(pdfFile),
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -122,6 +199,9 @@ Future<void> _fetchFilteredData() async {
           ),
         ),
         actions: [
+          IconButton(onPressed: (){
+        _generateAndViewPDF();
+          }, icon: Icon(Icons.download,color: Colors.white,)),
           Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
             child: GestureDetector(

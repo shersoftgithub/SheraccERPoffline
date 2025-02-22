@@ -349,7 +349,6 @@ Future<List<Map<String, dynamic>>> getSalesDataperticular() async {
       rethrow;
     }
 }
-
 Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
   DateTime? fromDate, 
   DateTime? toDate, 
@@ -360,34 +359,58 @@ Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
   List<String> whereClauses = [];
   List<dynamic> whereArgs = [];
 
+  // Date filtering
   if (fromDate != null && toDate != null) {
     String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
     String toDateString = DateFormat('yyyy-MM-dd').format(toDate);
 
-    whereClauses.add("DATE(sp.DDate) BETWEEN DATE(?) AND DATE(?)");
+    whereClauses.add("DATE(Sales_Information.DDate) BETWEEN DATE(?) AND DATE(?)");
     whereArgs.addAll([fromDateString, toDateString]);
   }
 
-  // Ledger Name Filtering (from Sales_Information.Toname)
+  // Ledger name filtering
   if (ledgerName != null && ledgerName.isNotEmpty) {
-    whereClauses.add("si.Toname LIKE ?");
-    whereArgs.add('%$ledgerName%');
+    whereClauses.add("Sales_Information.Customer LIKE ?");
+    whereArgs.add("%$ledgerName%");
   }
 
   // Construct WHERE clause
-  String whereClause = whereClauses.isNotEmpty ? "WHERE ${whereClauses.join(' AND ')}" : "";
+  String whereClause = whereClauses.isNotEmpty ? "WHERE ${whereClauses.join(' AND ')}" : '';
 
   try {
-    return await db.rawQuery('''
-      SELECT sp.*, si.Toname
-      FROM Sales_Particulars sp
-      JOIN Sales_Information si ON sp.EntryNo = si.EntryNo
-      $whereClause
-    ''', whereArgs);
+String query = '''
+  SELECT 
+    Sales_Information.RealEntryNo,
+    Sales_Information.InvoiceNo,
+    Sales_Information.DDate AS InfoDDate,
+    Sales_Information.EntryNo AS InfoEntryNo,
+    Sales_Information.Toname,
+    Sales_Information.TotalQty,
+    Sales_Information.Discount,
+    Sales_Information.GrandTotal,
+    Sales_Particulars.DDate AS PartDDate,  -- Entry Date from Sales_Particulars
+    Sales_Particulars.EntryNo AS PartEntryNo,  -- EntryNo from Sales_Particulars
+    Sales_Particulars.Rate,  -- Fetching Rate from Sales_Particulars
+    Sales_Particulars.ItemID
+  FROM Sales_Information
+  LEFT JOIN Sales_Particulars
+    ON Sales_Information.RealEntryNo = Sales_Particulars.EntryNo  -- Matching EntryNo between Sales_Information and Sales_Particulars
+    AND STRFTIME('%Y-%m-%d', Sales_Information.DDate) = STRFTIME('%Y-%m-%d', Sales_Particulars.DDate)  -- Ensuring the Date matches without the time
+  $whereClause  -- Where clause for additional filtering (e.g., search, date filters)
+''';
+
+
+
+
+    final result = await db.rawQuery(query, whereArgs);
+
+    return result;
   } catch (e) {
     print("Error fetching filtered data: $e");
     rethrow;
   }
 }
+
+
 
 }

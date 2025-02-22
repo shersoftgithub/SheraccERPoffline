@@ -386,6 +386,26 @@ Future<List<Map<String, dynamic>>> fetch_CashAccDataFromMSSQL() async {
   }
 }
 
+Future<List<Map<String, dynamic>>> fetchDataSTYPEFromMSSQL() async {
+  try {
+    final query = "SELECT iD, Name,Type FROM SalesType";
+    
+    final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+    if (rawData is String) {
+      final decodedData = jsonDecode(rawData);
+      if (decodedData is List) {
+        return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+      } else {
+        throw Exception('Unexpected JSON format for SalesType data: $decodedData');
+      }
+    }
+    throw Exception('Unexpected data format for SalesType: $rawData');
+  } catch (e) {
+    print('Error fetching data from SalesType: $e');
+    rethrow;
+  }
+}
   //    Future<List<Map<String, dynamic>>> fetchDataCompanyFromMSSQL() async {
   //   try {
   //     final query = 'SELECT * FROM Company';
@@ -1163,6 +1183,22 @@ for (var row in settingsData) {
   await DbHelpersettings.insertSettings(rowData);
 }
 
+final stypeData = await fetchDataSTYPEFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperstype = SaleReferenceDatabaseHelper.instance;
+for (var row in stypeData) {
+  Map<String, dynamic> rowData = {
+      'iD': row['iD']?.toString() ?? '',  
+      'Name': row['Name']?.toString() ?? '',
+      'Type': row['Type']?.toString() ?? '',
+  };
+  await DbHelperstype.insertStype(rowData);
+}
 // final CompanyData = await fetchDataCompanyFromMSSQL();
 //  if (productData.isEmpty) {
 //         ScaffoldMessenger.of(context).showSnackBar(
@@ -1396,7 +1432,6 @@ Future<void> companyBackup(BuildContext context) async {
               backupToLocalDatabase(); 
               //sync();
               performBackup();
-              //updateOpeningBalances();
               LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances();
               },
               child:  Container(
@@ -1430,7 +1465,7 @@ Future<void> companyBackup(BuildContext context) async {
         ),
         child: Center(
           child: _isLoading2
-              ? CircularProgressIndicator() // Show loading indicator when _isLoading is true
+              ? CircularProgressIndicator() 
               : Text(
                   "Company Data",
                   style: getFonts(14, Colors.white),

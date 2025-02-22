@@ -1,5 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:sheraaccerpoff/pdf_report/recieptpdf.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
@@ -8,6 +14,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dar
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class ShowRecieptReport extends StatefulWidget {
  final DateTime? fromDate;
@@ -32,7 +39,7 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
     _fetchFilteredData();
    // _fetchLedgerData2();
   }
-
+List<Map<String, dynamic>> Data=[];
   Future<void> _fetchFilteredData() async {
   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
@@ -77,47 +84,85 @@ class _ShowRecieptReportState extends State<ShowRecieptReport> {
 }
 
 
-List Data=[];
-Future<void> _fetchLedgerData2() async {
-  try {
-    List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getFilteredAccTrans("RECEIPT");
-    print('Fetched stock data: $data'); 
-    setState(() {
-      Data = data;
-    });
-  } catch (e) {
-    print('Error fetching stock data: $e');
-  }
-}
+
 // Future<void> _fetchLedgerData2() async {
-//   String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-//   String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
-
-  
-//   List<Map<String, dynamic>> data = await ReceiptDatabaseHelper.instance.queryFilteredRows(
-//     fromDateStr,  
-//     toDateStr,    
-//     widget.ledgerName ?? "",  
-//   );
-
-//   setState(() {
-//     recieptdata = data;
-//         if (widget.ledgerName != null && widget.ledgerName!.isNotEmpty) {
-//       totalAmount = recieptdata.fold(0.0, (sum, item) {
-//         double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-//         return sum + amount; 
-//       });
-//     } else {
-//       totalAmount = recieptdata.fold(0.0, (sum, item) {
-//         double amount = double.tryParse(item[ReceiptDatabaseHelper.columnTotal]?.toString() ?? '0') ?? 0.0;
-//         return sum + amount;  
-//       });
-//     }
-//   });
+//   try {
+//     List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.getFilteredAccTrans("RECEIPT");
+//     print('Fetched stock data: $data'); 
+//     setState(() {
+//       Data = data;
+//     });
+//   } catch (e) {
+//     print('Error fetching stock data: $e');
+//   }
 // }
 
 
+Future<File> generatePdf(List<Map<String, dynamic>> Data) async {
+  final pdf = pw.Document();
 
+  // Calculate total debit and credit
+  double totalDebit = 0;
+  double totalCredit = 0;
+
+  for (var report in Data) {
+    totalDebit += double.tryParse(report['Amount']?.toString() ?? '0') ?? 0;
+    totalCredit += double.tryParse(report['Total']?.toString() ?? '0') ?? 0;
+  }
+
+  double closingBalance = totalDebit - totalCredit;
+
+  pdf.addPage(
+    pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (pw.Context context) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Reciept Report',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Table.fromTextArray(
+              headers: ['No', 'Date', 'Debit', 'Credit', 'Name', 'Discount', 'Narration'],
+              data: [
+                ...Data.map((report) {
+                  return [
+                    report['auto'].toString(),
+                    report['ddate'] ?? '',
+                    report['Amount']?.toString() ?? 'N/A',
+                    report['Total']?.toString() ?? 'N/A',
+                    report['Name'] ?? 'N/A',
+                    report['Discount']?.toString() ?? 'N/A',
+                    report['Narration'] ?? 'N/A',
+                  ];
+                }).toList(),
+                ['', '', 'Closing Balance', closingBalance.toStringAsFixed(2), '', '', ''],
+              ],
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
+  final output = await getExternalStorageDirectory();
+  final file = File("${output!.path}/payment_report.pdf");
+  await file.writeAsBytes(await pdf.save());
+  return file;
+}
+
+
+void _generateAndViewPDF() async {
+  File pdfFile = await generatePdf(Data);
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ReciPDFscreen(pdfFile),
+    ),
+  );
+}
 
 
   @override
@@ -147,7 +192,7 @@ Future<void> _fetchLedgerData2() async {
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Text(
-              "Receipt Report",  // Updated title to reflect the correct report
+              "Receipt Report",  
               style: appbarFonts(screenHeight * 0.02, Colors.white),
             ),
           ),
@@ -156,11 +201,13 @@ Future<void> _fetchLedgerData2() async {
           Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
             child: GestureDetector(
-              onTap: () {},
+              onTap: () {
+              _generateAndViewPDF();
+              },
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: Image.asset("assets/images/setting (2).png"),
+                child: Icon(Icons.download,color: Colors.white,),
               ),
             ),
           ),

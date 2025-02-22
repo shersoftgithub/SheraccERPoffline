@@ -281,7 +281,7 @@ void _showAuthDialog(BuildContext context) {
       _showAuthDialogsettings(context);
         break;
       case "Sync Data":
-      
+      LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances();
       //  Navigator.push(
       //                   context, MaterialPageRoute(builder: (_) => SyncButtonPage()));
         print("Syncing data...");
