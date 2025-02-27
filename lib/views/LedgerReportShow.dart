@@ -39,14 +39,11 @@ Future<void> _fetchFilteredData() async {
   String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
 
-  // Fetch data filtered by ledger name, date range, and other filters
   List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredLedgerRows(
     fromDate: widget.fromDate,
     toDate: widget.toDate,
     ledgerName: widget.ledgerName ?? '',
   );
-
-  // Using Future.wait to resolve the futures and map the results
   List<Map<String, dynamic>> ledgerDataList = await Future.wait(data.map((ledger) async {
     String? dateString = ledger['date'];
     DateTime? ledgerDate;
@@ -62,18 +59,17 @@ Future<void> _fetchFilteredData() async {
       ledgerDate = DateTime.now();
     }
 
-    // Fetch the debit amount for the current ledger from the Account_Transaction table
     double debitAmount = await LedgerTransactionsDatabaseHelper.instance.getDebitAmountForLedger(ledger['LedName'] ?? '');
 
     double openingBalance = double.tryParse(ledger['OpeningBalance']?.toString() ?? '0') ?? 0.0;
- double totalOpeningBalance2 = openingBalance + debitAmount;
- totalOpeningBalance=totalOpeningBalance2;
- OpeningBalance=openingBalance;
-    // Combine debit and opening balance to get the total opening balance for the ledger
+    double totalOpeningBalance2 = openingBalance + debitAmount;
+    totalOpeningBalance=totalOpeningBalance2;
+    OpeningBalance=openingBalance;
+
     return {
       ...ledger,
       'date': ledgerDate,
-      'OpeningBalance': openingBalance , // Total Opening Balance = Opening + Debit
+      'OpeningBalance': openingBalance , 
     };
   }).toList());
 

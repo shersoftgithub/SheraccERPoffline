@@ -8,6 +8,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart'; // Adjust with your actual import
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:intl/intl.dart';
@@ -42,36 +43,61 @@ double totalAmount = 0.0;
   @override
   void initState() {
     super.initState();
-     
+     fetchSalesParticulars();
     _fetchFilteredData();
+    fetchSaleStock();
   }
+
+List<Map<String, dynamic>> salesParticulars = [];
+Future<void> fetchSalesParticulars() async {
+  List<Map<String, dynamic>> data = await SalesInformationDatabaseHelper2.instance.getSalesDataperticular();
+
+  setState(() {
+    salesParticulars = data;
+  });
+}
+
+List<Map<String, dynamic>> stocklist = [];
+Future<void> fetchSaleStock() async {
+  List<Map<String, dynamic>> data = await StockDatabaseHelper.instance.getItemDetails();
+
+  setState(() {
+    salesParticulars = data;
+  });
+}
  
 Future<void> _fetchFilteredData() async {
   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
-  List<Map<String, dynamic>> ledgerData = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
 
-  Map<String, String> ledgerNameToCodeMap = {
-    for (var ledger in ledgerData) ledger['LedName'].toString(): ledger['Ledcode'].toString()
+  List<Map<String, dynamic>> ledgerData = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
+  Map<String, String> ledgerCodeToNameMap = {
+    for (var ledger in ledgerData) ledger['Ledcode'].toString(): ledger['LedName'].toString()
   };
 
-  // Fetch the filtered data with Rate and ItemID
   List<Map<String, dynamic>> data = await SalesInformationDatabaseHelper2.instance.queryFilteredRowsPay(
     fromDate: widget.fromDate!,
     toDate: widget.toDate!,
+    ledgerName: widget.customerName,
+    itemcode: widget.itemcode,
+    itemname: widget.itemName
   );
 
-  Map<String, String> ledgerCodeToNameMap = {
-    for (var ledger in ledgerData) ledger['Ledcode'].toString(): ledger['LedName'].toString()
+  List<Map<String, dynamic>> stockData = await StockDatabaseHelper.instance.getItemDetails();
+  
+  Map<String, String> itemIdToNameMap = {
+    for (var stock in stockData) stock['productItemId'].toString(): stock['itemname'].toString()
   };
 
   setState(() {
     paymentData = data.map((ledger) {
       String? ledCode = ledger['Customer']?.toString();
       String? ledName = ledgerCodeToNameMap[ledCode] ?? 'N/A';
+
+      String? itemID = ledger['ItemID']?.toString();
+      String itemName = itemIdToNameMap[itemID] ?? 'N/A';
+
       String formattedDate = 'N/A';
-      
-      // Format date if available
       if (ledger['DDate'] != null && ledger['DDate'].toString().isNotEmpty) {
         try {
           DateTime parsedDate = DateTime.parse(ledger['DDate'].toString());
@@ -86,11 +112,14 @@ Future<void> _fetchFilteredData() async {
         'Name': ledName,
         'ddate': formattedDate,
         'Rate': ledger['Rate']?.toString() ?? 'N/A', 
-        'ItemID': ledger['ItemID']?.toString() ?? 'N/A', 
+        'ItemID': itemID ?? 'N/A',
+        'itemname': itemName, 
+        'SType': ledger['SType']?.toString() ?? 'N/A', 
       };
     }).toList();
   });
 }
+
 
 Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
   final pdf = pw.Document();
@@ -179,9 +208,12 @@ void _generateAndViewPDF() async {
           ),
         ),
         actions: [
-           IconButton(onPressed: (){
-        _generateAndViewPDF();
-          }, icon: Icon(Icons.download,color: Colors.white,)),
+           Padding(
+            padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
+             child: IconButton(onPressed: (){
+                     _generateAndViewPDF();
+                       }, icon: Icon(Icons.download,color: Colors.white,)),
+           ),
           Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
             child: GestureDetector(
@@ -211,14 +243,14 @@ void _generateAndViewPDF() async {
               columnWidths: {
                 0: FixedColumnWidth(100),
                 1: FixedColumnWidth(100),
-                2: FixedColumnWidth(100),
+                2: FixedColumnWidth(200),
                 3: FixedColumnWidth(100),
-                4: FixedColumnWidth(100),
+                4: FixedColumnWidth(150),
                 5: FixedColumnWidth(100),
                 6: FixedColumnWidth(150),
                 7: FixedColumnWidth(100),
-                // 8: FixedColumnWidth(100),
-                // 9: FixedColumnWidth(100),
+                 8: FixedColumnWidth(100),
+                 9: FixedColumnWidth(100),
                 // 10: FixedColumnWidth(100),
               },
               children: [
@@ -227,12 +259,14 @@ void _generateAndViewPDF() async {
                     _buildHeaderCell('Invoice No'),
                     _buildHeaderCell('Date'),
                     _buildHeaderCell('Cutomer Name'),
+                    _buildHeaderCell('itemId'),
+                     _buildHeaderCell('Itemname'),
                     _buildHeaderCell('Qty'),
+                     _buildHeaderCell('Rate'),
                      _buildHeaderCell('Dicount'),
                     _buildHeaderCell('Total'),
-                     _buildHeaderCell('Rate'),
-                    _buildHeaderCell('itemId'),
-                    // _buildHeaderCell('Total Amt'),
+                    _buildHeaderCell('sss'),
+                    
                   ],
                 ),
                 ...paymentData.map((data) {
@@ -242,11 +276,14 @@ void _generateAndViewPDF() async {
                       _buildDataCell(data['RealEntryNo'].toString()),
                   _buildDataCell(data['InfoDDate'].toString()),
                   _buildDataCell(data['Toname'].toString()),
+                  _buildDataCell(data['ItemID'].toString()),
+                  _buildDataCell(data['itemname'].toString()),
                   _buildDataCell(data['TotalQty'].toString()),
+                  _buildDataCell(data['Rate'].toString()),
                   _buildDataCell(data['Discount'].toString()),
                   _buildDataCell(data['GrandTotal'].toString()),
-                  _buildDataCell(data['Rate'].toString()),
-                  _buildDataCell(data['ItemID'].toString()),
+                  _buildDataCell(data['Stype'].toString()),
+                  
                       // _buildDataCell(data[SaleDatabaseHelper.columnId].toString()), // Invoice No
                       // _buildDataCell(DateFormat('dd-MM-yyyy').format(data[SaleDatabaseHelper.columnDate])),
 

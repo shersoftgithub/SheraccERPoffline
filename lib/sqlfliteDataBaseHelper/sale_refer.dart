@@ -100,8 +100,9 @@ await db.execute('''
   CREATE TABLE IF NOT EXISTS SalesType(
     iD TEXT NOT NULL,
     Name TEXT NOT NULL,
-   Type TEXT NOT NULL
-  )
+    Type TEXT NOT NULL,
+    isChecked INTEGER DEFAULT 0
+)
 ''');
 
   }
@@ -309,4 +310,13 @@ Future<void> insertunit(Map<String, dynamic> data) async {
   );
 }
 
+Future<void> updateSalesTypeCheck(String iD, bool isChecked) async {
+  final db = await database;
+  await db.update(
+    'SalesType',
+    {'isChecked': isChecked ? 1 : 0},  
+    where: 'iD = ?',
+    whereArgs: [iD],
+  );
+}
 }

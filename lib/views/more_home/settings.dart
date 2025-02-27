@@ -281,7 +281,8 @@ void _showSalesOptionsDialog() {
 }
 
 void _showSalesTypeDialog() {
-  Map<int, bool> selectedItems = {};
+  // Create a temporary list to avoid modifying the original list directly
+  List<Map<String, dynamic>> tempSalesType = List<Map<String, dynamic>>.from(stypelist);
 
   showDialog(
     context: context,
@@ -295,25 +296,37 @@ void _showSalesTypeDialog() {
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: List.generate(stypelist.length, (index) {
-                    bool isChecked = selectedItems[index] ?? false;
+                  children: List.generate(tempSalesType.length, (index) {
+                    bool isChecked = (tempSalesType[index]['isChecked'] ?? 0) == 1;
 
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Checkbox(
                           value: isChecked,
-                          activeColor: isChecked ? Appcolors().maincolor : Colors.white,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              selectedItems[index] = value ?? false;
+                          activeColor: isChecked ? Appcolors().maincolor : Colors.grey, 
+                          checkColor: Colors.white,
+                          onChanged: (bool? value) async {
+                            if (value == null) return;
+
+                            setState(() { 
+                              tempSalesType[index] = {
+                                ...tempSalesType[index], 
+                                'isChecked': value ? 1 : 0, 
+                              };
                             });
+
+                            // Update the database
+                            await SaleReferenceDatabaseHelper.instance.updateSalesTypeCheck(
+                              tempSalesType[index]['iD'], 
+                              value,
+                            );
                           },
                         ),
                         Expanded(
                           child: Text(
-                            stypelist[index]['Name'] ?? "",
-                            style: getFonts(14, Colors.black),
+                            tempSalesType[index]['Name'] ?? "",
+                            style: getFonts(14, isChecked ? Appcolors().maincolor : Colors.black),
                           ),
                         ),
                       ],
@@ -325,33 +338,11 @@ void _showSalesTypeDialog() {
             actions: [
               TextButton(
                 onPressed: () {
-                  String? selectedType;
-                  String? selectedID;
-                  selectedItems.forEach((index, isChecked) {
-                    if (isChecked) {
-                      selectedType = stypelist[index]['Type'];
-                      selectedID = stypelist[index]['iD'];
-                    }
-                  });
-
-                  if (selectedType != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SalesOrder(selectedType: selectedType!,selectedid: selectedID,),
-                      ),
-                    );
-                  }
-
-                  Navigator.of(context).pop(); 
+                  // Update the original list with changes
+                  stypelist = List<Map<String, dynamic>>.from(tempSalesType);
+                  Navigator.of(context).pop();
                 },
-                child: Text('Submit'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); 
-                },
-                child: Text('Cancel'),
+                child: Text('Close'),
               ),
             ],
           );

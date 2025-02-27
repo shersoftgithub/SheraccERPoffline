@@ -488,22 +488,14 @@ Future<List<Map<String, dynamic>>> fetchDataSTYPEFromMSSQL() async {
 
 
 
-
+bool _isLoadingLocalBackup = false;
 bool _isLoading = false;
 bool _isLoading2 = false;
   // Backup both Stock and Product_Registration to local SQLite database
   Future<void> backupToLocalDatabase() async {
+    setState(() => _isLoadingLocalBackup = true); // Start loading
     try {
-
-      setState(() {
-      _isLoading = true; 
-    });
-
-    await Future.delayed(Duration(seconds: 5)); 
-
-    setState(() {
-      _isLoading = false; 
-    });
+      await Future.delayed(Duration(seconds: 5));
 final stockData2 = await fetchDataFromMSSQLStock();
 
       if (stockData2.isEmpty) {
@@ -888,7 +880,7 @@ final saleDataper = await fetch_sales_particularsDataFromMSSQL();
         );
         return;
       }
-      final DbHelperSaleper = SalesInformationDatabaseHelper.instance;
+      final DbHelperSaleper = SalesInformationDatabaseHelper2.instance;
 for (var row in saleDataper) {
   Map<String, dynamic> rowData = {
    'DDate': row['DDate']?.toString() ?? '',
@@ -1199,125 +1191,16 @@ for (var row in stypeData) {
   };
   await DbHelperstype.insertStype(rowData);
 }
-// final CompanyData = await fetchDataCompanyFromMSSQL();
-//  if (productData.isEmpty) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
-//         );
-//         return;
-//       }
-//       final DbHelperCompany = CompanyDatabaseHelper.instance;
-// for (var row in CompanyData) {
-//   Map<String, dynamic> rowData = {
-//      'Code': row['Code']?.toString() ?? '',
-//      'Presumptive': row['Presumptive']?.toString() ?? '',
-//         'sname': row['sname']?.toString() ?? '',
-//         'name': row['name']?.toString() ?? '',
-//         'add1': row['add1']?.toString() ?? '',
-//         'add2': row['add2']?.toString() ?? '',
-//         'add3': row['add3']?.toString() ?? '',
-//         'add4': row['add4']?.toString() ?? '',
-//         'add5': row['add5']?.toString() ?? '',
-//         'PrintName': row['PrintName']?.toString() ?? '',
-//         'telephone': row['telephone']?.toString() ?? '',
-//         'email': row['email']?.toString() ?? '',
-//         'mobile': row['mobile']?.toString() ?? '',
-//         'tin': row['tin']?.toString() ?? '',
-//         'cst': row['cst']?.toString() ?? '',
-//         'kgst': row['kgst']?.toString() ?? '',
-//         'pin': row['pin']?.toString() ?? '',
-//         'sdate': row['sdate']?.toString() ?? '',
-//         'edate': row['edate']?.toString() ?? '',
-//         'DC': row['DC'] ?? 0,
-//         'GC': row['GC'] ?? 0,
-//         'TaxCollection': row['TaxCollection'] ?? 0,
-//         'TaxDueCollection': row['TaxDueCollection'] ?? 0,
-//         'BelowTurnOver': row['BelowTurnOver'] ?? 0,
-//         'TurnOverDate': row['TurnOverDate']?.toString() ?? '',
-//         'backhand': row['backhand']?.toString() ?? '',
-//         'Vbackhand': row['Vbackhand']?.toString() ?? '',
-//         'printertype': row['printertype']?.toString() ?? '',
-//         'PrintModel': row['PrintModel']?.toString() ?? '',
-//         'negativestock': row['negativestock'] ?? 0,
-//         'TaxCalcuLate': row['TaxCalcuLate'] ?? 0,
-//         'Editoption': row['Editoption'] ?? 0,
-//         'TaxCalculation': row['TaxCalculation']?.toString() ?? '',
-//         'profitshow': row['profitshow'] ?? 0,
-//         'cstPersentage': row['cstPersentage'] ?? 0.0,
-//         'Hidden': row['Hidden'] ?? 0,
-//         'PapperType': row['PapperType']?.toString() ?? '',
-//         'PrinterPort': row['PrinterPort']?.toString() ?? '',
-//         'Network': row['Network'] ?? 0,
-//         'NetWorkPort': row['NetWorkPort']?.toString() ?? '',
-//         'AUTO': row['AUTO'] ?? 0,
-//         'DACC': row['DACC'] ?? 0,
-//         'DLNO': row['DLNO']?.toString() ?? '',
-//         'DBName': row['DBName']?.toString() ?? '',
-//         'MDFPath': row['MDFPath']?.toString() ?? '',
-//         'LDFPath': row['LDFPath']?.toString() ?? '',
-//         'VDBName': row['VDBName']?.toString() ?? '',
-//         'VMDFPath': row['VMDFPath']?.toString() ?? '',
-//         'VLDFPath': row['VLDFPath']?.toString() ?? '',
-//         'CType': row['CType']?.toString() ?? '',
-//         'CCompany': row['CCompany'] ?? 0,
-//         'EXDuty': row['EXDuty'] ?? 0.0,
-//         'DACCAll': row['DACCAll'] ?? 0,
-//         'AddExDuty': row['AddExDuty'] ?? 0.0,
-//         'currencytype': row['CurrencyType']?.toString() ?? '',
-//         'stype': row['stype']?.toString() ?? '',
-//         'cess': row['cess'] ?? 0.0,
-//         'barcodecurrencytype': row['barcodecurrencytype']?.toString() ?? '',
-//         'secondfont': row['secondfont']?.toString() ?? '',
-//         's_currency': row['s_currency']?.toString() ?? '',
-//         'sheight': row['sheight']?.toString() ?? '',
-//         'CustomerCode': row['CustomerCode']?.toString() ?? '',
-//         'insDate': row['insDate']?.toString() ?? '',
-//   };
-//   await DbHelperCompany.insertCompany(rowData);
-// }
-//       final AccTransLedgerData = await fetchDataFromMSSQLAccTransations();
-//  if (productData.isEmpty) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
-//         );
-//         return;
-//       }
-//       final DHelper = LedgerTransactionsDatabaseHelper.instance;
-// for (var row in AccTransLedgerData) {
-//   Map<String, dynamic> rowData = {
-//     'Auto': row['Auto']?.toString() ?? '',
-//     'atDate': row['atDate']?.toString() ?? '',
-//     'atLedCode': row['atLedCode']?.toString() ?? '', 
-//       'atType': row['atType']?.toString() ?? '',
-//     'atEntryno': row['atEntryno']?.toString() ?? '', 
-//     'atDebitAmount': row['atDebitAmount'] != null ? row['atDebitAmount'] : 0.0, 
-//     'atCreditAmount': row['atCreditAmount'] != null ? row['atCreditAmount'] : 0.0, 
-//      'atNarration': row['atNarration']?.toString() ?? '',
-//     'atOpposite': row['atOpposite']?.toString() ?? '',     
-//     'atSalesEntryno': row['atSalesEntryno']?.toString() ?? '',
-//     'atSalesType': row['atSalesType']?.toString() ?? 'Default SalesType',
-//     'atLocation': row['atLocation']?.toString() ?? '',
-//     'atChequeNo': row['atChequeNo']?.toString() ?? '',
-//     'atProject': row['atProject']?.toString() ?? '',
-//     'atBankEntry': row['atBankEntry']?.toString() ?? '',
-//     'atInvestor': row['atInvestor']?.toString() ?? '',
-//     'atFyID': row['atFyID']?.toString() ?? '',
-//     'atFxDebit': row['atFxDebit']?.toString() ?? '',
-//     'atFxCredit': row['atFxCredit']?.toString() ?? '',
-//   };
 
-//   // Inserting the rowData into the NewTable
-//   await DHelper.insertData(rowData);
-// }
- 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup completed successfully!')),
+        SnackBar(content: Text('')),
       );
     } catch (e) {
-      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error during backup: $e')),
+        SnackBar(content: Text('Error during local backup: $e')),
       );
+    } finally {
+      setState(() => _isLoadingLocalBackup = false); // Stop loading after completion
     }
   }
 
@@ -1345,28 +1228,46 @@ for (var row in stypeData) {
 //   }
 // }
 
-Future<void> performBackup() async {
+ bool _isLoadingBackup = false; // Loading state for Backup Data
+  bool _isLoadingCompany = false; // Loading state for Company Data
+
+  // Function to perform Backup Data
+  Future<void> performBackup() async {
+    setState(() => _isLoadingBackup = true); // Start loading
     try {
-      await backupMSSQLToSQLite(); 
-      print("Backup completed successfully.");
+      await backupMSSQLToSQLite();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Backup completed successfully.'))
+      );
+      print("");
     } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during backup: $e'))
+      );
       print("Error during backup: $e");
+    } finally {
+      setState(() => _isLoadingBackup = false); // Stop loading after completion
     }
   }
-Future<void> companyBackup(BuildContext context) async {
-  try {
-    await backupMSSQLToSQLite2();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Company backup completed successfully.'))
-    );
-    print("Backup completed successfully.");
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error during company backup: $e'))
-    );
-    print("Error during backup: $e");
+
+  // Function to perform Company Data Backup
+  Future<void> companyBackup() async {
+    setState(() => _isLoadingCompany = true); // Start loading
+    try {
+      await backupMSSQLToSQLite2();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Company backup completed successfully.'))
+      );
+      print("Company backup completed successfully.");
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during company backup: $e'))
+      );
+      print("Error during company backup: $e");
+    } finally {
+      setState(() => _isLoadingCompany = false); 
+    }
   }
-}
 
  
   @override
@@ -1382,100 +1283,111 @@ Future<void> companyBackup(BuildContext context) async {
         leading: Padding(
           padding: const EdgeInsets.only(top: 20),
           child: IconButton(
-            onPressed: () {
-            Navigator.pop(context);
-            },
-              icon: Icon(
-              Icons.arrow_back_ios_new_sharp,
-              color: Colors.white,
-              size: 20,
-            ),
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_back_ios_new_sharp, color: Colors.white, size: 20),
           ),
         ),
         title: Center(
           child: Padding(
-            padding: EdgeInsets.only(
-              top: screenHeight * 0.02,
-              right: screenHeight * 0.01,
-            ),
-            child: Text(
-              "BackUp",
-              style: appbarFonts(screenWidth * 0.04, Colors.white),
-            ),
+            padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.01),
+            child: Text("BackUp", style: appbarFonts(screenWidth * 0.04, Colors.white)),
           ),
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(
-              top: screenHeight * 0.02,
-              right: screenHeight * 0.02,
-            ),
+            padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
             child: GestureDetector(
-              onTap: () {
-
-              },
-              child: Icon(
-                Icons.more_vert,
-                color: Colors.white,
-                size: 15,
-              ),
+              onTap: () {},
+              child: Icon(Icons.more_vert, color: Colors.white, size: 15),
             ),
           ),
         ],
       ),
       body: Center(
-        child: Column(
-          children: [
-            SizedBox(height: screenHeight*0.3,),
-            GestureDetector(
-              onTap: () {   
-              backupToLocalDatabase(); 
-              //sync();
-              performBackup();
-              LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances();
-              },
-              child:  Container(
-            height: screenHeight * 0.07,
-            width: screenWidth * 0.3,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Appcolors().maincolor,
-            ),
-            child: Center(
-              child: _isLoading
-                  ? CircularProgressIndicator() // Show loading indicator when _isLoading is true
-                  : Text(
-                      "BackUp Data",
-                      style: getFonts(14, Colors.white),
-                    ),
-            ),
-                  ),
-            ),
-            SizedBox(height: 20,),
-            GestureDetector(
-          onTap: () {   
-            companyBackup(context);        
-          },
-          child:  Container(
-        height: screenHeight * 0.07,
-        width: screenWidth * 0.3,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(5),
-          color: Appcolors().maincolor,
-        ),
-        child: Center(
-          child: _isLoading2
-              ? CircularProgressIndicator() 
-              : Text(
-                  "Company Data",
-                  style: getFonts(14, Colors.white),
-                ),
+  child: Column(
+    children: [
+      SizedBox(height: screenHeight * 0.3),
+
+      GestureDetector(
+        onTap: _isLoadingBackup || _isLoadingCompany
+            ? null  // Disable button when any backup is running
+            : () async {
+                setState(() => _isLoadingBackup = true); // Start loading
+
+                try {
+                  await backupToLocalDatabase(); // Step 1
+                  await performBackup();         // Step 2
+                  await LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances(); // Step 3
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Backup process completed successfully!'))
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error during backup: $e'))
+                  );
+                } finally {
+                  setState(() => _isLoadingBackup = false); // Stop loading
+                }
+            },
+        child: Container(
+          height: screenHeight * 0.07,
+          width: screenWidth * 0.3,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            color: _isLoadingBackup || _isLoadingCompany 
+                ? Colors.grey // Disable button while loading
+                : Appcolors().maincolor,
+          ),
+          child: Center(
+            child: _isLoadingBackup
+                ? CircularProgressIndicator(color: Colors.white) // Show loading
+                : Text("BackUp Data", style: getFonts(14, Colors.white)),
+          ),
         ),
       ),
-        ),
-          ],
+
+      SizedBox(height: 20),
+
+      /// Button for Company Backup (Runs Independently)
+      GestureDetector(
+        onTap: _isLoadingBackup || _isLoadingCompany
+            ? null  // Disable button if any backup is running
+            : () async {
+                setState(() => _isLoadingCompany = true); // Start loading
+                try {
+                  await companyBackup();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Company backup completed successfully!'))
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error during company backup: $e'))
+                  );
+                } finally {
+                  setState(() => _isLoadingCompany = false); // Stop loading
+                }
+            },
+        child: Container(
+          height: screenHeight * 0.07,
+          width: screenWidth * 0.3,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            color: _isLoadingBackup || _isLoadingCompany
+                ? Colors.grey // Disable button while loading
+                : Appcolors().maincolor,
+          ),
+          child: Center(
+            child: _isLoadingCompany
+                ? CircularProgressIndicator(color: Colors.white) // Show loading
+                : Text("Company Data", style: getFonts(14, Colors.white)),
+          ),
         ),
       ),
+    ],
+  ),
+),
+
     );
   }
 }

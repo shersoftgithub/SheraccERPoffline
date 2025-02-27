@@ -150,7 +150,7 @@ if (lastRow.isNotEmpty) {
     print("Fetched lastAuto: lastEntryNo: $lastEntryNo"); 
 
    
-    newEntryNo = lastEntryNo + 1; // Ensure increment as double
+    newEntryNo = lastEntryNo + 1;
   }
     final double amount = double.tryParse(_amountController.text) ?? 0.0;
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
@@ -174,7 +174,7 @@ for (var fyRecord in fy) {
   }
 }
     final transactionData = {
-      'atDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'atDate': _dateController.text,
       'atLedCode': ledCode,
       'atDebitAmount': amount,
       'atCreditAmount': total,
@@ -223,33 +223,47 @@ for (var fyRecord in fy) {
 void _saveDataPV_Perticular() async {
   try {
     final db = await PV_DatabaseHelper.instance.database;
+    final lastDateRow = await db.rawQuery(
+      'SELECT ddate FROM PV_Particulars ORDER BY ddate DESC LIMIT 1'
+    );
 
-   final lastDateRow = await db.rawQuery(
-  'SELECT ddate FROM PV_Particulars ORDER BY ddate DESC LIMIT 1'
-);
+    int newAuto = 1;
+    double newEntryNo = 1.0;
 
-int newAuto = 1;
-double newEntryNo = 1.0; 
+    if (lastDateRow.isNotEmpty) {
+      final lastDate = lastDateRow.first['ddate']?.toString() ?? '';
 
-if (lastDateRow.isNotEmpty) {
-  final lastDate = lastDateRow.first['ddate']?.toString() ?? '';
+      try {
+        DateTime.parse(lastDate);
+        
+        final lastRow = await db.rawQuery(
+          'SELECT auto, EntryNo FROM PV_Particulars WHERE ddate = ? ORDER BY auto DESC LIMIT 1',
+          [lastDate]
+        );
 
-  final lastRow = await db.rawQuery(
-    'SELECT auto, EntryNo FROM PV_Particulars WHERE ddate = ? ORDER BY auto DESC LIMIT 1',
-    [lastDate]
-  );
+        if (lastRow.isNotEmpty) {
+          final lastAuto = int.tryParse(lastRow.first['auto']?.toString() ?? '0') ?? 0;
+          final lastEntryNo = double.tryParse(lastRow.first['EntryNo']?.toString() ?? '0') ?? 0.0;
 
-  if (lastRow.isNotEmpty) {
-    final lastAuto = int.tryParse(lastRow.first['auto']?.toString() ?? '0') ?? 0;
-    final lastEntryNo = double.tryParse(lastRow.first['EntryNo']?.toString() ?? '0') ?? 0.0; // FIXED: Correct key lookup
+          newAuto = lastAuto + 1;
+          newEntryNo = lastEntryNo + 1.0;
+        }
+      } catch (e) {
+        print('Invalid date format in database: $lastDate');
+      }
+    }
 
-    print("Fetched lastAuto: $lastAuto, lastEntryNo: $lastEntryNo"); 
-
-    newAuto = lastAuto + 1;
-    newEntryNo = lastEntryNo + 1.0; 
-  }
-}
-print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo");
+    print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo");
+    String selectedDate = _dateController.text.trim();
+    try {
+      DateTime.parse(selectedDate);
+    } catch (e) {
+      print('Invalid date format: $selectedDate');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid date format. Please enter YYYY-MM-DD')),
+      );
+      return;
+    }
 
     final double amount = double.tryParse(_amountController.text) ?? 0.0;
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
@@ -260,32 +274,35 @@ print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo");
         .getLedgerDetailsByName(_selectlnamesController.text);
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
-  String selectedDate = _dateController.text;
-int selectedFyID = 0; 
+    int selectedFyID = 0;
 
-for (var fyRecord in fy) {
-  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
-  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
-  DateTime selected = DateTime.parse(selectedDate);  
+    for (var fyRecord in fy) {
+      try {
+        DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());
+        DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());
+        DateTime selected = DateTime.parse(selectedDate);
 
-  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
-    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
-    break;  
-  }
-}
+        if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+          selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;
+          break;
+        }
+      } catch (e) {
+        print('Invalid date format in fyRecord: $fyRecord');
+      }
+    }
+
     final transactionData = {
-      'auto': newAuto.toString(), 
-      'EntryNo': newEntryNo.toString(), 
-      'ddate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'auto': newAuto.toString(),
+      'EntryNo': newEntryNo.toString(),
+      'ddate': selectedDate,
       'Amount': amount,
-      'Total': total,  
+      'Total': total,
       'CashAccount': _cashAccController.text,
       'Discount': _DiscountController.text,
       'Narration': _narrationController.text,
       'Name': ledCode,
-      'FyID':selectedFyID,
-      'FrmID':1,
-      
+      'FyID': selectedFyID,
+      'FrmID': 1,
     };
 
     await PV_DatabaseHelper.instance.insertPVParticulars(transactionData);
@@ -310,6 +327,7 @@ for (var fyRecord in fy) {
     );
   }
 }
+
 List fy=[];
  Future<void> _fetchStockData2() async {
     try {
@@ -330,8 +348,6 @@ void _saveDataPV_Information() async {
     final lastRow = await db.rawQuery(
       'SELECT * FROM PV_Information ORDER BY RealEntryNo DESC LIMIT 1'
     );
-
-    // Default values
     int newEntryNo = 1;
     String lastTakeUser = '';
     int lastLocation = 0;
@@ -660,7 +676,7 @@ void _saveDataPV_Information2() async {
         'app': lastApp,
         'Transfer_Status': lastTransferStatus,
         'FyID': selectedFyID,
-        'EntryNo': newEntryNo++,  // Increment EntryNo for each row
+        'EntryNo': newEntryNo++,  
         'FrmID': lastFrmID,
         'pviCurrency': lastPviCurrency,
         'pviCurrencyValue': lastPviCurrencyValue,
@@ -676,7 +692,6 @@ void _saveDataPV_Information2() async {
       SnackBar(content: Text('Data saved successfully!')),
     );
 
-    // Clear temporary list after saving
     setState(() {
       temporaryData.clear();
     });
@@ -734,8 +749,10 @@ double _TotalController=_total;
       _saveDataPV_Perticular2();
       _saveDataPV_Information2();
     } else {
+      _saveData();
       _saveDataPV_Perticular();
       _saveDataPV_Information();
+      
     }
               },
               child: Row(

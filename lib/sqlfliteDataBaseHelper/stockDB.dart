@@ -438,5 +438,25 @@ Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
 
   return result.isNotEmpty ? result.first : null;
 }
+  Future<List<Map<String, dynamic>>> getItemDetails() async {
+    final db = await database;
+    
+    String query = '''
+      SELECT 
+        s.ItemId AS stockItemId, 
+        pr.itemcode AS productItemId, 
+        pr.itemname, 
+        s.Qty AS stockQty, 
+        pr.StockQty AS productQty
+      FROM stock s
+      LEFT JOIN product_registration pr
+        ON s.ItemId = pr.itemcode;
+    ''';
+
+    final List<Map<String, dynamic>> result = await db.rawQuery(query);
+    return result;
+  }
+
+  getSalesParticulars() {}
 
 }

@@ -73,13 +73,13 @@ class _ImportState extends State<Import> {
         child: GestureDetector(
               onTap: () {   
               Update update = Update();
-        //update.syncRVInformationToMSSQL();
-        // update.syncRVParticularsToMSSQL();
+         update.syncRVInformationToMSSQL();
+         update.syncRVParticularsToMSSQL();
          update.syncPVInformationToMSSQL();
-         //update.syncPVParticularsToMSSQL();
-        //syncSalesInformationToMSSQL2();
-        //update.syncSalesinformationToMSSQL();
-        //update.syncStockQtyToMSSQL();
+         update.syncPVParticularsToMSSQL();
+        update.syncSalesParticularsToMSSQL();
+        update.syncSalesInformationToMSSQL2();
+        update.syncStockQtyToMSSQL();
         backupAndSyncData();
               },
               child:  Container(

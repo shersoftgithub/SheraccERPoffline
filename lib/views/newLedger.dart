@@ -40,6 +40,7 @@ class _NewledgerState extends State<Newledger> with SingleTickerProviderStateMix
     _tabController = TabController(length: 3, vsync: this);
     fetch_options();
     _fetchUnder();
+    _fetchLedger();
     //_loadUnderSuggestions();
     _dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
   }
@@ -59,10 +60,18 @@ Map<String, bool> _checkboxStates = {
   };
 
 bool isBasicDataSaved = false;  
-Ledger? tempLedger;  
+Ledger? tempLedger;
+
+List <String> names=[];
+Future<void> _fetchLedger() async {
+    List<String> cname = await LedgerTransactionsDatabaseHelper.instance.getAllNames();
+
+  setState(() {
+    names=cname;
+  });
+}
 
 List<String> underlist = [];
-
 Future<void> _fetchUnder() async {
   try {
     List<String> data = await SaleReferenceDatabaseHelper.instance.getAllLedgerHeadNames();
@@ -278,19 +287,19 @@ optionsDBHelper dbHelper = optionsDBHelper();
               ),
             ),
           ),
-           Padding(
-            padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
-            child: GestureDetector(
-              onTap: () {
-                _saveData();
-              },
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: Image.asset("assets/images/save-instagram.png"),
-              ),
-            ),
-          ),
+          //  Padding(
+          //   padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
+          //   child: GestureDetector(
+          //     onTap: () {
+          //       _saveData();
+          //     },
+          //     child: SizedBox(
+          //       width: 20,
+          //       height: 20,
+          //       child: Image.asset("assets/images/save-instagram.png"),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
       body: Column(
@@ -302,12 +311,26 @@ optionsDBHelper dbHelper = optionsDBHelper();
              
               children: [
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    _saveData();
+                  },
                   child: _TopButtons("Save", screenWidth, screenHeight),
                 ),
                 SizedBox(width: screenHeight*0.02,),
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                     _reievedAmtController.clear();
+    _PayAmtController.clear();
+    _underController.clear();
+    _LedgernameController.clear();
+    _adressController.clear();
+    _contactController.clear();
+    _mailController.clear();
+    _taxnoController.clear();
+    _pricelevelController.clear();
+    _balanceController.clear();
+    _reievedAmtController.clear();
+                  },
                   child: _TopButtons("Clear", screenWidth, screenHeight),
                 ),
                 SizedBox(width: screenHeight*0.02,),
@@ -383,12 +406,44 @@ optionsDBHelper dbHelper = optionsDBHelper();
             child: Column(
               children: [
                 SizedBox(height: screenHeight * 0.05),
-                _accfield(
-                  screenHeight,
-                  screenWidth,
-                  "Ledger Name",
-                  _LedgernameController,
+               Container(
+                child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text(
+                  
+                  'Ledger Name',
+                  style: formFonts(14, Colors.black),
                 ),
+            SizedBox(height: screenHeight * 0.01),
+            Container(padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02,vertical: screenWidth * 0.02),
+               height: screenHeight * 0.06,
+              width: screenWidth * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.white,
+                border: Border.all(color: Appcolors().searchTextcolor),
+              ),
+             child: SingleChildScrollView(
+               child: EasyAutocomplete(
+                   controller: _LedgernameController,
+                   suggestions: names,
+                     inputTextStyle: getFontsinput(14, Colors.black), 
+                   onSubmitted: (value) {
+                     _onUnderTextChanged(value);  
+                   },
+                   decoration: InputDecoration(
+                     border: InputBorder.none,
+                     contentPadding: EdgeInsets.only(bottom: 20)
+                   ),
+                   suggestionBackgroundColor: Appcolors().Scfold,
+                 ),
+             ),
+            ),
+          ],
+                ),
+              ),
+               
                 SizedBox(height: screenHeight * 0.03),
                 Container(
                 child: Column(

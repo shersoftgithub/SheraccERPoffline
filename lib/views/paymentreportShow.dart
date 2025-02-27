@@ -40,7 +40,8 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
    //_fetchStockData2();
    
   }
-
+ double totalOpeningBalance = 0.0;  
+double OpeningBalance = 0.0; 
   Future<void> _fetchStockData2() async {
     try {
             List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
@@ -54,47 +55,80 @@ class _ShowPaymentReportState extends State<ShowPaymentReport> {
   }
 
 Future<void> _fetchFilteredData() async {
-  String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
-  List<Map<String, dynamic>> ledgerData = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
+  try {
+    String? fromDateStr = widget.fromDate != null
+        ? DateFormat('yyyy-MM-dd').format(widget.fromDate!)
+        : null;
+    String? toDateStr = widget.toDate != null
+        ? DateFormat('yyyy-MM-dd').format(widget.toDate!)
+        : null;
 
-  Map<String, String> ledgerNameToCodeMap = {
-    for (var ledger in ledgerData) ledger['LedName'].toString(): ledger['Ledcode'].toString()
-  };
+    List<Map<String, dynamic>> ledgerData =
+        await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
 
- 
-  String? selectedLedgerCode = widget.ledgerName != null && widget.ledgerName!.isNotEmpty
-      ? ledgerNameToCodeMap[widget.ledgerName!]
-      : null;
-  List<Map<String, dynamic>> data = await PV_DatabaseHelper.instance.queryFilteredRowsPay(
-    fromDate: widget.fromDate!,
-    toDate: widget.toDate!,
-    ledgerName: selectedLedgerCode ?? '',  
-  );
-  Map<String, String> ledgerCodeToNameMap = {
-    for (var ledger in ledgerData) ledger['Ledcode'].toString(): ledger['LedName'].toString()
-  };
-  setState(() {
-    Data = data.map((ledger) {
-      String? ledCode = ledger['Name']?.toString();
-      String? ledName = ledgerCodeToNameMap[ledCode] ?? 'N/A';
- String formattedDate = 'N/A';
-      if (ledger['ddate'] != null && ledger['ddate'].toString().isNotEmpty) {
-        try {
-          DateTime parsedDate = DateTime.parse(ledger['ddate'].toString());
-          formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
-        } catch (e) {
-          print("Error parsing date: $e");
+    Map<String, String> ledgerNameToCodeMap = {
+      for (var ledger in ledgerData)
+        ledger['LedName'].toString(): ledger['Ledcode'].toString()
+    };
+
+    Map<String, String> ledgerCodeToNameMap = {
+      for (var ledger in ledgerData)
+        ledger['Ledcode'].toString(): ledger['LedName'].toString()
+    };
+
+    String? selectedLedgerCode = widget.ledgerName != null &&
+            widget.ledgerName!.isNotEmpty
+        ? ledgerNameToCodeMap[widget.ledgerName!]
+        : null;
+
+    List<Map<String, dynamic>> data =
+        await PV_DatabaseHelper.instance.queryFilteredRowsPay(
+      fromDate: widget.fromDate!,
+      toDate: widget.toDate!,
+      ledgerName: selectedLedgerCode ?? '',
+    );
+    double openingBalance = 0.0;
+    double debitAmount = 0.0;
+    if (widget.ledgerName != null && widget.ledgerName!.isNotEmpty) {
+      openingBalance =
+          await LedgerTransactionsDatabaseHelper.instance.getOpeningBalance(widget.ledgerName!);
+      debitAmount =
+          await LedgerTransactionsDatabaseHelper.instance.getDebitAmountForLedger(widget.ledgerName!);
+    }
+
+    double totalOpeningBalance = openingBalance + debitAmount;
+
+    setState(() {
+      Data = data.map((ledger) {
+        String? ledCode = ledger['Name']?.toString();
+        String? ledName = ledgerCodeToNameMap[ledCode] ?? 'N/A';
+        String formattedDate = 'N/A';
+        if (ledger['ddate'] != null && ledger['ddate'].toString().isNotEmpty) {
+          try {
+            DateTime parsedDate = DateTime.parse(ledger['ddate'].toString());
+            formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
+          } catch (e) {
+            print("Error parsing date: $e");
+          }
         }
-      }
-      return {
-        ...ledger,
-        'Name': ledName,
-        'ddate': formattedDate, 
-      };
-    }).toList();
-  });
+
+        return {
+          ...ledger,
+          'Name': ledName,
+          'ddate': formattedDate,
+        };
+      }).toList();
+
+      OpeningBalance = openingBalance;
+      totalOpeningBalance = totalOpeningBalance;
+    });
+
+    print("Opening Balance: $OpeningBalance, Total Balance: $totalOpeningBalance");
+  } catch (e) {
+    print("Error fetching data: $e");
+  }
 }
+
 
 
 
@@ -199,9 +233,13 @@ void _generateAndViewPDF() async {
           ),
         ),
         actions: [
-          IconButton(onPressed: (){
-        _generateAndViewPDF();
-          }, icon: Icon(Icons.download,color: Colors.white,)),
+          Padding(
+
+            padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
+            child: IconButton(onPressed: (){
+                    _generateAndViewPDF();
+            }, icon: Icon(Icons.download,color: Colors.white,)),
+          ),
           Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
             child: GestureDetector(
@@ -279,7 +317,7 @@ void _generateAndViewPDF() async {
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell2('Closing Balance'),
-        _buildDataCell(''),
+        _buildDataCell(OpeningBalance.toStringAsFixed(2)),
         _buildDataCell(''),
         _buildDataCell(''),
         _buildDataCell(''),

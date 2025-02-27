@@ -185,7 +185,7 @@ class SalesInformationDatabaseHelper2 {
     CREATE TABLE Sales_Particulars (
       ParticularID INTEGER PRIMARY KEY AUTOINCREMENT,
       DDate TEXT NOT NULL,
-      EntryNo REAL,
+      EntryNo INTEGER,
       UniqueCode REAL,
       ItemID INTEGER,
       serialno TEXT,
@@ -349,58 +349,64 @@ Future<List<Map<String, dynamic>>> getSalesDataperticular() async {
       rethrow;
     }
 }
+
+
 Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
   DateTime? fromDate, 
   DateTime? toDate, 
   String? ledgerName,
+  String? itemname,
+  String? itemcode,
 }) async {
   Database db = await instance.database;
 
   List<String> whereClauses = [];
   List<dynamic> whereArgs = [];
 
-  // Date filtering
   if (fromDate != null && toDate != null) {
     String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
     String toDateString = DateFormat('yyyy-MM-dd').format(toDate);
-
     whereClauses.add("DATE(Sales_Information.DDate) BETWEEN DATE(?) AND DATE(?)");
     whereArgs.addAll([fromDateString, toDateString]);
   }
 
-  // Ledger name filtering
   if (ledgerName != null && ledgerName.isNotEmpty) {
-    whereClauses.add("Sales_Information.Customer LIKE ?");
+    whereClauses.add("Sales_Information.Toname LIKE ?");
     whereArgs.add("%$ledgerName%");
   }
+  if (itemname != null && itemname.isNotEmpty) {
+    whereClauses.add("Sales_Particulars.ItemID IN (SELECT ItemID FROM Item WHERE ItemName LIKE ?)");
+    whereArgs.add("%$itemname%");
+  }
 
-  // Construct WHERE clause
+  if (itemcode != null && itemcode.isNotEmpty) {
+    whereClauses.add("Sales_Particulars.ItemID LIKE ?");
+    whereArgs.add("%$itemcode%");
+  }
+
   String whereClause = whereClauses.isNotEmpty ? "WHERE ${whereClauses.join(' AND ')}" : '';
 
   try {
-String query = '''
-  SELECT 
-    Sales_Information.RealEntryNo,
-    Sales_Information.InvoiceNo,
-    Sales_Information.DDate AS InfoDDate,
-    Sales_Information.EntryNo AS InfoEntryNo,
-    Sales_Information.Toname,
-    Sales_Information.TotalQty,
-    Sales_Information.Discount,
-    Sales_Information.GrandTotal,
-    Sales_Particulars.DDate AS PartDDate,  -- Entry Date from Sales_Particulars
-    Sales_Particulars.EntryNo AS PartEntryNo,  -- EntryNo from Sales_Particulars
-    Sales_Particulars.Rate,  -- Fetching Rate from Sales_Particulars
-    Sales_Particulars.ItemID
-  FROM Sales_Information
-  LEFT JOIN Sales_Particulars
-    ON Sales_Information.RealEntryNo = Sales_Particulars.EntryNo  -- Matching EntryNo between Sales_Information and Sales_Particulars
-    AND STRFTIME('%Y-%m-%d', Sales_Information.DDate) = STRFTIME('%Y-%m-%d', Sales_Particulars.DDate)  -- Ensuring the Date matches without the time
-  $whereClause  -- Where clause for additional filtering (e.g., search, date filters)
-''';
-
-
-
+    String query = '''
+      SELECT 
+        Sales_Information.RealEntryNo,
+        Sales_Information.InvoiceNo,
+        Sales_Information.DDate AS InfoDDate,
+        Sales_Information.EntryNo,
+        Sales_Information.Toname,
+        Sales_Information.TotalQty,
+        Sales_Information.Discount,
+        Sales_Information.GrandTotal,
+        Sales_Information.Stype,
+        Sales_Particulars.DDate AS PartDDate,  
+        CAST(Sales_Particulars.EntryNo AS INTEGER) AS PartEntryNo,  -- Convert EntryNo to INTEGER
+        Sales_Particulars.Rate,  
+        Sales_Particulars.ItemID  
+      FROM Sales_Information
+      LEFT JOIN Sales_Particulars
+        ON Sales_Information.RealEntryNo = CAST(Sales_Particulars.EntryNo AS INTEGER)  
+      $whereClause;
+    ''';
 
     final result = await db.rawQuery(query, whereArgs);
 
@@ -410,6 +416,7 @@ String query = '''
     rethrow;
   }
 }
+
 
 
 

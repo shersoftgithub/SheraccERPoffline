@@ -204,6 +204,31 @@ final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
       _isUpdating = false;
     });
   }
+
+Future<void> _validateQuantity( ) async {
+  List<Map<String, dynamic>> items = await StockDatabaseHelper.instance.getItemDetails();
+  String enteredItem = _itemnameController.text.trim();
+  double enteredQty = double.tryParse(_qtyController.text) ?? 0;
+
+  for (var item in items) {
+    if (item['itemname'] == enteredItem) {
+      double availableQty = item['stockQty'] ?? item['productQty'] ?? 0;
+
+      if (enteredQty > availableQty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Insufficient stock! Available: $availableQty')),
+        );
+        _qtyController.clear(); 
+      }
+      return;
+    }
+  }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Item not found in stock!')),
+  );
+}
+  
    void _onDiscountChanged() {
     if (_isUpdating) return;
 final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
@@ -395,16 +420,18 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
                child: TextFormField(
-                style: getFontsinput(14, Colors.black),
-                       controller: _qtyController,
-                        keyboardType: TextInputType.number,
-                        obscureText: false,
-                       // onChanged: _onRateChanged,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: screenHeight*0.015,horizontal: screenHeight*0.01),
-                        ),
-                      ),
+  style: getFontsinput(14, Colors.black),
+  controller: _qtyController,
+  keyboardType: TextInputType.number,
+  decoration: InputDecoration(
+    border: InputBorder.none,
+    contentPadding: EdgeInsets.symmetric(
+        vertical: screenHeight * 0.015, horizontal: screenHeight * 0.01),
+  ),
+  onChanged: (value) async {
+    await _validateQuantity();
+  },
+),
             ),
           ],
         ),

@@ -252,34 +252,48 @@ void _saveDataRV_Perticular() async {
   try {
     final db = await RV_DatabaseHelper.instance.database;
 
-final lastDateRow = await db.rawQuery(
-  'SELECT ddate FROM RV_Particulars ORDER BY ddate DESC LIMIT 1'
-);
+    final lastDateRow = await db.rawQuery(
+      'SELECT ddate FROM RV_Particulars ORDER BY ddate DESC LIMIT 1'
+    );
 
-int newAuto = 1;
-double newEntryNo = 1.0; // Ensure it's a double
+    int newAuto = 1;
+    double newEntryNo = 1.0;
 
-if (lastDateRow.isNotEmpty) {
-  final lastDate = lastDateRow.first['ddate']?.toString() ?? '';
+    if (lastDateRow.isNotEmpty) {
+      final lastDate = lastDateRow.first['ddate']?.toString() ?? '';
 
-  final lastRow = await db.rawQuery(
-    'SELECT auto, EntryNo FROM RV_Particulars WHERE ddate = ? ORDER BY auto DESC LIMIT 1',
-    [lastDate]
-  );
+      try {
+        DateTime.parse(lastDate);
+        
+        final lastRow = await db.rawQuery(
+          'SELECT auto, EntryNo FROM RV_Particulars WHERE ddate = ? ORDER BY auto DESC LIMIT 1',
+          [lastDate]
+        );
 
-  if (lastRow.isNotEmpty) {
-    final lastAuto = int.tryParse(lastRow.first['auto']?.toString() ?? '0') ?? 0;
-    final lastEntryNo = double.tryParse(lastRow.first['EntryNo']?.toString() ?? '0') ?? 0.0; // FIXED: Correct key lookup
+        if (lastRow.isNotEmpty) {
+          final lastAuto = int.tryParse(lastRow.first['auto']?.toString() ?? '0') ?? 0;
+          final lastEntryNo = double.tryParse(lastRow.first['EntryNo']?.toString() ?? '0') ?? 0.0;
 
-    print("Fetched lastAuto: $lastAuto, lastEntryNo: $lastEntryNo");
+          newAuto = lastAuto + 1;
+          newEntryNo = lastEntryNo + 1.0;
+        }
+      } catch (e) {
+        print('Invalid date format in database: $lastDate');
+      }
+    }
 
-    newAuto = lastAuto + 1;
-    newEntryNo = lastEntryNo + 1.0; 
-  }
-}
+    print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo");
 
-
-print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo"); 
+    String selectedDate = _dateController.text.trim();
+    try {
+      DateTime.parse(selectedDate);
+    } catch (e) {
+      print('Invalid date format: $selectedDate');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid date format. Please enter YYYY-MM-DD')),
+      );
+      return;
+    }
 
     final double amount = double.tryParse(_amountController.text) ?? 0.0;
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
@@ -290,31 +304,35 @@ print("Generated newAuto: $newAuto, newEntryNo: $newEntryNo");
         .getLedgerDetailsByName(_selectlnamesController.text);
 
     final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
-String selectedDate = _dateController.text;
-int selectedFyID = 0; 
+    int selectedFyID = 0;
 
-for (var fyRecord in fy) {
-  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
-  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
-  DateTime selected = DateTime.parse(selectedDate);  
+    for (var fyRecord in fy) {
+      try {
+        DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());
+        DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());
+        DateTime selected = DateTime.parse(selectedDate);
 
-  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
-    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
-    break;  
-  }
-}
+        if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+          selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;
+          break;
+        }
+      } catch (e) {
+        print('Invalid date format in fyRecord: $fyRecord');
+      }
+    }
+
     final transactionData = {
-      'auto': newAuto.toString(), // Highest auto + 1
-      'EntryNo': newEntryNo.toString(), // Highest EntryNo + 1
-      'ddate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'auto': newAuto.toString(),
+      'EntryNo': newEntryNo.toString(),
+      'ddate': selectedDate,
       'Amount': amount,
-      'Total': total,  
+      'Total': total,
       'CashAccount': _cashAccController.text,
       'Discount': _DiscountController.text,
       'Narration': _narrationController.text,
       'Name': ledCode,
-      'FyID':selectedFyID,
-      'FrmID':2,
+      'FyID': selectedFyID,
+      'FrmID': 2,
     };
 
     await RV_DatabaseHelper.instance.insertRVParticulars(transactionData);
@@ -339,6 +357,7 @@ for (var fyRecord in fy) {
     );
   }
 }
+
 
 List fy=[];
  Future<void> _fetchfyData() async {
@@ -756,7 +775,7 @@ double _TotalController=_total;
              _saveDataRV_Perticular2();
             _saveDataRV_Information2();
               } else {
-                 // _saveData();
+                 _saveData();
                 _saveDataRV_Perticular();
                 _saveDataRV_Information();
               }

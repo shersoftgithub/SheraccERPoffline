@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:intl/intl.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
@@ -589,7 +590,102 @@ Future<void> syncSalesParticularsToMSSQL() async {
   }
 }
 
+Future<void> syncSalesInformationToMSSQL2() async {
+  try {
+    final localData = await SalesInformationDatabaseHelper2.instance.getSalesData();
 
+    for (var row in localData) {
+      final realEntryNo = row['RealEntryNo'] ?? 0; 
+
+      // **Filter columns excluding `RealEntryNo` & handle `NULL` values**
+      final filteredColumns = row.keys.where((col) => col != 'RealEntryNo' && row[col] != null).toList();
+      final filteredValues = filteredColumns.map((col) {
+        var value = row[col];
+
+        if (value is num) return value.toString();
+
+        if (value is String) {
+          if (_isDateString(value)) {
+            return _convertToSQLDate(value); 
+          }
+          return "'${value.trim().replaceAll("'", "''")}'"; 
+        }
+
+        return 'NULL';
+      }).toList();
+
+      final checkQuery = "SELECT COUNT(*) AS count FROM Sales_Information WHERE RealEntryNo = $realEntryNo";
+      final checkResult = await MsSQLConnectionPlatform.instance.getData(checkQuery);
+
+      if (checkResult is String) {
+        final decodedCheck = jsonDecode(checkResult);
+        if (decodedCheck is List && decodedCheck.isNotEmpty) {
+          final count = decodedCheck.first['count'] ?? 0;
+
+          if (count > 0) {
+            // **Update existing record (EXCLUDING RealEntryNo)**
+            final updateSet = List.generate(filteredColumns.length, (i) {
+              if (filteredValues[i] == 'NULL') return null; // Skip NULL values
+              if (_isDateColumn(filteredColumns[i])) {
+                return "${filteredColumns[i]} = CAST(${filteredValues[i]} AS DATETIME)";
+              }
+              return "${filteredColumns[i]} = ${filteredValues[i]}";
+            }).where((element) => element != null).join(", ");
+
+            if (updateSet.isNotEmpty) { 
+              final updateQuery = '''
+                UPDATE Sales_Information SET $updateSet WHERE RealEntryNo = $realEntryNo
+              ''';
+              await MsSQLConnectionPlatform.instance.writeData(updateQuery);
+              print("✅ Updated Sales_Information for RealEntryNo: $realEntryNo");
+            } else {
+              print("⚠️ Skipped update for RealEntryNo: $realEntryNo (No valid values)");
+            }
+          } else {
+            // **Insert new record (INCLUDING RealEntryNo)**
+            final insertQuery = '''
+              SET IDENTITY_INSERT Sales_Information ON;
+              INSERT INTO Sales_Information (RealEntryNo, ${filteredColumns.join(", ")}) 
+              VALUES ($realEntryNo, ${filteredValues.map((v) => _isDateColumn(v) ? "CAST($v AS DATETIME)" : v).join(", ")});
+              SET IDENTITY_INSERT Sales_Information OFF;
+            ''';
+            await MsSQLConnectionPlatform.instance.writeData(insertQuery);
+            print("🆕 Inserted new record in Sales_Information for RealEntryNo: $realEntryNo");
+          }
+        }
+      }
+    }
+  } catch (e) {
+    print("❌ Error syncing Sales_Information: $e");
+  }
+}
+bool _isDateString(String value) {
+  final datePattern = RegExp(r'^\d{2}/\d{2}/\d{4}$|^\d{4}-\d{2}-\d{2}$'); // Matches dd/MM/yyyy OR yyyy-MM-dd
+  return datePattern.hasMatch(value);
+}
+
+String _convertToSQLDate(String inputDate) {
+  try {
+    DateTime parsedDate;
+
+    if (inputDate.contains("/")) {
+      parsedDate = DateFormat("dd/MM/yyyy").parse(inputDate);
+    } else if (inputDate.contains("-")) {
+      parsedDate = DateFormat("yyyy-MM-dd").parse(inputDate);
+    } else {
+      return 'NULL'; 
+    }
+
+    return "'${DateFormat("yyyy-MM-dd HH:mm:ss").format(parsedDate)}'";
+  } catch (e) {
+    print("⚠️ Date conversion error: $e for input: $inputDate");
+    return 'NULL'; 
+  }
+}
+bool _isDateColumn(String columnName) {
+  List<String> dateColumns = ["DDate","BTime","ddate1", "despatchdate", "receiptDate"]; // Add your date column names here
+  return dateColumns.contains(columnName);
+}
 Future<void> syncStockQtyToMSSQL() async {
   try {
     final localData = await StockDatabaseHelper.instance.getAllProducts();

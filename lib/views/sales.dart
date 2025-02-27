@@ -75,13 +75,13 @@ class _SalesOrderState extends State<SalesOrder> {
     }
   }
   TextEditingController customername = TextEditingController();  
-String _selectedCustomer = "";  // Store selected customer
+String _selectedCustomer = "";  
     @override
   void initState() {
     super.initState();
     invoice();
      if (_selectedCustomer.isNotEmpty) {
-    customername.text = _selectedCustomer;  // Retain customer name across screens
+    customername.text = _selectedCustomer;  
     isCustomerSelected = true;
   }
     fetch_options();
@@ -89,6 +89,7 @@ String _selectedCustomer = "";  // Store selected customer
     _fetchLastInvoiceId();
     _fetchfyData();
    _fetchCompanyData2();
+   _fetchSType();
    _InvoicenoController.text = ''; 
     _dateController.text = '';      
     _salerateController.text = '';  
@@ -109,6 +110,30 @@ String _selectedCustomer = "";  // Store selected customer
     optionsDBHelper dbHelper = optionsDBHelper();
      List<Map<String, dynamic>> todayItems = [];
 
+
+String selectedStype = 'Sale'; 
+String selectedID = '0'; 
+List stypelist=[];
+Future<void> _fetchSType() async {
+  try {
+    List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllStype();
+    print('Fetched stock data: $data');
+
+    setState(() {
+      stypelist = data;
+      var selectedItems = stypelist.where((item) => item['isChecked'] == 1).toList();
+      if (selectedItems.isNotEmpty) {
+        selectedStype = selectedItems.first['Type'] ?? 'Sale';
+        selectedID = selectedItems.first['iD'] ?? '0';
+      } else {
+        selectedStype = 'Sale';
+        selectedID = '0';
+      }
+    });
+  } catch (e) {
+    print('Error fetching stock data: $e');
+  }
+}
 
     List<String> salesrate = [];
     Future<void>fetch_options()async{
@@ -251,96 +276,56 @@ List fy=[];
   }
 void _saveData2() async {
   try {
-final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;  
-//final double dicount = widget.salesCredit?. ?? 0.0;   
+    if (_CustomerController.text.isEmpty) {
+      print("Error: Customer name is empty.");
+      return;
+    }
 
     final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
         .getLedgerDetailsByName(_CustomerController.text);
 
-    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
-    final double op = ledgerDetails?['OpeningBalance']?? '';
-    final double creditamt = op - finalAmt;
+    if (ledgerDetails == null) {
+      print("Error: Ledger details not found for ${_CustomerController.text}");
+      return;
+    }
+
+    final String ledCode = ledgerDetails['LedId']?.toString() ?? 'Unknown';
+    final double openingBalance = double.tryParse(ledgerDetails['OpeningBalance']?.toString() ?? '0.0') ?? 0.0;
+
+    final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
+    final double creditAmt = openingBalance - finalAmt;
+
     final transactionData = {
       'atDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
       'atLedCode': ledCode,
       'atDebitAmount': finalAmt,
-    'atCreditAmount': creditamt,
-      'atType': widget.selectedType!.isNotEmpty ? widget.selectedType : 'SALE',
-      'Caccount': _salerateController.text,
-      //'atDiscount':,
-      //'atNaration': _narrationController.text,
+      'atCreditAmount': creditAmt,
+      'atType': selectedStype,
+      'Caccount': _salerateController.text.isNotEmpty ? _salerateController.text : '0.0',
       'atLedName': _CustomerController.text,
     };
 
     await LedgerTransactionsDatabaseHelper.instance.insertAccTrans(transactionData);
 
-    if (ledgerDetails != null) {
-      final double currentBalance = ledgerDetails['OpeningBalance'] as double? ?? 0.0;
-      final double updatedBalance = creditamt;
+    final double updatedBalance = creditAmt;
+    await LedgerTransactionsDatabaseHelper.instance.updateLedgerBalance(ledCode, updatedBalance);
 
-      await LedgerTransactionsDatabaseHelper.instance.updateLedgerBalance(
-        ledCode,
-        updatedBalance,
-      );
-    } else {
-      print('Ledger not found for name: ${_CustomerController.text}');
-    }
+    print('Transaction saved successfully.');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Saved successfully')),
     );
-    setState(() {
-      
-    });
-  } catch (e) {
+
+    setState(() {});
+  } catch (e, stackTrace) {
     print('Error while saving data: $e');
+    print('Stack Trace: $stackTrace');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error saving data: $e')),
     );
   }
 }
 
-void _saveDataSaleinfor() async {
-  try {
-final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;  
-// final double discount = widget.salesCredit?.discount ?? 0.0;  
 
-    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
-        .getLedgerDetailsByName(_CustomerController.text);
-
-    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
-    final transactionData = {
-      'InvoiceNo': _InvoicenoController.text,
-      'DDate':_dateController.text,
-      'Customer': ledCode,
-    'Toname': _CustomerController.text,
-       'Discount': 0.00, 
-      'NetAmount': finalAmt,
-      
-      'Total': finalAmt,
-      'TotalQty': _CustomerController.text,
-    };
-
-    await SalesInformationDatabaseHelper.instance.insertSale(transactionData);
-
-    if (ledgerDetails != null) {
-
-    
-    } else {
-      print('Ledger not found for name: ${_CustomerController.text}');
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully')),
-    );
-    setState(() {
-      
-    });
-  } catch (e) {
-    print('Error while saving data: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error saving data: $e')),
-    );
-  }
-}
 String _convertToSQLDate(String inputDate) {
   try {
     DateTime parsedDate;
@@ -484,7 +469,7 @@ for (var fyRecord in fy) {
       'CNo': 0,
       'CreditPeriod': 0,
       'DiscPercent': 0.00,
-      'SType': widget.selectedid,
+      'SType': selectedID,
       'VatEntryNo': 0,
       'tcommision': 0.00,
       'commisiontype': 0,
@@ -647,7 +632,6 @@ Future<double> calculateRealRate(double rate) async {
 
 
 
-
 void _saveDataSaleperti() async {
   try {
     final db = await SalesInformationDatabaseHelper.instance.database;
@@ -720,25 +704,24 @@ final db2 = await SalesInformationDatabaseHelper2.instance.database;
       }
     }
 
- //   Map<String, dynamic>? selectedCompany;
 
-// for (var company in companydata) {
-//   if (company['Code'] == ledgerDetails?['Code']) {
-//     selectedCompany = {
-//       ...company, 
-//       'Sname': company['Sname'] ?? 'Unknown' 
-//     };
-//     break;
-//   }
-// }
-//         final realRate = ((100 * rate) / (100 + (widget.salesCredit?.tax??0)));
 
-//     double realRate2 = double.tryParse(realRate.toString()) ?? 0.0;
-//     if (selectedCompany?['TaxCalculation'] == 'MINUS') {
-//       double tax = widget.salesCredit?.tax?? 0.0;
-//       double cess = double.tryParse(selectedCompany?['cess']?.toString() ?? '0.0') ?? 0.0;
-//     final realRate2 = ((100 * rate) / (100 + (widget.salesCredit?.tax??0)));
-//     }
+    final qtyToReduce = widget.salesCredit!.qty.toDouble();
+    final itemName = widget.salesCredit!.itemName.toString();
+    final itemCode = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
+     final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemCode!);
+     final currentQty = stockData!['Qty'] as double;
+     final updatedQty = currentQty - qtyToReduce;
+
+     if (updatedQty < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Not enough stock for $itemName')),
+      );
+      return;
+    }
+
+    await StockDatabaseHelper.instance.updateProductQuantity(itemCode, updatedQty);
+
 double realRate = await calculateRealRate(rate);
     final transactionData = {
       'DDate': _dateController.text,
@@ -783,7 +766,7 @@ double realRate = await calculateRealRate(rate);
       'Prate': prate,  
       'Rprate': rprate, 
       'location': '0',
-      'Stype': widget.selectedid,
+      'Stype': selectedID,
 
       'LC': '0.0',
       'ScanBarcode': '0',
@@ -795,7 +778,7 @@ double realRate = await calculateRealRate(rate);
       'wsrate': wrate, 
     };
 
-    await SalesInformationDatabaseHelper.instance.insertParticular(transactionData);
+    await SalesInformationDatabaseHelper2.instance.insertParticular(transactionData);
     
     if (ledgerDetails != null) {
       print('Ledger details found and data saved.');
@@ -1342,7 +1325,8 @@ for (var fyRecord in fy) {
       'CNo': 0,
       'CreditPeriod': 0,
       'DiscPercent': 0.00,
-      'SType': widget.selectedid,
+      'Stype': widget.selectedid ?? '0',  
+
       'VatEntryNo': 0,
       'tcommision': 0.00,
       'commisiontype': 0,
@@ -1480,22 +1464,19 @@ for (var fyRecord in fy) {
 int updatedInno = 0; 
  void invoice() async {
     final db = await SalesInformationDatabaseHelper2.instance.database;
-    
-    // Fetch last EntryNo, sorted in descending order
-    final lastRow = await db.rawQuery(
+        final lastRow = await db.rawQuery(
       'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
     );
 
     int lastEntryNo = lastRow.isNotEmpty ? (lastRow.first['RealEntryNo'] as int? ?? 0) : 0;
-    int newInvoiceNo = lastEntryNo + 1; // Increment for the new invoice
-
-    // Update the UI
+    int newInvoiceNo = lastEntryNo + 1; 
     setState(() {
       updatedInno = newInvoiceNo;
     });
 
-    print('New Invoice Number: $updatedInno'); // Debugging print
+    print('New Invoice Number: $updatedInno'); 
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1521,7 +1502,7 @@ int updatedInno = 0;
         _CashtotalamtController.text = totalAmt.toStringAsFixed(2);
   }
   _CashsalerateController.addListener(CashupdateTotalAmount);
-//_InvoicenoController.text=newinno.toString();
+_InvoicenoController.text=updatedInno.toString();
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -1659,13 +1640,14 @@ int updatedInno = 0;
               if(isCreditSelected){
                _saveDataSaleperti();
               _saveDataSaleinfor22();
+               _saveData2();
               }else{
                 _saveDataSalepertiCash();
                 _saveDataSaleinfor22Cash();
               }
              //_saveDataCash();
-              // _saveData2();
-              // _saveData();
+             
+             
              
               },
             child: Container(

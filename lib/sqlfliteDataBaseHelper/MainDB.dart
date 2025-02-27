@@ -132,19 +132,16 @@ Future<void> insertAccTrans(Map<String, dynamic> newTableData) async {
     // Add the new Auto value to the transaction data
     newTableData['Auto'] = newAuto.toString();
 
-    // Insert the new record
     await db.insert('Account_Transactions', newTableData, conflictAlgorithm: ConflictAlgorithm.replace);
     
     print('Transaction inserted successfully with Auto: $newAuto');
 
-    // After inserting, update LedgerNames table
     await insertLedgerData({
       'Ledcode': newTableData['atLedCode'],
       'LedName': newTableData['atLedName'],
       'balance': newTableData['atDebitAmount'] - newTableData['atCreditAmount'],
     });
 
-    // Finally, sync the new transaction with MSSQL
     await syncAccountTransactionsToMSSQL(newTableData);
 
   } catch (e) {
@@ -381,9 +378,25 @@ Future<double> getDebitAmountForLedger(String ledgerName) async {
   } else {
     return 0.0;
   }
+  
 }
 
 
+Future<double> getOpeningBalance(String ledgerName) async {
+  final db = await database; // Ensure you have a database instance
+  final List<Map<String, dynamic>> result = await db.query(
+    'LedgerNames', // Update this with your actual table name
+    columns: ['OpeningBalance'],
+    where: 'LedName = ?',
+    whereArgs: [ledgerName],
+  );
+
+  if (result.isNotEmpty && result.first['OpeningBalance'] != null) {
+    return double.tryParse(result.first['OpeningBalance'].toString()) ?? 0.0;
+  } else {
+    return 0.0; // Default to 0.0 if no data found
+  }
+}
 
 
 
@@ -753,11 +766,11 @@ Future<void> syncLedgerNamesToMSSQL() async {
   final db = await database;
   final modifiedData = await db.query('LedgerNames'); 
   final modifiedData2 = await db.query('Account_Transactions');
-  // for (var data in modifiedData) {
+  for (var data in modifiedData) {
   
-  //   final ledgerCode = data['Ledcode'];
-  //       await updateMSSQLLedger(data);
-  // }
+    final ledgerCode = data['Ledcode'];
+        await updateMSSQLLedger(data);
+  }
   for (var data in modifiedData2) {
   
     final atledgerCode = data['Auto'];
