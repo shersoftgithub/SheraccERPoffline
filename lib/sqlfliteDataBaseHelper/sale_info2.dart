@@ -239,7 +239,6 @@ class SalesInformationDatabaseHelper2 {
   ''');
   }
 
-  // // **Insert Data**
   // Future<int> insertSale(Map<String, dynamic> sale) async {
   //   final db = await instance.database;
   //   return await db.insert('Sales_Information', sale);

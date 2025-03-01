@@ -36,8 +36,10 @@ final double? taxCC;
 final String? taxstatusCC;
 final String? selectedType;
 final String? selectedid;
+final List<Map<String, dynamic>>? tempdata;
+final String?cusname;
   const SalesOrder({super.key, this.salesCredit,this.salesDebit,this.itemDetails,this.discPerc,this.discnt,this.net,this.tot,this.tax,this.taxstatus,this.selectedType,this.selectedid,
-  this.discPercCC,this.discntCC,this.netCC,this.totCC,this.taxCC,this.taxstatusCC,
+  this.discPercCC,this.discntCC,this.netCC,this.totCC,this.taxCC,this.taxstatusCC,this.tempdata,this.cusname
   });
   @override
   State<SalesOrder> createState() => _SalesOrderState();
@@ -80,9 +82,9 @@ String _selectedCustomer = "";
   void initState() {
     super.initState();
     invoice();
-     if (_selectedCustomer.isNotEmpty) {
-    customername.text = _selectedCustomer;  
-    isCustomerSelected = true;
+ 
+   if (_CustomerController.text.isEmpty && widget.cusname != null && widget.cusname!.isNotEmpty) {
+    _CustomerController.text = widget.cusname!;
   }
     fetch_options();
     _fetchLedger();
@@ -799,6 +801,180 @@ double realRate = await calculateRealRate(rate);
   }
 }
 
+void _saveDataSalepertitep() async {
+  try {
+    final db = await SalesInformationDatabaseHelper.instance.database;
+    final db2 = await SalesInformationDatabaseHelper2.instance.database;
+
+    final lastRow = await db.rawQuery(
+      'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1'
+    );
+
+    final lastRowinfo = await db2.rawQuery(
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
+    );
+
+    int newAuto = 1;
+    int newentryno = 1;
+    
+    if (lastRowinfo.isNotEmpty) {
+      final lastData = lastRowinfo.first;
+      newentryno = (lastData['RealEntryNo'] as int? ?? 0) + 1;
+    }
+
+    if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+      newAuto = (lastData['Auto'] as num? ?? 0).toInt();
+    }
+
+    List<Map<String, dynamic>> dataList = widget.tempdata ?? [];
+
+    if (dataList.isNotEmpty) {
+      // Iterate through `tempdata` and save each row
+      for (var data in dataList) {
+        await _saveSingleEntry(data, newAuto, newentryno);
+      }
+    } else {
+      // Save a single entry if `tempdata` is empty
+      await _saveSingleEntry(null, newAuto, newentryno);
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {});
+
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
+// ✅ Helper function to save a single entry
+Future<void> _saveSingleEntry(Map<String, dynamic>? data, int newAuto, int newentryno) async {
+  final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
+
+  final String itemName = data?['itemName'] ?? widget.salesCredit?.itemName ?? 'Unknown';
+  final double qtyToReduce = double.tryParse(data?['qty']?.toString() ?? '') ?? widget.salesCredit?.qty ?? 0;
+
+  final stockDetails = await StockDatabaseHelper.instance.getStockDetailsByName(itemName);
+  final itemcode = stockDetails?['itemcode']?.toString() ?? 'Unknown';
+
+  final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemcode);
+  final currentQty = stockData?['Qty'] as double? ?? 0.0;
+  final updatedQty = currentQty - qtyToReduce;
+
+  if (updatedQty < 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Not enough stock for $itemName')),
+    );
+    return;
+  }
+  
+ 
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_CustomerController.text);
+
+    final String ledCode = ledgerDetails?['LedId']?.toString() ?? 'Unknown';
+    final String retail = stockDetails?['retail']?.toString() ?? 'Unknown';
+    final String sprate = stockDetails?['sprate']?.toString() ?? 'Unknown';
+    final String wrate = stockDetails?['wsrate']?.toString() ?? 'Unknown';
+
+    final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
+        .getStockSaleDetailsByName(itemcode);
+    final unitsaleDetails = await SaleReferenceDatabaseHelper.instance
+        .getStockunitDetailsByName(itemcode);
+
+    final String Ucode = stocksaleDetails?['Uniquecode']?.toString() ?? 'Unknown';
+    final String itemDisc = stocksaleDetails?['Disc']?.toString() ?? '0.0';
+    final String prate = stocksaleDetails?['Prate']?.toString() ?? '0.0';
+    final String rprate = stocksaleDetails?['RealPrate']?.toString() ?? '0.0';
+    final String unit = unitsaleDetails?['Unit']?.toString() ?? 'Unknown';
+    String selectedDate = _dateController.text;
+
+     int selectedFyID = 0;
+
+    for (var fyRecord in fy) {
+      DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());
+      DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());
+      DateTime selected = DateTime.parse(selectedDate);
+      if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+        selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;
+        break;
+      }
+    }
+final double total = (widget.tot is String)
+        ? double.tryParse(widget.tot as String) ?? 0.0
+        : (widget.tot as double?) ?? 0.0;
+ final double priceRate = double.tryParse(prate) ?? 0.0;
+    final num quantity = widget.salesCredit?.qty ?? 0;
+   final rate =widget.salesCredit?.rate?? 0;
+    final double profit = total - (priceRate * quantity);
+  await StockDatabaseHelper.instance.updateProductQuantity(itemcode, updatedQty);
+
+  final double cgst = (widget.tax ?? 0.0) / 2;
+  final double sgst = (widget.tax ?? 0.0) / 2;
+double realRate = await calculateRealRate(rate);
+  final transactionData = {
+    'DDate': _dateController.text,
+      'EntryNo': newentryno ,
+      'UniqueCode': Ucode,
+      'ItemID': itemcode,
+      'serialno': 0,
+      'Rate': widget.salesCredit?.rate??0,  
+      'RealRate': realRate,  
+      'Qty': widget.salesCredit!.qty.toString(),  
+      'freeQty': '0.0',
+      'GrossValue': finalAmt.toString(),  
+      'DiscPersent': widget.discPerc.toString(), 
+      'Disc': widget.discnt.toString(),  
+      'RDisc': '0.0',
+      'Net': widget.net.toString(), 
+      'Vat': '0.0',
+      'freeVat': '0.0',
+      'cess': '0.0',
+      'Total': total.toString(), 
+      'Profit': profit.toString(),  
+      'Auto': newAuto.toString(),  
+      'Unit': unit, 
+      'UnitValue': '0.0',
+      'Funit': '0',
+      'FValue': '0',
+      'commision': '0.0',
+      'GridID': '0',
+      'takeprintstatus': '0',
+      'QtyDiscPercent': '0.0',
+      'QtyDiscount': itemDisc,  
+      'ScheemDiscPercent': '0.0',
+      'ScheemDiscount': '0.0',
+      'CGST': cgst.toString(), 
+      'SGST': sgst.toString(),  
+      'IGST': '0.0',
+      'adcess': '0.0',
+      'netdisc': '0.0',
+      'taxrate': widget.tax.toString(),  
+      'SalesmanId': '0',
+      'Fcess': '0.0',
+      'Prate': prate,  
+      'Rprate': rprate, 
+      'location': '0',
+      'Stype': selectedID,
+
+      'LC': '0.0',
+      'ScanBarcode': '0',
+      'Remark': '0',
+      'FyID': selectedFyID.toString(),  
+      'Supplier': '0',
+      'Retail': retail,  
+      'spretail': sprate,  
+      'wsrate': wrate,
+  };
+
+  await SalesInformationDatabaseHelper2.instance.insertParticular(transactionData);
+}
 
 
 void _saveData() async {
@@ -1509,7 +1685,7 @@ _InvoicenoController.text=updatedInno.toString();
         toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
         leading: Padding(
-          padding: const EdgeInsets.only(top: 20),
+          padding:  EdgeInsets.only(top: screenHeight *0.025),
           child: IconButton(
             onPressed: () {
               Navigator.of(context).push(MaterialPageRoute(builder: (context)=>HomePageERP()));
@@ -1522,7 +1698,7 @@ _InvoicenoController.text=updatedInno.toString();
           ),
         ),
         title: Padding(
-          padding: const EdgeInsets.only(top: 18,right:20),
+          padding:  EdgeInsets.only(top: screenHeight*0.023,right:screenWidth*0.05),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1596,8 +1772,8 @@ _InvoicenoController.text=updatedInno.toString();
             child: GestureDetector(
               onTap: () {},
               child: SizedBox(
-                width: 20,
-                height: 20,
+                width: screenWidth*0.05,
+                height: screenHeight*0.025,
                 child: Image.asset("assets/images/setting (2).png"),
               ),
             ),
@@ -1620,12 +1796,12 @@ _InvoicenoController.text=updatedInno.toString();
            ),
          ), 
       bottomNavigationBar: Container(
-        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.03,vertical:screenHeight*0.03 ),
+        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.028,vertical:screenHeight*0.03 ),
         child: Row(children: [
           GestureDetector(
             onTap: (){},
             child: Container(
-              width: 175,height: 53,
+              width: screenWidth * 0.44,height: screenHeight*0.07,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.only(topLeft: Radius.circular(5),bottomLeft: Radius.circular(5)),
                 color: Appcolors().Scfold
@@ -1651,7 +1827,7 @@ _InvoicenoController.text=updatedInno.toString();
              
               },
             child: Container(
-              width: 175,height: 53,
+             width: screenWidth * 0.44,height: screenHeight*0.07,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.only(topRight: Radius.circular(5),bottomRight: Radius.circular(5)),
                 color: Appcolors().maincolor
@@ -1755,7 +1931,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
             ],
           ),
         ),
-    SizedBox(height: screenHeight*0.03,),
+    SizedBox(height: screenHeight*0.02,),
        Container(
         child: Column(
           children: [
@@ -1790,7 +1966,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                                     items: keys?.map<DropdownMenuItem<String>>((String key) {
                                       return DropdownMenuItem<String>(
                                         value: key,
-                                        child: Text(key.toUpperCase()), // Display column name in uppercase
+                                        child: Text(key.toUpperCase()), 
                                       );
                                     }).toList(),
                                     menuMaxHeight: 150,
@@ -1801,7 +1977,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
         ],
       ),
     ),
-    SizedBox(height: screenHeight*0.03,),
+    SizedBox(height: screenHeight*0.02,),
     Container(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1821,11 +1997,11 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                       border: Border.all(color: Appcolors().searchTextcolor),
                     ),
                     child: Padding(
-              padding: EdgeInsets.only(left: 10,bottom: 10),
+              padding: EdgeInsets.only(left: screenHeight*0.015,bottom: screenHeight*0.01),
               child: SingleChildScrollView(
                  physics: NeverScrollableScrollPhysics(),
                     child:EasyAutocomplete(
-      controller: _CustomerController,  
+      controller: _CustomerController ,  
       suggestions: names,
 
       inputTextStyle: getFontsinput(14, Colors.black),
@@ -1834,15 +2010,15 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
           await _fetchLedgerDetails(value);
           await _fetchItems(customer: value);
            setState(() {
-              _selectedCustomer = value;  // Store selected customer
-              _CustomerController.text = value;  // Assign it to the text field
-              isCustomerSelected = true; // Prevent further changes
+              _selectedCustomer = value;  
+              _CustomerController.text = value;  
+              isCustomerSelected = true;
             });
         }
       },
       decoration: InputDecoration(
         border: InputBorder.none,
-        contentPadding: EdgeInsets.only(bottom: 10),
+        contentPadding: EdgeInsets.only(bottom: screenHeight*0.025),
       ),
       suggestionBackgroundColor: Appcolors().Scfold,
     ),
@@ -1852,7 +2028,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
       ],
     ),
         ),
-            SizedBox(height: screenHeight*0.03,),
+            SizedBox(height: screenHeight*0.02,),
              _field("Phone Number", _phonenoController, screenWidth, screenHeight),
              SizedBox(height: screenHeight*0.001,),
              GestureDetector(
@@ -1865,6 +2041,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
           Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Addpaymant(
                           salesCredit: widget.salesCredit,
+                          customername: _CustomerController.text,
 )));
         },
         child: Padding(
@@ -1881,7 +2058,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    height: 20,width: 20,
+                    height: screenHeight *0.03,width: screenWidth *0.055,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(color: Colors.white)
@@ -1933,7 +2110,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
   width: screenWidth * 0.9,
   child: Card(
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding:  EdgeInsets.symmetric(horizontal:  screenWidth * 0.025, vertical: screenHeight * 0.00625,),
       child: Column(
         children: [
           Row(
@@ -2142,7 +2319,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 7,vertical: 2),
+            padding: EdgeInsets.symmetric(horizontal: screenHeight*0.018,vertical: screenHeight*0.0025),
              height: screenHeight * 0.032, 
               width: screenWidth * 0.43,
             decoration: BoxDecoration(
@@ -2189,7 +2366,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
             ],
           ),
         ),
-    SizedBox(height: screenHeight*0.03,),
+    SizedBox(height: screenHeight*0.02,),
        Container(
         child: Column(
           children: [
@@ -2232,9 +2409,9 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
         ],
       ),
     ),
-    SizedBox(height: screenHeight*0.03,),
+    SizedBox(height: screenHeight*0.02,),
             _field("Billing Name", _billnameController, screenWidth, screenHeight),
-            SizedBox(height: screenHeight*0.03,),
+            SizedBox(height: screenHeight*0.02,),
              _field("Phone Number", _CashphonenoController, screenWidth, screenHeight),
              SizedBox(height: screenHeight*0.001,),
              GestureDetector(
@@ -2256,7 +2433,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    height: 20,width: 20,
+                    height: screenHeight *0.03,width: screenWidth *0.055,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(color: Colors.white)
@@ -2305,7 +2482,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
   width: screenWidth * 0.9,
   child: Card(
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding:  EdgeInsets.symmetric(horizontal: screenWidth * 0.025, vertical: screenHeight * 0.00625,),
       child: Column(
         children: [
           Row(

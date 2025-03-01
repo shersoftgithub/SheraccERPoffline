@@ -14,8 +14,9 @@ import 'package:sheraaccerpoff/views/sales.dart';
 class Addpaymant extends StatefulWidget {
   final SalesCredit? salesCredit;
   final SalesCredit? salesdebit;
+  final String? customername;
   
-  const Addpaymant({super.key,this.salesCredit,this.salesdebit});
+  const Addpaymant({super.key,this.salesCredit,this.salesdebit,this.customername});
 
   @override
   State<Addpaymant> createState() => _AddpaymantState();
@@ -31,6 +32,9 @@ class _AddpaymantState extends State<Addpaymant> {
   final TextEditingController _Discpercentroller=TextEditingController();
   final TextEditingController _FreeItemcentroller=TextEditingController();
   final TextEditingController _FreeQtycentroller=TextEditingController();
+    final TextEditingController _totalamtController=TextEditingController();
+    final TextEditingController _subtotalController=TextEditingController();
+
   List<String> _itemSuggestions = [];
     bool isCashSave = false;
 
@@ -41,50 +45,142 @@ class _AddpaymantState extends State<Addpaymant> {
       _itemSuggestions = items;
     });
   }
-   List<String> productNames = [];
-    Future<void> _fetchProductNames() async {
-    List<String> products = await StockDatabaseHelper.instance.getAllItemNames();
-        setState(() {
-      productNames = products;
-    });
-  }
- void _saveData() {
-  final itemName = _itemnameController.text.trim();
-  final unit = _unitController.text.trim();
-  final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
-  final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
-  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  final DiscPerc = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
-  final Discount = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
-  final totalAmt = (rate * qty) ;
-      final taxvalue= (totalAmt*tax)/100;
-final netamt=(totalAmt - taxvalue);
-final PercenDisc = (totalAmt * DiscPerc)/100;
-final finalAmt=(totalAmt - PercenDisc);
-final ffiinalamt=(finalAmt + taxvalue);
-  String taxStatus = selectedValue == 'With Tax' ? 'T' : 'NT';
-  final ffiinalamt2 = taxStatus == 'NT' ? (ffiinalamt - taxvalue) : (finalAmt + taxvalue);
+List<String> productNames = [];
 
-  final creditsale = SalesCredit(
-    invoiceId: 0,
-    date: "", 
-    salesRate: 0.0,
-    customer: "",
-    phoneNo: "",
-    itemName: itemName,
-    qty: qty,
-    unit: unit,
-    rate: rate,
-    tax: tax,
-    totalAmt: ffiinalamt2,
-  );
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) =>SalesOrder(salesCredit: creditsale,itemDetails:itemDetails,discPerc: DiscPerc,discnt : Discount,net :netamt,tot:ffiinalamt,tax:taxvalue,taxstatus: taxStatus,),
-    ),
-  );
+Future<void> _fetchProductNames() async {
+  try {
+    List<Map<String, dynamic>> products = await StockDatabaseHelper.instance.getItemDetails2();
+        print("Fetched products: $products");
+    
+    if (products.isNotEmpty) {
+      setState(() {
+        productNames = products.map((product) {
+          String itemName = product['itemname'] ?? 'Unknown';
+                    int stockQty = (product['stockQty'] is double)
+              ? (product['stockQty'] as double).toInt() 
+              : product['stockQty'] ?? 0;
+
+          int productQty = (product['productQty'] is double)
+              ? (product['productQty'] as double).toInt() 
+              : product['productQty'] ?? 0;
+          
+          return '$itemName (qty : $stockQty)';
+        }).toList();
+
+      });
+    } else {
+      print("No products found.");
+    }
+  } catch (e) {
+    print("Error fetching products: $e");
+  }
 }
+
+
+void _saveData() {
+  if (temporaryData.isNotEmpty) {
+    for (var item in temporaryData) {
+      final itemName = item['itemname'] ?? "";
+      final unit = item['unit'] ?? "";
+      final qty = item['qty'] ?? 0.0;
+      final rate = item['rate'] ?? 0.0;
+      final tax = item['tax'] ?? 0.0;
+      final DiscPerc = item['discount'] ?? 0.0;
+      final Discount = item['discount'] ?? 0.0;
+      final totalAmt = (rate * qty);
+      final taxvalue = (totalAmt * tax) / 100;
+      final netamt = (totalAmt - taxvalue);
+      final PercenDisc = (totalAmt * DiscPerc) / 100;
+      final finalAmt = (totalAmt - PercenDisc);
+      final ffiinalamt = (finalAmt + taxvalue);
+      String taxStatus = selectedValue == 'With Tax' ? 'T' : 'NT';
+      final ffiinalamt2 = taxStatus == 'NT' ? (ffiinalamt - taxvalue) : (finalAmt + taxvalue);
+
+      final creditsale = SalesCredit(
+        invoiceId: 0,
+        date: "", 
+        salesRate: 0.0,
+        customer: "",
+        phoneNo: "",
+        itemName: itemName,
+        qty: qty,
+        unit: unit,
+        rate: rate,
+        tax: tax,
+        totalAmt: _grandTotal,
+      );
+
+      // Navigate with extracted data
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SalesOrder(
+            salesCredit: creditsale,
+            itemDetails: itemDetails,
+            discPerc: DiscPerc,
+            discnt: Discount,
+            net: netamt,
+            tot: ffiinalamt,
+            tax: taxvalue,
+            taxstatus: taxStatus,
+            cusname: widget.customername,
+            tempdata: temporaryData,
+          ),
+        ),
+      );
+    }
+  } else {
+    // If temporaryData is empty, process using the input fields
+    final itemName = _itemnameController.text.trim();
+    final unit = _unitController.text.trim();
+    final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
+    final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
+    final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+    final DiscPerc = double.tryParse(_Discpercentroller.text.trim()) ?? 0.0;
+    final Discount = double.tryParse(_DiscountController.text.trim()) ?? 0.0;
+    final totalAmt = (rate * qty);
+    final taxvalue = (totalAmt * tax) / 100;
+    final netamt = (totalAmt - taxvalue);
+    final PercenDisc = (totalAmt * DiscPerc) / 100;
+    final finalAmt = (totalAmt - PercenDisc);
+    final ffiinalamt = (finalAmt + taxvalue);
+    String taxStatus = selectedValue == 'With Tax' ? 'T' : 'NT';
+    final ffiinalamt2 = taxStatus == 'NT' ? (ffiinalamt - taxvalue) : (finalAmt + taxvalue);
+
+    final creditsale = SalesCredit(
+      invoiceId: 0,
+      date: "", 
+      salesRate: 0.0,
+      customer: "",
+      phoneNo: "",
+      itemName: itemName,
+      qty: qty,
+      unit: unit,
+      rate: rate,
+      tax: tax,
+      totalAmt: ffiinalamt2,
+    );
+
+    // Navigate with input field data
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SalesOrder(
+          salesCredit: creditsale,
+          itemDetails: itemDetails,
+          discPerc: DiscPerc,
+          discnt: Discount,
+          net: netamt,
+          tot: ffiinalamt,
+          tax: taxvalue,
+          taxstatus: taxStatus,
+          cusname: widget.customername,
+        ),
+      ),
+    );
+  }
+}
+
 
 void _saveDataCash() {
   final itemName = _itemnameController.text.trim();
@@ -188,6 +284,7 @@ Future<void> _onItemnameChanged2(String value) async {
   });
 }
  bool _isDropdownVisible = false;
+ bool _isDropdownVisible2 = false;
 bool _isUpdating = false;
  void _onPercentChanged() {
     if (_isUpdating) return;
@@ -286,6 +383,60 @@ bool _isKeyLockMinSaleRateEnabled() {
       element['Name'] == 'KEY LOCK MINIMUM SALES RATE' && element['Status'] == '1');
 }
 
+
+
+
+String _getItemNameFromFullString(String fullString) {
+  int parenthesisIndex = fullString.indexOf('(');
+    if (parenthesisIndex != -1) {
+    return fullString.substring(0, parenthesisIndex).trim();
+  } else {
+    return fullString;
+  }
+}
+
+
+double _grandTotal = 0.0; 
+
+void _calculateGrandTotal() {
+  setState(() {
+    _grandTotal = temporaryData.fold(0.0, (sum, item) => sum + (double.tryParse(item['total'].toString()) ?? 0.0));
+  });
+}
+List<Map<String, dynamic>> temporaryData = [];
+
+void _addDataToTemporaryList() {
+  if (_itemnameController.text.isNotEmpty && _qtyController.text.isNotEmpty && _rateController.text.isNotEmpty) {
+    setState(() {
+      temporaryData.add({
+        'itemname': _itemnameController.text,
+        'qty': double.tryParse(_qtyController.text) ?? 0.0,
+        'rate': double.tryParse(_rateController.text) ?? 0.0,
+        'tax': double.tryParse(_taxController.text) ?? 0.0,
+        'discount': double.tryParse(_DiscountController.text) ?? 0.0,
+        'discountpercentage': double.tryParse(_Discpercentroller.text) ?? 0.0,
+        'unit': _unitController.text,
+        'freeItem': _FreeItemcentroller.text,
+        'subtotal': _subtotalController.text,
+        'total' : _totalamtController.text,
+        
+      });
+    });
+ _calculateGrandTotal();
+    _itemnameController.clear();
+    _qtyController.clear();
+    _rateController.clear();
+    _taxController.clear();
+    _DiscountController.clear();
+    _unitController.clear();
+    _FreeItemcentroller.clear();
+    _FreeQtycentroller.clear();
+  }
+}
+
+
+
+
   @override
   Widget build(BuildContext context) {
      final screenWidth = MediaQuery.of(context).size.width;
@@ -309,13 +460,16 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
   taxvalue = (totalAmt * tax) / 100; 
 }
   final finalAmt=((totalAmt - PercenDisc)+taxvalue);
+    _totalamtController.text=finalAmt.toString();
+    _subtotalController.text=totalAmt.toString();
+  
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
          toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
         leading: Padding(
-          padding: const EdgeInsets.only(top: 20),
+          padding:  EdgeInsets.only(top: screenHeight * 0.03),
           child: IconButton(
             onPressed: () {
               Navigator.pop(context);
@@ -338,10 +492,24 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(top: screenHeight * 0.02, right: 10),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context)=>Settings()));
+            padding: const EdgeInsets.only(top: 20, right: 10),
+            child: PopupMenuButton<String>(
+              onSelected: (String selectedItem) {
+                if (selectedItem == 'Rates') {
+                  _showRatesDialog();
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return [
+                  PopupMenuItem<String>(
+                    value: 'Rates',
+                    child: Text('Rates'),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'Others',
+                    child: Text('Others'),
+                  ),
+                ];
               },
               child: SizedBox(
                 width: 20,
@@ -368,7 +536,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
             SizedBox(height: screenHeight * 0.01),
             Container(
               height: screenHeight * 0.05,
-              width: screenWidth * 0.9,
+              width: screenWidth * 0.93,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(5),
                 color: Colors.white,
@@ -381,10 +549,16 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                     controller: _itemnameController,
                     suggestions: _isKeyItembycodeEnabled() ? items : productNames,
                     onChanged: (value) {
+                      value=_itemnameController.text;
+                      String selectedItemName = _getItemNameFromFullString(value);
+    _itemnameController.text = selectedItemName; 
+    value=selectedItemName;
     _onItemnameChanged2(value); 
   },
   onSubmitted: (value) {
-    _onItemnameChanged2(value); 
+    String selectedItemName = _getItemNameFromFullString(value);
+    _itemnameController.text = selectedItemName;  
+    
   },
                     decoration: InputDecoration(
                       border: InputBorder.none,
@@ -412,8 +586,8 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                 ),
             SizedBox(height: screenHeight * 0.01),
             Container(
-               height: 35, 
-              width: 173,
+               height: screenHeight * 0.05, 
+              width: screenWidth * 0.45,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(5),
                 color: Colors.white,
@@ -448,8 +622,8 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
             SizedBox(height: screenHeight * 0.01),
             GestureDetector(
               child: Container(
-                 height: 35, 
-                width: 173,
+                   height: screenHeight * 0.05, 
+              width: screenWidth * 0.45,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(5),
                   color: Colors.white,
@@ -489,10 +663,9 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                   ),
               SizedBox(height: screenHeight * 0.01),
                       GestureDetector(
-                        onTap: () => setState(() => _isDropdownVisible = !_isDropdownVisible),
                         child: Container(
-              height: 35,
-              width: 173,
+                height: screenHeight * 0.05, 
+              width: screenWidth * 0.45,
               decoration: BoxDecoration(
                 border: Border.all(color: Appcolors().searchTextcolor),
                 borderRadius: BorderRadius.circular(5),
@@ -542,35 +715,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
               ),
                         ),
                       ),
-                                    if (_isDropdownVisible)
-                        Container(
-              width: 170,
-              margin: const EdgeInsets.only(top: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(5),
-                color: Colors.white,
-              ),
-              child: itemDetails.isNotEmpty
-                  ? Table(
-                      border: TableBorder.all(color: Colors.grey),
-                      children: [
-                        _buildTableRow("MRP", itemDetails[0]["mrp"]),
-                        _buildTableRow("Retail", itemDetails[0]["retail"]),
-                        _buildTableRow("WS Rate", itemDetails[0]["wsrate"]),
-                        _buildTableRow("SP Rate", itemDetails[0]["sprate"]),
-                        _buildTableRow("Branch", itemDetails[0]["branch"]),
-                      ],
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'No data found for the selected item.',
-                        style: TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                        ),
+                               
               
               
                         ],
@@ -587,8 +732,8 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                   ),
               SizedBox(height: screenHeight * 0.01),
              Container(
-      width: 173,  
-      height: 35,  
+       height: screenHeight * 0.05, 
+              width: screenWidth * 0.45, 
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(5),
         color: Colors.white,
@@ -653,8 +798,8 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                         SizedBox(height: screenHeight * 0.01),
                         GestureDetector(
             child: Container(
-               height: 35, 
-              width: 173,
+                 height: screenHeight * 0.05, 
+              width: screenWidth * 0.45,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(5),
                 color: Colors.white,
@@ -687,8 +832,8 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                         SizedBox(height: screenHeight * 0.01),
                         GestureDetector(
             child: Container(
-               height: 35, 
-              width: 173,
+                height: screenHeight * 0.05, 
+              width: screenWidth * 0.45,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(5),
                 color: Colors.white,
@@ -730,7 +875,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                 Row(
                   children: [
                     Text("₹",style: getFonts(14, Colors.black)),
- Text("${totalAmt}",style: getFonts(12, Colors.black),
+ Text("${_subtotalController.text}",style: getFonts(12, Colors.black),
                         
                       ),                  ],
                 ),
@@ -896,7 +1041,25 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                 Row(
                   children: [
                     Text("₹",style: getFonts(14, Colors.black)),
-                Text("${finalAmt}",style: getFonts(14, Colors.red),
+                Text("${_totalamtController.text}",style: getFonts(14, Colors.red),
+                        
+                      ),                  ],
+                ),
+                
+              ],)
+            ],
+          ),
+         ),
+           Container(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Net Balance",style: getFonts(12, Colors.black),),
+              Column(children: [
+                Row(
+                  children: [
+                    Text("₹",style: getFonts(12, Colors.black)),
+                Text("${_grandTotal}",style: getFonts(12, Colors.red),
                         
                       ),                  ],
                 ),
@@ -908,17 +1071,68 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
           ],
         ),
       ),
+SizedBox(height: screenHeight*0.04,),
+      Text("${widget.customername}",style: getFonts(14, Appcolors().maincolor),),
+     SizedBox(height: screenHeight*0.03,), 
+       ListView.builder(
+              shrinkWrap: true, // To avoid full screen usage
+              itemCount: temporaryData.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal:15),
+                  child: Card(
+                    color: Color.fromRGBO(225, 240, 255, 1),
+                    child: ListTile(
+                      trailing: IconButton(onPressed: (){
+                         setState(() {
+                temporaryData.removeAt(index); 
+              });
+              _calculateGrandTotal();
+                      }, icon: Icon(Icons.delete,color: Colors.white,size: 20,)),
+                      title: Text("${temporaryData[index]['itemname']}",style: getFonts(12, Colors.black),),
+                      //title: Text("itemname: ${temporaryData[index]['itemname']}  ||   Qty : ${temporaryData[index]['qty']}  ||  Rate: ${temporaryData[index]['rate']} }",style: getFonts(12, Colors.black45),),
+                      subtitle: Column(
+                        children: [
+                          Container(
+                            child: Row(
+                              children: [
+                                Text("Qty : ${temporaryData[index]['qty']}",style: getFonts(12, Colors.black45)),
+                              SizedBox(width: screenHeight*0.04,),
+                                Text("Rate : ${temporaryData[index]['rate']}",style: getFonts(12, Colors.black45)),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            child: Row(
+                              children: [
+                                Text("Dicount : ${temporaryData[index]['discount']}",style: getFonts(12, Colors.black45)),
+                                 SizedBox(width: screenHeight*0.02,),
+                                Text("Sub total : ${temporaryData[index]['subtotal']}",style: getFonts(12, Colors.black45)),
+                                 SizedBox(width: screenHeight*0.02,),
+                                Text("Total : ${temporaryData[index]['total']}",style: getFonts(12, Colors.black45))
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
 
           ],
         ),
       ),
        bottomNavigationBar: Container(
-        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.03,vertical:screenHeight*0.03 ),
+        padding: EdgeInsets.symmetric(horizontal: screenHeight*0.022,vertical:screenHeight*0.02 ),
         child: Row(children: [
           GestureDetector(
-            onTap: (){},
+            onTap: (){
+              _addDataToTemporaryList();
+            },
             child: Container(
-              width: 175,height: 53,
+              width: screenWidth * 0.45,height: screenHeight*0.07,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.only(topLeft: Radius.circular(5),bottomLeft: Radius.circular(5)),
                 color: Appcolors().Scfold
@@ -939,7 +1153,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
             });
             },
             child: Container(
-              width: 175,height: 53,
+              width: screenWidth * 0.45,height: screenHeight*0.07,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.only(topRight: Radius.circular(5),bottomRight: Radius.circular(5)),
                 color: Appcolors().maincolor
@@ -1004,9 +1218,10 @@ TableRow _buildTableRow(String label, String? value) {
         onTap: () {
           setState(() {
             _selectedRate = value ?? "N/A";
-            _rateController.text = value.toString(); 
+            _rateController.text = value.toString();
             _isDropdownVisible = false; 
           });
+          Navigator.pop(context); // Close the dialog after selecting a value
         },
         child: Padding(
           padding: const EdgeInsets.all(8),
@@ -1016,5 +1231,39 @@ TableRow _buildTableRow(String label, String? value) {
     ],
   );
 }
- 
+
+void _showRatesDialog() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Rates"),
+        content: Container(
+          width: 300,
+          height: 250,
+          child: itemDetails.isNotEmpty
+              ? Table(
+                  border: TableBorder.all(color: Colors.grey),
+                  children: [
+                    _buildTableRow("MRP", itemDetails[0]["mrp"] ?? ""),
+                    _buildTableRow("Retail", itemDetails[0]["retail"] ?? ""),
+                    _buildTableRow("WS Rate", itemDetails[0]["wsrate"] ?? ""),
+                    _buildTableRow("SP Rate", itemDetails[0]["sprate"] ?? ""),
+                    _buildTableRow("Branch", itemDetails[0]["branch"] ?? ""),
+                  ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    'No data found for the selected item.',
+                    style: TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+        ),
+      );
+    },
+  );
+}
+
 }

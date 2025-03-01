@@ -7,6 +7,7 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart'; // Adjust with your actual import
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -46,6 +47,7 @@ double totalAmount = 0.0;
      fetchSalesParticulars();
     _fetchFilteredData();
     fetchSaleStock();
+    _fetchSType();
   }
 
 List<Map<String, dynamic>> salesParticulars = [];
@@ -66,6 +68,34 @@ Future<void> fetchSaleStock() async {
   });
 }
  
+String selectedStype = 'Sales Order'; 
+String selectedID = '0'; 
+List stypelist = [];
+
+Future<void> _fetchSType() async {
+  try {
+    List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllStype();
+    print('Fetched stock data: $data');
+
+    setState(() {
+      stypelist = data;
+
+      var selectedItems = stypelist.where((item) => item['isChecked'] == 1).toList();
+
+      if (selectedItems.isNotEmpty) {
+        selectedStype = selectedItems.first['Type'] ?? 'Sales Order';
+        selectedID = selectedItems.first['iD'] ?? '0';
+      } else {
+        selectedStype = 'Sales Order'; 
+        selectedID = '0';
+      }
+    });
+  } catch (e) {
+    print('Error fetching stock data: $e');
+  }
+}
+
+
 Future<void> _fetchFilteredData() async {
   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
@@ -80,17 +110,22 @@ Future<void> _fetchFilteredData() async {
     toDate: widget.toDate!,
     ledgerName: widget.customerName,
     itemcode: widget.itemcode,
-    itemname: widget.itemName
+    itemname: null, 
   );
 
   List<Map<String, dynamic>> stockData = await StockDatabaseHelper.instance.getItemDetails();
-  
   Map<String, String> itemIdToNameMap = {
     for (var stock in stockData) stock['productItemId'].toString(): stock['itemname'].toString()
   };
 
+  List<Map<String, dynamic>> filteredData = data.where((ledger) {
+    String? itemID = ledger['ItemID']?.toString();
+    String itemName = itemIdToNameMap[itemID] ?? 'N/A';
+    return itemName.contains(widget.itemName ?? '');
+  }).toList();
+
   setState(() {
-    paymentData = data.map((ledger) {
+    paymentData = filteredData.map((ledger) {
       String? ledCode = ledger['Customer']?.toString();
       String? ledName = ledgerCodeToNameMap[ledCode] ?? 'N/A';
 
@@ -107,18 +142,33 @@ Future<void> _fetchFilteredData() async {
         }
       }
 
+
+String stype = ledger['SType']?.toString() ?? 'N/A';
+if (stype == '0') {
+  stype = 'Sales Order'; 
+} else {
+  var matchingType = stypelist.firstWhere(
+    (item) => item['iD'] == stype, 
+    orElse: () => {'Type': 'Unknown'}
+  );
+  
+  stype = matchingType['Type'] ?? 'Other Status';  
+}
+
+
       return {
         ...ledger,
         'Name': ledName,
         'ddate': formattedDate,
-        'Rate': ledger['Rate']?.toString() ?? 'N/A', 
+        'Rate': ledger['Rate']?.toString() ?? 'N/A',
         'ItemID': itemID ?? 'N/A',
-        'itemname': itemName, 
-        'SType': ledger['SType']?.toString() ?? 'N/A', 
+        'itemname': itemName,
+        'SType': stype,
       };
     }).toList();
   });
 }
+
 
 
 Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
@@ -138,18 +188,21 @@ Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
             pw.SizedBox(height: 10),
             pw.Table.fromTextArray(
               headers: [
-                'Invoice No', 'Date', 'Customer', 'Qty', 'Discount', 'Total', 'Rate', 'Item ID'
+                'Invoice No', 'Date', 'Customer','ItemId','Item Name', 'Qty','Rate', 'Discount', 'Total', ''
               ],
               data: paymentData.map((data) {
                 return [
                   data['RealEntryNo'].toString(),
                   data['InfoDDate'].toString(),
                   data['Toname'].toString(),
-                  data['TotalQty'].toString(),
-                  data['Discount'].toString(),
-                  data['GrandTotal'].toString(),
-                  data['Rate'].toString(),
                   data['ItemID'].toString(),
+                  data['itemname'].toString(),
+                  data['Qty'].toString(),
+                  data['Rate'].toString(),
+                  data['Discount'].toString(),
+                   data['GrandTotal'].toString(),
+                    data['SType'].toString(),
+                    
                 ];
               }).toList(),
             ),
@@ -265,7 +318,7 @@ void _generateAndViewPDF() async {
                      _buildHeaderCell('Rate'),
                      _buildHeaderCell('Dicount'),
                     _buildHeaderCell('Total'),
-                    _buildHeaderCell('sss'),
+                    _buildHeaderCell('SType'),
                     
                   ],
                 ),
@@ -282,7 +335,7 @@ void _generateAndViewPDF() async {
                   _buildDataCell(data['Rate'].toString()),
                   _buildDataCell(data['Discount'].toString()),
                   _buildDataCell(data['GrandTotal'].toString()),
-                  _buildDataCell(data['Stype'].toString()),
+                  _buildDataCell(data['SType'].toString()),
                   
                       // _buildDataCell(data[SaleDatabaseHelper.columnId].toString()), // Invoice No
                       // _buildDataCell(DateFormat('dd-MM-yyyy').format(data[SaleDatabaseHelper.columnDate])),

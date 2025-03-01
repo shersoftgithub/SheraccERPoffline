@@ -269,7 +269,6 @@ void _generateAndViewPDF() async {
                 6: FixedColumnWidth(150),
               },
               children: [
-                // Table header row
                 TableRow(
                   children: [
                     _buildHeaderCell('No'),
@@ -282,7 +281,6 @@ void _generateAndViewPDF() async {
                       _buildHeaderCell('Narration'),
                   ],
                 ),
-                // Table data rows
                 ...Data.map((data) {
                   return TableRow(
                     children: [
