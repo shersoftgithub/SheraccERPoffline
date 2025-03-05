@@ -1,6 +1,7 @@
 
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/salescredit_modal.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
@@ -38,8 +39,9 @@ final String? selectedType;
 final String? selectedid;
 final List<Map<String, dynamic>>? tempdata;
 final String?cusname;
+final double? grandtotal;
   const SalesOrder({super.key, this.salesCredit,this.salesDebit,this.itemDetails,this.discPerc,this.discnt,this.net,this.tot,this.tax,this.taxstatus,this.selectedType,this.selectedid,
-  this.discPercCC,this.discntCC,this.netCC,this.totCC,this.taxCC,this.taxstatusCC,this.tempdata,this.cusname
+  this.discPercCC,this.discntCC,this.netCC,this.totCC,this.taxCC,this.taxstatusCC,this.tempdata,this.cusname,this.grandtotal
   });
   @override
   State<SalesOrder> createState() => _SalesOrderState();
@@ -53,13 +55,18 @@ class _SalesOrderState extends State<SalesOrder> {
   final TextEditingController _phonenoController = TextEditingController();
   final TextEditingController _totalamtController = TextEditingController();
   final TextEditingController _salerateController = TextEditingController();
+  final TextEditingController _adressController = TextEditingController();
+  final TextEditingController _OBcontroller = TextEditingController();
+    final TextEditingController _cashRecieveController = TextEditingController();
+
 
   final TextEditingController _CashphonenoController = TextEditingController();
   final TextEditingController _CashtotalamtController = TextEditingController();
   final TextEditingController _CashsalerateController = TextEditingController();
   final TextEditingController _billnameController = TextEditingController();
   bool isCreditSelected = true;
-  
+  bool _isExpanded = false;
+  bool _isExpandedAmt = false;
   
  Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -95,8 +102,7 @@ String _selectedCustomer = "";
    _InvoicenoController.text = ''; 
     _dateController.text = '';      
     _salerateController.text = '';  
-    _CustomerController.text = '';
-    _phonenoController.text = '';
+   _cashRecieveController.text='';
     _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
   }
    @override
@@ -106,7 +112,7 @@ String _selectedCustomer = "";
     _dateController.dispose();
     _salerateController.dispose();
     _CustomerController.dispose();
-    _phonenoController.dispose();
+  
     _totalamtController.dispose();
   }
     optionsDBHelper dbHelper = optionsDBHelper();
@@ -154,7 +160,7 @@ Future<void> _fetchLedger() async {
     names=cname;
   });
 }
-
+double openingBalance = 0.0;
 Future<void> _fetchLedgerDetails(String ledgerName) async {
   if (ledgerName.isNotEmpty) {
     Map<String, dynamic>? ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
@@ -163,11 +169,15 @@ Future<void> _fetchLedgerDetails(String ledgerName) async {
       setState(() {
        // _InvoicenoController.text = ledgerDetails['LedId'] ?? '';
         _phonenoController.text = ledgerDetails['Mobile'] ?? '';
+        _adressController.text = ledgerDetails['add1']?? '';
+          openingBalance = double.tryParse(ledgerDetails['OpeningBalance'].toString()) ?? 0.0;
       });
     } else {
       setState(() {
        // _InvoicenoController.clear();
         _phonenoController.clear();
+        _adressController.clear();
+         openingBalance = 0.0;
       });
     }
   }
@@ -340,7 +350,7 @@ String _convertToSQLDate(String inputDate) {
       return 'NULL'; // Return NULL for invalid formats
     }
 
-    return "'${DateFormat("yyyy-MM-dd HH:mm:ss").format(parsedDate)}'";
+    return "'${DateFormat("yyyy-MM-dd").format(parsedDate)}'";
   } catch (e) {
     print("⚠️ Date conversion error: $e for input: $inputDate");
     return 'NULL'; // Handle invalid date values safely
@@ -607,6 +617,274 @@ for (var fyRecord in fy) {
   }
 }
 
+
+
+void _saveDataSaleinfor22multi() async {
+  try {
+     final db = await SalesInformationDatabaseHelper2.instance.database;
+     final lastRow = await db.rawQuery(
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
+    );
+    int newAuto = 1;
+    int newentryno=1;
+    String DDate=''; 
+    String btime=''; 
+    String ddate1=''; 
+    String despatchdate=''; 
+    String receiptDate=''; 
+ 
+
+      if (lastRow.isNotEmpty) {
+      final lastData = lastRow.first;
+newAuto = (lastData['RealEntryNo'] as int? ?? 0) + 1;
+      newentryno = (lastData['EntryNo'] as int? ?? 0) + 1;
+       DDate = lastData['DDate'] as String? ?? '';
+      btime =  lastData['BTime'] as String? ?? '';
+      ddate1 = lastData['ddate1'] as String? ?? '';
+      despatchdate = lastData['despatchdate'] as String? ?? '';
+      receiptDate = lastData['receiptDate'] as String? ?? '';
+    }
+    final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_CustomerController.text);
+final String add1 = ledgerDetails?['add1'] ?? 'Unknown';
+final String add2 = ledgerDetails?['add2'] ?? 'Unknown';
+final String add3 = ledgerDetails?['add3'] ?? 'Unknown';
+final String add4 = ledgerDetails?['add4'] ?? 'Unknown';
+    if (ledgerDetails == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ledger not found for customer: ${_CustomerController.text}')),
+      );
+      return;
+    }
+   
+    final String ledCode = ledgerDetails['LedId'] ?? '';
+    if (_InvoicenoController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invoice number is required!')),
+      );
+      return;
+    }
+    if (_dateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Date is required!')),
+      );
+      return;
+    }
+    
+    
+
+ for (var tempDataEntry in widget.tempdata!) {
+      // Extract the data from each tempDataEntry
+      final itemName = tempDataEntry['itemname'] ?? '';
+      final qty = tempDataEntry['qty'] ?? 0.0;
+      final rate = tempDataEntry['rate'] ?? 0.0;
+      final tax = tempDataEntry['tax'] ?? 0.0;
+      final discount = tempDataEntry['discount'] ?? 0.0;
+      final discountPercentage = tempDataEntry['discountpercentage'] ?? 0.0;
+      final unit = tempDataEntry['unit'] ?? '';
+      final freeItem = tempDataEntry['freeItem'] ?? '';
+      final subtotal = tempDataEntry['subtotal'] ?? '';
+      final totalAmount = tempDataEntry['total'] ?? '';
+final taxtype = tempDataEntry['taxtype'] ?? '';
+      // Assuming you calculate the finalAmt and profit per item
+      final finalAmt = qty * rate; // This can be adjusted based on your logic
+      final profit = finalAmt - (qty * rate); // Adjust if needed
+
+      final double cgst = (tax ?? 0.0) / 2;
+      final double sgst = (tax ?? 0.0) / 2;
+
+      final String selectedDate = _dateController.text;
+
+      final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(_CustomerController.text);
+
+      final String ledCode = ledgerDetails?['LedId']?.toString() ?? 'Unknown';
+    int selectedFyID = 0;
+
+    for (var fyRecord in fy) {
+      DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());
+      DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());
+      DateTime selected = DateTime.parse(selectedDate);
+      if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+        selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;
+        break;
+      }
+    }
+final double finalAmtfi = widget.grandtotal ?? 0.0;
+      final transactionData = {
+
+ 'RealEntryNo': newAuto, 
+      'EntryNo': newentryno, 
+      'InvoiceNo': _InvoicenoController.text,
+      'DDate':_dateController.text,
+      'BTime':_dateController.text,
+      'Customer': ledCode,
+      'Add1': add1, 
+      'Add2': add2,
+      'Toname': _CustomerController.text.toString(),
+      'TaxType': taxtype.toString(), 
+      'GrossValue': finalAmt,
+      'Discount': discount,
+      'NetAmount': subtotal.toString(),
+      'cess': 0.00,
+      'Total': totalAmount.toString(),
+      'loadingcharge': 0.00,
+      'OtherCharges': 0.00,
+      'OtherDiscount': 0.00,
+      'Roundoff': 0.00,
+      'GrandTotal': finalAmtfi,
+      'SalesAccount': 0, 
+      'SalesMan': 0, 
+      'Location': 1, 
+      'Narration': 0,
+      'Profit': profit.toString(),
+      'CashReceived': 0.00,
+      'BalanceAmount': finalAmt,
+      'Ecommision': 0.00,
+      'labourCharge': 0.00,
+      'OtherAmount': 0.00,
+      'Type': 0,
+      'PrintStatus': 0,
+      'CNo': 0,
+      'CreditPeriod': 0,
+      'DiscPercent': 0.00,
+      'SType': selectedID,
+      'VatEntryNo': 0,
+      'tcommision': 0.00,
+      'commisiontype': 0,
+      'cardno': 0,
+      'takeuser': 0,
+      'PurchaseOrderNo': 0,
+      'ddate1': _dateController.text,
+      'deliverNoteNo': 0,
+      'despatchno': 0,
+      'despatchdate':_dateController.text,
+      'Transport': 0,
+      'Destination': 0,
+      'Transfer_Status': 0,
+      'TenderCash': 0.00,
+      'TenderBalance': 0.00,
+      'returnno': 0,
+      'returnamt': 0.00,
+      'vatentryname': 0,
+      'otherdisc1': 0.00,
+      'salesorderno': 0,
+      'systemno': 0,
+      'deliverydate': 0,
+      'QtyDiscount': 0.00,
+      'ScheemDiscount': 0.00,
+      'Add3': add3,
+      'Add4': add4,
+      'BankName': 0,
+      'CCardNo': 0,
+      'SMInvoice': 0,
+      'Bankcharges': 0.00,
+      'CGST': cgst,
+      'SGST': sgst,
+      'IGST': 0.00,
+      'mrptotal': 0.00,
+      'adcess': 0.00,
+      'BillType': 0,
+      'discuntamount': 0.00,
+      'unitprice': 0.00,
+      'lrno': 0,
+      'evehicleno': 0,
+      'ewaybillno': 0,
+      'RDisc': 0.00,
+      'subsidy': 0.00,
+      'kms': 0.00,
+      'todevice': 0,
+      'Fcess': 0.00,
+      'spercent': 0.00,
+      'bankamount': 0.00,
+      'FcessType': 0,
+      'receiptAmount': 0.00,
+      'receiptDate': _dateController.text,
+      'JobCardno': 0,
+      'WareHouse': 0,
+      'CostCenter': 0,
+      'CounterClose': 0,
+      'CashAccountID': ledCode,
+      'ShippingName': 0,
+      'ShippingAdd1': 0,
+      'ShippingAdd2': 0,
+      'ShippingAdd3': 0,
+      'ShippingGstNo': 0,
+      'ShippingState': 0,
+      'ShippingStateCode': 0,
+      'RateType': 0,
+      'EmiAc': 0,
+      'EmiAmount': 0.00,
+      'EmiRefNo': 0,
+      'RedeemPoint': 0,
+      'IRNNo': 0,
+      'signedinvno': 0,
+      'signedQrCode': 0,
+      'Salesman1': 0,
+      'TCSPer': 0.00,
+      'TCS': 0.00,
+      'app': 0,
+      'TotalQty': qty.toString(), 
+      'InvoiceLetter': 0,
+      'AckDate': 0,
+      'AckNo': 0,
+      'Project': 0,
+      'PlaceofSupply': 0,
+      'tenderRefNo': 0,
+      'IsCancel': 0,
+      'FyID': selectedFyID,
+      'm_invoiceno': _InvoicenoController.text,
+      'PaymentTerms': 0,
+      'WarrentyTerms': 0,
+      'QuotationEntryNo': 0,
+      'CreditNoteNo': 0,
+      'CreditNoteAmount': 0.00,
+      'Careoff': 0,
+      'CareoffAmount': 0.00,
+      'DeliveryStatus': 0,
+      'SOrderBilled': 0,
+      'isCashCounter': 0,
+      'Discountbarcode': 0,
+      'ExcEntryNo': 0,
+      'ExcEntryAmt': 0.00,
+      'FxCurrency': 0,
+      'FxValue': 0.00,
+      'CntryofOrgin': 0,
+      'ContryFinalDest': 0,
+      'PrecarriageBy': 0,
+      'PlacePrecarrier': 0,
+      'PortofLoading': 0,
+      'Portofdischarge': 0,
+      'FinalDestination': 0,
+      'CtnNo': 0,
+      'Totalctn': 0,
+      'Netwt': 0.00,
+      'grosswt': 0.00,
+      'Blno': 0
+      };
+
+      await SalesInformationDatabaseHelper2.instance.insertSale(transactionData);
+      newAuto++; // Increment to avoid same Auto number
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved successfully')),
+    );
+
+    setState(() {
+      _InvoicenoController.clear();
+      _dateController.clear();
+      _CustomerController.clear();
+    });
+
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
+}
+
 Future<double> calculateRealRate(double rate) async {
   try {
     if (companydata.isEmpty) {
@@ -801,22 +1079,22 @@ double realRate = await calculateRealRate(rate);
   }
 }
 
-void _saveDataSalepertitep() async {
+void _saveDataSaleperti2222222() async {
   try {
     final db = await SalesInformationDatabaseHelper.instance.database;
     final db2 = await SalesInformationDatabaseHelper2.instance.database;
 
     final lastRow = await db.rawQuery(
-      'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1'
+      'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1',
     );
 
     final lastRowinfo = await db2.rawQuery(
-      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
+      'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1',
     );
 
     int newAuto = 1;
     int newentryno = 1;
-    
+
     if (lastRowinfo.isNotEmpty) {
       final lastData = lastRowinfo.first;
       newentryno = (lastData['RealEntryNo'] as int? ?? 0) + 1;
@@ -827,116 +1105,74 @@ void _saveDataSalepertitep() async {
       newAuto = (lastData['Auto'] as num? ?? 0).toInt();
     }
 
-    List<Map<String, dynamic>> dataList = widget.tempdata ?? [];
+    for (var tempDataEntry in widget.tempdata!) {
+      // Extract the data from each tempDataEntry
+      final itemName = tempDataEntry['itemname'] ?? '';
+      final qty = tempDataEntry['qty'] ?? 0.0;
+      final rate = tempDataEntry['rate'] ?? 0.0;
+      final tax = tempDataEntry['tax'] ?? 0.0;
+      final discount = tempDataEntry['discount'] ?? 0.0;
+      final discountPercentage = tempDataEntry['discountpercentage'] ?? 0.0;
+      final unit = tempDataEntry['unit'] ?? '';
+      final freeItem = tempDataEntry['freeItem'] ?? '';
+      final subtotal = tempDataEntry['subtotal'] ?? '';
+      final totalAmount = tempDataEntry['total'] ?? '';
+final taxtype = tempDataEntry['taxtype'] ?? '';
+      // Assuming you calculate the finalAmt and profit per item
+      final finalAmt = qty * rate; // This can be adjusted based on your logic
+      final profit = finalAmt - (qty * rate); // Adjust if needed
 
-    if (dataList.isNotEmpty) {
-      // Iterate through `tempdata` and save each row
-      for (var data in dataList) {
-        await _saveSingleEntry(data, newAuto, newentryno);
-      }
-    } else {
-      // Save a single entry if `tempdata` is empty
-      await _saveSingleEntry(null, newAuto, newentryno);
-    }
+      final double cgst = (tax ?? 0.0) / 2;
+      final double sgst = (tax ?? 0.0) / 2;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully')),
-    );
+      // Assuming these values come from other parts of your data as before
+      final double total = double.tryParse(totalAmount) ?? 0.0;
 
-    setState(() {});
+      // Get necessary data like stock details and ledger details
+      final stockDetails = await StockDatabaseHelper.instance.getStockDetailsByName(itemName);
+      final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(_CustomerController.text);
 
-  } catch (e) {
-    print('Error while saving data: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error saving data: $e')),
-    );
-  }
-}
+      final String ledCode = ledgerDetails?['LedId']?.toString() ?? 'Unknown';
+      final String itemCode = stockDetails?['itemcode']?.toString() ?? 'Unknown';
 
-// ✅ Helper function to save a single entry
-Future<void> _saveSingleEntry(Map<String, dynamic>? data, int newAuto, int newentryno) async {
-  final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
-
-  final String itemName = data?['itemName'] ?? widget.salesCredit?.itemName ?? 'Unknown';
-  final double qtyToReduce = double.tryParse(data?['qty']?.toString() ?? '') ?? widget.salesCredit?.qty ?? 0;
-
-  final stockDetails = await StockDatabaseHelper.instance.getStockDetailsByName(itemName);
-  final itemcode = stockDetails?['itemcode']?.toString() ?? 'Unknown';
-
-  final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemcode);
-  final currentQty = stockData?['Qty'] as double? ?? 0.0;
-  final updatedQty = currentQty - qtyToReduce;
-
-  if (updatedQty < 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Not enough stock for $itemName')),
-    );
-    return;
-  }
-  
- 
-    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
-        .getLedgerDetailsByName(_CustomerController.text);
-
-    final String ledCode = ledgerDetails?['LedId']?.toString() ?? 'Unknown';
-    final String retail = stockDetails?['retail']?.toString() ?? 'Unknown';
+      final double priceRate = rate; // Can be adjusted
+      final double quantity = qty;
+      final String retail = stockDetails?['retail']?.toString() ?? 'Unknown';
     final String sprate = stockDetails?['sprate']?.toString() ?? 'Unknown';
     final String wrate = stockDetails?['wsrate']?.toString() ?? 'Unknown';
-
-    final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
-        .getStockSaleDetailsByName(itemcode);
+final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
+        .getStockSaleDetailsByName(itemCode);
     final unitsaleDetails = await SaleReferenceDatabaseHelper.instance
-        .getStockunitDetailsByName(itemcode);
+        .getStockunitDetailsByName(itemCode);
 
     final String Ucode = stocksaleDetails?['Uniquecode']?.toString() ?? 'Unknown';
     final String itemDisc = stocksaleDetails?['Disc']?.toString() ?? '0.0';
     final String prate = stocksaleDetails?['Prate']?.toString() ?? '0.0';
     final String rprate = stocksaleDetails?['RealPrate']?.toString() ?? '0.0';
-    final String unit = unitsaleDetails?['Unit']?.toString() ?? 'Unknown';
-    String selectedDate = _dateController.text;
+    int selectedFyID = 0;
+   
+     double realRate = await calculateRealRate(rate);
 
-     int selectedFyID = 0;
+      final transactionData = {
 
-    for (var fyRecord in fy) {
-      DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());
-      DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());
-      DateTime selected = DateTime.parse(selectedDate);
-      if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
-        selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;
-        break;
-      }
-    }
-final double total = (widget.tot is String)
-        ? double.tryParse(widget.tot as String) ?? 0.0
-        : (widget.tot as double?) ?? 0.0;
- final double priceRate = double.tryParse(prate) ?? 0.0;
-    final num quantity = widget.salesCredit?.qty ?? 0;
-   final rate =widget.salesCredit?.rate?? 0;
-    final double profit = total - (priceRate * quantity);
-  await StockDatabaseHelper.instance.updateProductQuantity(itemcode, updatedQty);
-
-  final double cgst = (widget.tax ?? 0.0) / 2;
-  final double sgst = (widget.tax ?? 0.0) / 2;
-double realRate = await calculateRealRate(rate);
-  final transactionData = {
-    'DDate': _dateController.text,
+      'DDate': _dateController.text,
       'EntryNo': newentryno ,
       'UniqueCode': Ucode,
-      'ItemID': itemcode,
+      'ItemID': itemCode,
       'serialno': 0,
-      'Rate': widget.salesCredit?.rate??0,  
+      'Rate': rate,  
       'RealRate': realRate,  
-      'Qty': widget.salesCredit!.qty.toString(),  
+      'Qty': qty.toString(),  
       'freeQty': '0.0',
       'GrossValue': finalAmt.toString(),  
-      'DiscPersent': widget.discPerc.toString(), 
-      'Disc': widget.discnt.toString(),  
+      'DiscPersent': discountPercentage.toString(), 
+      'Disc': discount.toString(),  
       'RDisc': '0.0',
-      'Net': widget.net.toString(), 
+      'Net': subtotal.toString(), 
       'Vat': '0.0',
       'freeVat': '0.0',
       'cess': '0.0',
-      'Total': total.toString(), 
+      'Total': totalAmount.toString(), 
       'Profit': profit.toString(),  
       'Auto': newAuto.toString(),  
       'Unit': unit, 
@@ -955,7 +1191,7 @@ double realRate = await calculateRealRate(rate);
       'IGST': '0.0',
       'adcess': '0.0',
       'netdisc': '0.0',
-      'taxrate': widget.tax.toString(),  
+      'taxrate': tax.toString(),  
       'SalesmanId': '0',
       'Fcess': '0.0',
       'Prate': prate,  
@@ -966,15 +1202,32 @@ double realRate = await calculateRealRate(rate);
       'LC': '0.0',
       'ScanBarcode': '0',
       'Remark': '0',
-      'FyID': selectedFyID.toString(),  
+      'FyID': "2",  
       'Supplier': '0',
       'Retail': retail,  
       'spretail': sprate,  
       'wsrate': wrate,
-  };
+      };
 
-  await SalesInformationDatabaseHelper2.instance.insertParticular(transactionData);
+      await SalesInformationDatabaseHelper2.instance.insertParticular(transactionData);
+      newAuto++; 
+      newentryno++;
+    }
+
+    // Once all rows are saved
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('All data saved successfully')),
+    );
+    setState(() {}); // Update the UI if needed
+
+  } catch (e) {
+    print('Error while saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving data: $e')),
+    );
+  }
 }
+
 
 
 void _saveData() async {
@@ -1653,19 +1906,35 @@ int updatedInno = 0;
     print('New Invoice Number: $updatedInno'); 
   }
 
+List<String> Ratedetails=[
+  'mrp','retail','wsrate','sprate','branch','tax'
+];
+
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    double _grandTotal = 0.0; 
+
+void _calculateGrandTotal() {
+  setState(() {
+    _grandTotal = widget.tempdata!.fold(0.0, (sum, item) => sum + (double.tryParse(item['total'].toString()) ?? 0.0));
+     _totalamtController.text = _grandTotal.toStringAsFixed(2);
+  });
+}
+_totalamtController.addListener(_calculateGrandTotal);
      void updateTotalAmount() {
     double qty = widget.salesCredit?.qty ?? 0.0;
     double rate = widget.salesCredit?.rate ?? 0.0;
     double tax = widget.salesCredit?.tax ?? 0.0;
     double finalamt=widget.salesCredit?.totalAmt??0.0;
     double saleRate = double.tryParse(_salerateController.text) ?? 0.0;
+    double GrandTotal=widget.grandtotal??0.0;
+    
         double totalAmt = finalamt + ((saleRate - rate) * qty);
-        _totalamtController.text = finalamt.toStringAsFixed(2);
+
+       // _totalamtController.text = GrandTotal.toStringAsFixed(2);
   }
   _salerateController.addListener(updateTotalAmount);
 
@@ -1814,16 +2083,22 @@ _InvoicenoController.text=updatedInno.toString();
             onTap: (){
 
               if(isCreditSelected){
-               _saveDataSaleperti();
+
+               if(widget.tempdata != null && widget.tempdata!.isNotEmpty){
+                _saveDataSaleperti2222222();
+                _saveDataSaleinfor22multi();
+                _saveData2();
+               }else{
+              _saveDataSaleperti();
               _saveDataSaleinfor22();
                _saveData2();
+               }
+     
               }else{
                 _saveDataSalepertiCash();
                 _saveDataSaleinfor22Cash();
               }
              //_saveDataCash();
-             
-             
              
               },
             child: Container(
@@ -1840,16 +2115,18 @@ _InvoicenoController.text=updatedInno.toString();
     );
   }
 Widget _CreditScreenContent(double screenHeight,double screenWidth) {
- 
  String name=_CustomerController.text;
+ String OB = _OBcontroller.text;
   var item = widget.itemDetails?[0];
     List<String>? keys = item?.keys.toList();
   
   List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
-   double additem_total=widget.salesCredit?.totalAmt??0.0;
-    return Column(
+   double additem_total=widget.grandtotal??0.0;
+double cashReceived = double.tryParse(_cashRecieveController.text) ?? 0.0;
+double balance = additem_total - cashReceived;  
+  return Column(
       children: [
-        SizedBox(height: screenHeight*0.02,),
+        SizedBox(height: screenHeight*0.01,),
         Container(
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -1875,24 +2152,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
     padding: const EdgeInsets.symmetric(horizontal: 8),
     child: Text('$updatedInno',style: getFontsinput(14, Colors.black),),
   ),
-  // child: SingleChildScrollView(
-  //   physics: NeverScrollableScrollPhysics(),
-  //   child: EasyAutocomplete(
-  //       controller: _InvoicenoController,
-  //       suggestions: ledgerNamesAsString,
-  //          inputTextStyle: getFontsinput(14, Colors.black),
-  //       onSubmitted: (value) {
-  //         int selectedId = ledgerIds[ledgerNamesAsString.indexOf(value)];
-  //      // _fetchInvoiceData(selectedId);  
-  //       },
-  //       decoration: InputDecoration(
-  //         border: InputBorder.none,
-  //         contentPadding: EdgeInsets.only(bottom: 23,left: 5),
-  //       ),
-      
-  //       suggestionBackgroundColor: Appcolors().Scfold,
-  //     ),
-  // ),
+  
 ),
         ],
       ),
@@ -1931,7 +2191,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
             ],
           ),
         ),
-    SizedBox(height: screenHeight*0.02,),
+    SizedBox(height: screenHeight*0.01,),
        Container(
         child: Column(
           children: [
@@ -1943,41 +2203,49 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 "Sales Rate",
                 style: formFonts(14, Colors.black),
               ),
-          SizedBox(height: screenHeight * 0.01),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01),
-                    height: screenHeight * 0.05,
-                    width: screenWidth * 0.9,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: Colors.white,
-                      border: Border.all(color: Appcolors().searchTextcolor),
-                    ),
-                    child: Container(height: screenHeight*0.2,
-                      child: DropdownButton<String>(
-                        dropdownColor: Appcolors().Scfold,
-                        style: getFontsinput(14, Colors.black),
-                                    value: _selectedKey,
-                                    onChanged: (String? newValue) {
-                                      setState(() {
-                                        _selectedKey = newValue;
-                                      });
-                                    },
-                                    items: keys?.map<DropdownMenuItem<String>>((String key) {
-                                      return DropdownMenuItem<String>(
-                                        value: key,
-                                        child: Text(key.toUpperCase()), 
-                                      );
-                                    }).toList(),
-                                    menuMaxHeight: 150,
-                                    underline: SizedBox.shrink(), 
-                                  ),
-                    ),
-                  ),
+          SizedBox(height: screenHeight * 0.001),
+         Container(
+  padding: EdgeInsets.symmetric(horizontal: screenHeight * 0.01),
+  height: screenHeight * 0.05,
+  width: screenWidth * 0.9,
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(5),
+    color: Colors.white,
+    border: Border.all(color: Appcolors().searchTextcolor),
+  ),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+     Expanded(
+  child: DropdownButtonHideUnderline(
+    child: DropdownButton<String>(
+      dropdownColor: Appcolors().Scfold,
+      style: getFontsinput(14, Colors.black),
+      value: _selectedKey, // Ensure _selectedKey is initialized with a value from RateDetails
+      onChanged: (String? newValue) {
+        setState(() {
+          _selectedKey = newValue;
+        });
+      },
+      items: Ratedetails.map<DropdownMenuItem<String>>((String rate) {
+        return DropdownMenuItem<String>(
+          value: rate,
+          child: Text(rate.toUpperCase()),
+        );
+      }).toList(),
+      menuMaxHeight: 150,
+      isExpanded: true,
+    ),
+  ),
+),
+    ],
+  ),
+)
+
         ],
       ),
     ),
-    SizedBox(height: screenHeight*0.02,),
+    SizedBox(height: screenHeight*0.01,),
     Container(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1986,9 +2254,9 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
               "Customer",
               style: formFonts(14, Colors.black),
             ),
-        SizedBox(height: screenHeight * 0.01),
+        SizedBox(height: screenHeight * 0.001),
         Container(
-          padding: EdgeInsets.symmetric(vertical: screenHeight*0.001),
+          padding: EdgeInsets.symmetric(vertical: screenHeight*0.006),
                     height: screenHeight * 0.05,
                     width: screenWidth * 0.9,
                     decoration: BoxDecoration(
@@ -2006,13 +2274,14 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
 
       inputTextStyle: getFontsinput(14, Colors.black),
       onSubmitted: (value) async {
+ 
         if (!isCustomerSelected) {
           await _fetchLedgerDetails(value);
           await _fetchItems(customer: value);
            setState(() {
-              _selectedCustomer = value;  
               _CustomerController.text = value;  
               isCustomerSelected = true;
+              
             });
         }
       },
@@ -2028,20 +2297,74 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
       ],
     ),
         ),
-            SizedBox(height: screenHeight*0.02,),
-             _field("Phone Number", _phonenoController, screenWidth, screenHeight),
-             SizedBox(height: screenHeight*0.001,),
+            SizedBox(height: screenHeight*0.01,),
+             Container(
+            height: screenHeight * 0.05,
+            width: screenWidth * 0.9,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            child: Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: [
+             Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 9),
+               child: Text("Others", style: DrewerFonts()),
+             ),
+              IconButton(
+                icon: Icon(
+                  _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: Colors.black,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isExpanded = !_isExpanded; 
+                  });
+                },
+              ),
+                       ],
+                     ),
+          ),
+          SizedBox(height: screenHeight*0.01,),
+          if (_isExpanded) 
+          Row(
+            children: [
+             
+              Padding(
+                padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.024),
+                child: Column(
+                  children: [
+                     _field("Adress", _OBcontroller, screenWidth, screenHeight),
+                     _field("Phone Number", _phonenoController, screenWidth, screenHeight),
+                
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+             SizedBox(height: screenHeight*0.00001,),
              GestureDetector(
         onTap: () {
+if(_CustomerController.text.isEmpty){
+ ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please select Customer Name')),
+    );
+    return;
+}
+
            setState(() {
           _selectedCustomer = "";
-          customername.clear();
           isCustomerSelected = false;
         });
           Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Addpaymant(
                           salesCredit: widget.salesCredit,
                           customername: _CustomerController.text,
+                          tempdataadd: widget.tempdata?? [],
+                          RateKey: _selectedKey,
 )));
         },
         child: Padding(
@@ -2105,194 +2428,233 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
           ),
          ),
        ),
-       Container(
-        padding: EdgeInsets.symmetric(vertical: screenHeight*0.01),
-  width: screenWidth * 0.9,
-  child: Card(
-    child: Padding(
-      padding:  EdgeInsets.symmetric(horizontal:  screenWidth * 0.025, vertical: screenHeight * 0.00625,),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
+       SizedBox(
+  height: screenHeight * 0.3,
+  child: Column(
+    children: [
+      Expanded(
+        child: widget.tempdata != null && widget.tempdata!.isNotEmpty
+            ? ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: screenHeight * 0.022),
+                itemCount: widget.tempdata!.length,
+                itemBuilder: (context, index) {
+                  final item = widget.tempdata![index];
+
+                  return GestureDetector(
+                    onTap: (){
+
+                                    if(widget.tempdata != null && widget.tempdata!.isNotEmpty){
+                                      Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => Addpaymant(
+                                          salesCredit: widget.salesCredit,
+                                          customername: _CustomerController.text,
+                                          selectedItem: item,
+                                          tempdataadd: widget.tempdata??[], 
+                                        ),
+                                      ),
+                                    );
+                                    }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: screenHeight * 0.001),
+                      width: screenWidth * 0.9,
+                      child: Card(
+                        color: Colors.grey.shade100,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          child: Column(
+                            children: [
+                              Text('${item['itemname']??''}',style: getFonts(13, Colors.black),),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Item Subtotal",
+                                    style: formFonts(12, Colors.black),
+                                  ),
+                                  Text(
+                                    " ${item['subtotal'] ?? 'N/A'}",
+                                    style: getFontsinput(12, Colors.black),
+                                  ),
+                                ],
+                              ),
+                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Diccount(%):0.00",
+                                    style: formFonts(12, Colors.black),
+                                  ),
+                                  Text(
+                                    "${item['discount'] ?? 'N/A'}",
+                                    style: getFontsinput(12, Colors.black),
+                                  ),
+                                ],
+                              ),
+                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Tax(%):${item['tax'] ?? ''}",
+                                    style: formFonts(12, Colors.black),
+                                  ),
+                                  Text(
+                                    " ${item['taxvalue'] ?? ''}",
+                                    style: getFontsinput(12, Colors.black),
+                                  ),
+                                ],
+                              ),
+                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Total",
+                                    style: formFonts(12, Colors.black),
+                                  ),
+                                  Text(
+                                    "${item['total'] ?? 'N/A'}",
+                                    style: getFontsinput(12, Colors.black),
+                                  ),
+                                ],
+                              ),
+                              
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              )
+            : Center(
                 child: Text(
-                  "Itemname",
-                  style: formFonts(12, Colors.black),
+                  "",
+                  style: formFonts(14, Colors.grey),
                 ),
               ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  ":  ${widget.salesCredit?.itemName ?? ''}",
-                  style: getFontsinput(12, Colors.black),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Unit",
-                  style: formFonts(12, Colors.black),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  ":  ${widget.salesCredit?.unit ?? ''}",
-                  style: getFontsinput(12, Colors.black),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Quantity",
-                  style: formFonts(12, Colors.black),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  ":  ${widget.salesCredit?.qty.toString() ?? ''}",
-                  style: getFontsinput(12, Colors.black),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Rate",
-                  style: formFonts(12, Colors.black),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  ":  ${widget.salesCredit?.rate.toString() ?? ''}",
-                  style: getFontsinput(12, Colors.black),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
-    ),
+    ],
   ),
 ),
-        //SizedBox(height: screenHeight*0.2,),
-            SizedBox(
-              height: screenHeight*0.3,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.022),
-                       itemCount: todayItems.length,
-                      itemBuilder: (context, index) {
-                        final item = todayItems[index];
-                        return  Container(
-                        padding: EdgeInsets.symmetric(vertical: screenHeight*0.01),
-                        width: screenWidth * 0.9,
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            child: Column(
-                              children: [
-                                Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            "Itemname",
-                            style: formFonts(12, Colors.black),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            ":  ${item['item_name']}",
-                            style: getFontsinput(12, Colors.black),
-                          ),
-                        ),
-                      ],
-                                ),
-                                Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            "Unit",
-                            style: formFonts(12, Colors.black),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            ":  ${item['unit']}",
-                            style: getFontsinput(12, Colors.black),
-                          ),
-                        ),
-                      ],
-                                ),
-                                Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            "Quantity",
-                            style: formFonts(12, Colors.black),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            ":  ${item['qty']}",
-                            style: getFontsinput(12, Colors.black),
-                          ),
-                        ),
-                      ],
-                                ),
-                                Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            "Rate",
-                            style: formFonts(12, Colors.black),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            ":  ${item['rate']}",
-                            style: getFontsinput(12, Colors.black),
-                          ),
-                        ),
-                      ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                      }
-                     ,
-                      
-                    ),
-                  ),
-                ],
+
+
+             SizedBox(height: screenHeight*0.01,),
+             Container(
+            height: screenHeight * 0.05,
+            width: screenWidth * 0.9,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            child: Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: [
+             Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 9),
+               child: Text("Others Amounts", style: DrewerFonts()),
+             ),
+              IconButton(
+                icon: Icon(
+                  _isExpandedAmt ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: Colors.black,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isExpandedAmt = !_isExpandedAmt; 
+                  });
+                },
               ),
-            )
+                       ],
+                     ),
+          ),
+          SizedBox(height: screenHeight*0.01,),
+          if (_isExpandedAmt) 
+          Container(
+            width: screenWidth * 0.9,
+            padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01,vertical:screenHeight*0.01 ),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey)
+            ),
+            child:Column(
+              children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("OB",style: getFonts(14, Colors.black),),
+                    Container(
+                      child: Row(
+                        children: [
+                           Text("₹",style: getFonts(14, Colors.black)),
+                     Text(
+                          '${openingBalance.toString()}'
+                        )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+                 SizedBox(height: screenHeight*0.01,),
+                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Total Amount",style: getFonts(14, Colors.black),),
+                    Container(
+                      child: Row(
+                        children: [
+                           Text("₹",style: getFonts(14, Colors.black)),
+                      Text(
+                                    _totalamtController.text.isEmpty
+                                        ? additem_total.toString()
+                                        : _totalamtController.text,
+                                    style: getFonts(14, Colors.black),
+                                  ), 
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+                 SizedBox(height: screenHeight*0.01,),
+                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Cash Recieved",style: getFonts(14, Colors.green.shade500),),
+                    SizedBox(width: screenHeight*0.1,),
+                    Expanded(
+            child: TextField(
+              controller: _cashRecieveController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                prefixIcon: Padding(
+                  padding:  EdgeInsets.only(left: screenHeight*0.03,top: 12,right: screenHeight*0.05),
+                  child: Text("₹", style: getFonts(14, Colors.black)),
+                ),
+                border: UnderlineInputBorder(
+                  
+                  borderSide: BorderSide(color: const Color.fromARGB(255, 66, 44, 44)),
+                ),
+              ),
+            ),
+          ),
+                  ],
+                ),
+                 SizedBox(height: screenHeight*0.01,),
+                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Balance Due",style: getFonts(14, Colors.black),),
+                    Container(
+                      child: Row(
+                        children: [
+                           Text("₹",style: getFonts(14, Colors.black)),
+                     Text(
+                          '${balance.toString()}'
+                        )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ],
+            ),
+          ),
+                   SizedBox(height: screenHeight*0.2,),
+
       ],
     );
   }
@@ -2576,7 +2938,7 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
                 textrow,
                 style: formFonts(14, Colors.black),
               ),
-          SizedBox(height: screenHeight * 0.01),
+          SizedBox(height: screenHeight * 0.001),
           Container(
             height: screenHeight * 0.05,
             width: screenWidth * 0.9,

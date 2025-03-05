@@ -247,12 +247,26 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
   final db = await database;
 
   try {
+    print('Checking for existing RealEntryNo: ${payData['RealEntryNo']}');
+
+    // Check if the RealEntryNo already exists
+    final existingEntry = await db.query(
+      'Sales_Information',
+      where: 'RealEntryNo = ?',
+      whereArgs: [payData['RealEntryNo']],
+    );
+
+    if (existingEntry.isNotEmpty) {
+      print('Duplicate RealEntryNo found: ${payData['RealEntryNo']}. Insertion aborted.');
+      return; // Stop execution to prevent duplicate entry
+    }
+
     print('Inserting saleData: $payData');
 
     final result = await db.insert(
       'Sales_Information',
       payData,
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      conflictAlgorithm: ConflictAlgorithm.ignore, // Ignores duplicate entries
     );
 
     if (result > 0) {
@@ -260,23 +274,11 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     } else {
       print('Insertion failed. No row inserted.');
     }
-
-    // Check if the data exists
-    final checkResult = await db.query(
-      'Sales_Information',
-      where: 'RealEntryNo = ?',
-      whereArgs: [payData['RealEntryNo']],
-    );
-
-    if (checkResult.isNotEmpty) {
-      print('Data successfully inserted: ${checkResult.first}');
-    } else {
-      print('Data insertion was unsuccessful. Unable to find the inserted record.');
-    }
   } catch (e) {
-    print('Error inserting ledger data: $e');
+    print('Error inserting sale data: $e');
   }
 }
+
   // **Fetch Data**
   Future<List<Map<String, dynamic>>> getSalesData() async {
     final db = await instance.database;
@@ -289,7 +291,7 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     await db.delete('Sales_Information');
   }
 
-  Future<void> insertParticular(Map<String, dynamic> particularData) async {
+ Future<void> insertParticular(Map<String, dynamic> particularData) async {
   final db = await database;
 
   try {
@@ -303,26 +305,24 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
 
     if (result > 0) {
       print('Insertion successful. Row inserted with ID: $result');
+
+      final lastEntry = await db.rawQuery(
+        'SELECT EntryNo FROM Sales_Particulars ORDER BY EntryNo DESC LIMIT 1',
+      );
+
+      if (lastEntry.isNotEmpty) {
+        print('Last inserted EntryNo: ${lastEntry.first['EntryNo']}');
+      } else {
+        print('No EntryNo found after insertion.');
+      }
     } else {
       print('Insertion failed. No row inserted.');
-    }
-
-    // Verify the inserted record
-    final checkResult = await db.query(
-      'Sales_Particulars',
-      where: 'ParticularID = ?',
-      whereArgs: [result],
-    );
-
-    if (checkResult.isNotEmpty) {
-      print('Data successfully inserted: ${checkResult.first}');
-    } else {
-      print('Data insertion was unsuccessful.');
     }
   } catch (e) {
     print('Error inserting particular data: $e');
   }
 }
+
 
 Future<List<Map<String, dynamic>>> getSalesDataperticular() async {
     final db = await instance.database;

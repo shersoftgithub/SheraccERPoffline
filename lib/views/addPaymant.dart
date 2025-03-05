@@ -15,8 +15,10 @@ class Addpaymant extends StatefulWidget {
   final SalesCredit? salesCredit;
   final SalesCredit? salesdebit;
   final String? customername;
-  
-  const Addpaymant({super.key,this.salesCredit,this.salesdebit,this.customername});
+  final Map<String, dynamic>? selectedItem; 
+  final List<Map<String, dynamic>>? tempdataadd; 
+  final String? RateKey;
+  const Addpaymant({super.key,this.salesCredit,this.salesdebit,this.customername,this.selectedItem,this.tempdataadd,this.RateKey});
 
   @override
   State<Addpaymant> createState() => _AddpaymantState();
@@ -34,6 +36,7 @@ class _AddpaymantState extends State<Addpaymant> {
   final TextEditingController _FreeQtycentroller=TextEditingController();
     final TextEditingController _totalamtController=TextEditingController();
     final TextEditingController _subtotalController=TextEditingController();
+    final TextEditingController _taxvalueController=TextEditingController();
 
   List<String> _itemSuggestions = [];
     bool isCashSave = false;
@@ -110,7 +113,6 @@ void _saveData() {
         totalAmt: _grandTotal,
       );
 
-      // Navigate with extracted data
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -130,7 +132,6 @@ void _saveData() {
       );
     }
   } else {
-    // If temporaryData is empty, process using the input fields
     final itemName = _itemnameController.text.trim();
     final unit = _unitController.text.trim();
     final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
@@ -221,9 +222,63 @@ void _saveDataCash() {
     _DiscountController.addListener(_onDiscountChanged);
     _Discpercentroller.addListener(_onPercentChanged);
     _taxController.text;
-     _rateController.text = _selectedRate ?? '';
+    _rateController.text = _selectedRate ?? '';
+
+  _qtyController.addListener(_onFieldsChanged);
+  _rateController.addListener(_onFieldsChanged);
+  _DiscountController.addListener(_onFieldsChanged);
+  _Discpercentroller.addListener(_onFieldsChanged);
+  _taxController.addListener(_onFieldsChanged);
+_subtotalController.addListener(_onFieldsChanged);
+_totalamtController.addListener(_onFieldsChanged);
+_taxvalueController.addListener(_onFieldsChanged);
+       if (widget.selectedItem != null) {
+    if (widget.selectedItem!.isNotEmpty) {
+      _itemnameController.text = widget.selectedItem!['itemname'] ?? '';
+      _unitController.text = widget.selectedItem!['unit'] ?? '';
+      _qtyController.text = widget.selectedItem!['qty'].toString();
+      _rateController.text = widget.selectedItem!['rate'].toString();
+      _DiscountController.text = widget.selectedItem!['discount'].toString();
+      _Discpercentroller.text = widget.selectedItem!['discountpercentage'].toString();
+      _taxController.text = widget.selectedItem!['tax'].toString();
+      _subtotalController.text = widget.selectedItem!['subtotal'].toString();
+      _totalamtController.text = widget.selectedItem!['total'].toString();
+      _taxvalueController.text = widget.selectedItem!['taxvalue'].toString();
+
+    }
+  }
+temporaryData = widget.tempdataadd ?? [];
+  if (temporaryData.isNotEmpty) {
+    _calculateGrandTotal();
   }
   
+  }
+  
+
+void _onFieldsChanged() {
+  setState(() {
+    double qty = double.tryParse(_qtyController.text) ?? 0.0;
+    double rate = double.tryParse(_rateController.text) ?? 0.0;
+    double discount = double.tryParse(_DiscountController.text) ?? 0.0;
+    double discountPercent = double.tryParse(_Discpercentroller.text) ?? 0.0;
+    double tax = double.tryParse(_taxController.text) ?? 0.0;
+    double subtotal = qty * rate;
+        double discountAmount = (discountPercent > 0) ? (subtotal * discountPercent / 100) : discount;
+        double taxableAmount = subtotal - discountAmount;
+        final totalAmt = (rate * qty) ;
+var taxvalue= (totalAmt*tax)/100;
+    double taxValue = (selectedValue == 'With Tax') ? (taxableAmount * tax / 100) : 0.0;
+
+    double totalAmount = taxableAmount + taxValue;
+
+    _subtotalController.text = subtotal.toStringAsFixed(2);
+    _taxvalueController.text = taxvalue.toStringAsFixed(2);
+    _totalamtController.text = totalAmount.toStringAsFixed(2);
+    _calculateGrandTotal(); 
+  });
+}
+
+
      List<String> items = [];
 Future<void> _fetchstock() async {
   List<String> itemids = await StockDatabaseHelper.instance.getAllItemcode();
@@ -255,23 +310,33 @@ Future<void> _onItemnameChanged2(String value) async {
   if (value.isEmpty) {
     setState(() {
       itemDetails = [];
+      _selectedRate = null;
     });
     return;
   }
 
-  // Fetch item details including tax
   List<Map<String, String>> details = await StockDatabaseHelper.instance.getItemDetailsByName(value);
 
   setState(() {
     itemDetails = details.isNotEmpty ? details : [];
-    _selectedRate = null; 
+    
+    if (details.isNotEmpty && widget.RateKey != null) {
+      if (details[0].containsKey(widget.RateKey!.toLowerCase())) {
+        _selectedRate = details[0][widget.RateKey!.toLowerCase()];
+       _rateController.text=_selectedRate!;
+      } else {
+        _selectedRate = null; 
+      }
+    } else {
+      _selectedRate = null;
+    }
   });
 
   if (details.isNotEmpty) {
     _taxController.text = details[0]["tax"] ?? "N/A"; 
   }
-
 }
+
 
 
 
@@ -403,12 +468,16 @@ void _calculateGrandTotal() {
     _grandTotal = temporaryData.fold(0.0, (sum, item) => sum + (double.tryParse(item['total'].toString()) ?? 0.0));
   });
 }
+
+int? selectedItemIndex;
 List<Map<String, dynamic>> temporaryData = [];
 
 void _addDataToTemporaryList() {
   if (_itemnameController.text.isNotEmpty && _qtyController.text.isNotEmpty && _rateController.text.isNotEmpty) {
     setState(() {
-      temporaryData.add({
+      String taxStatus = selectedValue == 'With Tax' ? 'T' : 'NT';
+      
+      Map<String, dynamic> newItem = {
         'itemname': _itemnameController.text,
         'qty': double.tryParse(_qtyController.text) ?? 0.0,
         'rate': double.tryParse(_rateController.text) ?? 0.0,
@@ -418,21 +487,92 @@ void _addDataToTemporaryList() {
         'unit': _unitController.text,
         'freeItem': _FreeItemcentroller.text,
         'subtotal': _subtotalController.text,
-        'total' : _totalamtController.text,
-        
-      });
+        'total': _totalamtController.text,
+        'taxtype': taxStatus,
+        'taxvalue': _taxvalueController.text,
+      };
+
+      if (selectedItemIndex != null) {
+        temporaryData[selectedItemIndex!] = newItem;
+        selectedItemIndex = null; 
+      } else {
+        temporaryData.add(newItem);
+      }
     });
- _calculateGrandTotal();
+
+    _calculateGrandTotal();
     _itemnameController.clear();
     _qtyController.clear();
     _rateController.clear();
     _taxController.clear();
     _DiscountController.clear();
+    _Discpercentroller.clear();
+    _subtotalController.clear();
+    _totalamtController.clear();
     _unitController.clear();
     _FreeItemcentroller.clear();
     _FreeQtycentroller.clear();
   }
 }
+
+void _calculateSubtotal() {
+  double rate = double.tryParse(_rateController.text) ?? 0.0;
+  int qty = int.tryParse(_qtyController.text) ?? 0;
+  var tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+  double discount = double.tryParse(_Discpercentroller.text) ?? 0.0;
+  final totalAmt = (rate * qty) ;
+var taxvalue= (totalAmt*tax)/100;
+  double subtotal = rate * qty;
+  double discountAmount = (subtotal * discount) / 100;
+  double total = subtotal - discountAmount + taxvalue;
+
+  setState(() {
+    _subtotalController.text = subtotal.toStringAsFixed(2);
+    _totalamtController.text = total.toStringAsFixed(2);
+    _taxvalueController.text = taxvalue.toStringAsFixed(2);
+  });
+}
+
+void _editDataInTemporaryList() {
+  if (widget.selectedItem != null) {
+    int index = temporaryData.indexWhere(
+      (item) => item['itemname'] == widget.selectedItem!['itemname'],
+    );
+
+    if (index != -1) {
+      temporaryData[index] = {
+        'itemname': widget.selectedItem!['itemname'],
+        'qty': double.tryParse(_qtyController.text) ?? 0,
+        'rate': double.tryParse(_rateController.text) ?? 0.0,
+        'tax': double.tryParse(_taxController.text) ?? 0.0,
+        'discount': double.tryParse(_DiscountController.text) ?? 0.0,
+        'discountpercentage': double.tryParse(_Discpercentroller.text) ?? 0.0,
+        'subtotal': double.tryParse(_subtotalController.text) ?? 0.0,
+        'total': double.tryParse(_totalamtController.text) ?? 0.0,
+        'taxvalue': double.tryParse(_taxvalueController.text) ?? 0.0,
+      };
+    }
+
+    // Ensure Grand Total is updated BEFORE navigating
+    setState(() {
+      _calculateGrandTotal();
+    });
+
+    Future.delayed(Duration(milliseconds: 100), () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SalesOrder(
+            cusname: widget.customername,
+            grandtotal: _grandTotal, // Now updated before navigating
+            tempdata: temporaryData,
+          ),
+        ),
+      );
+    });
+  }
+}
+
 
 
 
@@ -450,8 +590,6 @@ void _addDataToTemporaryList() {
       var taxvalue= (totalAmt*tax)/100;
 final netamt=(totalAmt - taxvalue);
 final PercenDisc = (totalAmt * DiscPerc)/100;
-//_Discpercentroller.text = PercenDisc.toStringAsFixed(2);
-
  if (selectedValue == 'Without Tax') {
   final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
   taxvalue = 0; 
@@ -460,9 +598,14 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
   taxvalue = (totalAmt * tax) / 100; 
 }
   final finalAmt=((totalAmt - PercenDisc)+taxvalue);
-    _totalamtController.text=finalAmt.toString();
-    _subtotalController.text=totalAmt.toString();
-  
+setState(() {
+  _subtotalController.text = totalAmt.toStringAsFixed(2);  
+  _taxvalueController.text = taxvalue.toStringAsFixed(2);  
+  _totalamtController.text = finalAmt.toStringAsFixed(2);  
+});
+    
+
+ 
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -604,7 +747,8 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
   ),
   onChanged: (value) async {
     await _validateQuantity();
-  },
+    _calculateSubtotal();
+  } ,
 ),
             ),
           ],
@@ -671,7 +815,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 7,vertical: 7),
+                padding:  EdgeInsets.symmetric(horizontal: 7,vertical:screenHeight*0.02,),
                 child: TextField(
   controller: _rateController, 
   style: getFontsinput(14, Colors.black),
@@ -680,12 +824,12 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
   decoration: InputDecoration(
     border: InputBorder.none,
     
-    hintText: "Select Rate",
   ),
+  keyboardType: TextInputType.number,
   onChanged: (value) {
   double enteredRate = double.tryParse(value) ?? 0.0;
   double mrpRate = double.tryParse(itemDetails[0]["mrp"]?.toString() ?? "0") ?? 0.0;
-
+_calculateSubtotal();
   if (_isKeyLockMinSaleRateEnabled()) {
     if (enteredRate > mrpRate) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1022,7 +1166,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                   color: Colors.white,
                   border: Border.all(color: Appcolors().searchTextcolor),
                 ),
-                              child:Text("${taxvalue}",style: getFontsinput(14, Colors.black),),
+                              child:Text("${_taxvalueController.text}",style: getFontsinput(14, Colors.black),),
                             ),
                            
                           ],
@@ -1085,10 +1229,10 @@ SizedBox(height: screenHeight*0.04,),
                     child: ListTile(
                       trailing: IconButton(onPressed: (){
                          setState(() {
-                temporaryData.removeAt(index); 
-              });
-              _calculateGrandTotal();
-                      }, icon: Icon(Icons.delete,color: Colors.white,size: 20,)),
+                                      temporaryData.removeAt(index); 
+                                    });
+                                    _calculateGrandTotal();
+                      }, icon: Icon(Icons.delete,color: Colors.red.shade300,size: 20,)),
                       title: Text("${temporaryData[index]['itemname']}",style: getFonts(12, Colors.black),),
                       //title: Text("itemname: ${temporaryData[index]['itemname']}  ||   Qty : ${temporaryData[index]['qty']}  ||  Rate: ${temporaryData[index]['rate']} }",style: getFonts(12, Colors.black45),),
                       subtitle: Column(
@@ -1097,16 +1241,17 @@ SizedBox(height: screenHeight*0.04,),
                             child: Row(
                               children: [
                                 Text("Qty : ${temporaryData[index]['qty']}",style: getFonts(12, Colors.black45)),
-                              SizedBox(width: screenHeight*0.04,),
+                              SizedBox(width: screenHeight*0.03,),
                                 Text("Rate : ${temporaryData[index]['rate']}",style: getFonts(12, Colors.black45)),
+                                SizedBox(width: screenHeight*0.03,),
+                             Text("Dicount : ${temporaryData[index]['discount']}",style: getFonts(12, Colors.black45)),
+
                               ],
                             ),
                           ),
                           Container(
                             child: Row(
                               children: [
-                                Text("Dicount : ${temporaryData[index]['discount']}",style: getFonts(12, Colors.black45)),
-                                 SizedBox(width: screenHeight*0.02,),
                                 Text("Sub total : ${temporaryData[index]['subtotal']}",style: getFonts(12, Colors.black45)),
                                  SizedBox(width: screenHeight*0.02,),
                                 Text("Total : ${temporaryData[index]['total']}",style: getFonts(12, Colors.black45))
@@ -1129,7 +1274,29 @@ SizedBox(height: screenHeight*0.04,),
         child: Row(children: [
           GestureDetector(
             onTap: (){
-              _addDataToTemporaryList();
+               if (widget.selectedItem != null) {
+      int index = temporaryData.indexWhere(
+        (item) => item['itemname'] == widget.selectedItem!['itemname'],
+      );
+      if (index != -1) {
+        setState(() {
+          temporaryData.removeAt(index); 
+          _calculateGrandTotal(); 
+          _itemnameController.clear();
+          _qtyController.clear();
+          _rateController.clear();
+          _subtotalController.clear();
+          _DiscountController.clear();
+          _Discpercentroller.clear();
+          _taxController.clear();
+          _taxvalueController.clear();
+          _totalamtController.clear();
+        });
+      }
+    } else {
+      _addDataToTemporaryList(); 
+    }
+              
             },
             child: Container(
               width: screenWidth * 0.45,height: screenHeight*0.07,
@@ -1138,19 +1305,27 @@ SizedBox(height: screenHeight*0.04,),
                 color: Appcolors().Scfold
                 
               ),
-              child: Center(child: Text("Save & New",style: getFonts(15, Colors.black),)),
+              child: Center(child: Text(widget.selectedItem != null ? "Delete" : "Save & New",style: getFonts(15, Colors.black),)),
             ),
           ),
           GestureDetector(
             onTap: (){
-               if (isCashSave) {
-              _saveDataCash();
-            } else {
-              _saveData(); 
-            }
-            setState(() {
-              isCashSave = !isCashSave; 
-            });
+                  if (widget.selectedItem != null) {
+      _editDataInTemporaryList();
+     
+    } else {
+      _addDataToTemporaryList();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SalesOrder(
+            cusname: widget.customername,
+            grandtotal: _grandTotal,
+            tempdata: temporaryData,
+          ),
+        ),
+      );
+    }
             },
             child: Container(
               width: screenWidth * 0.45,height: screenHeight*0.07,
@@ -1158,7 +1333,8 @@ SizedBox(height: screenHeight*0.04,),
                 borderRadius: BorderRadius.only(topRight: Radius.circular(5),bottomRight: Radius.circular(5)),
                 color: Appcolors().maincolor
               ),
-              child: Center(child: Text("Save ",style: getFonts(15, Colors.white),)),
+              child: Center(child: Text(
+                 widget.selectedItem != null ? "Edit" : "Save",style: getFonts(15, Colors.white),)),
             ),
           )
         ],),
@@ -1221,7 +1397,7 @@ TableRow _buildTableRow(String label, String? value) {
             _rateController.text = value.toString();
             _isDropdownVisible = false; 
           });
-          Navigator.pop(context); // Close the dialog after selecting a value
+          Navigator.pop(context); 
         },
         child: Padding(
           padding: const EdgeInsets.all(8),
