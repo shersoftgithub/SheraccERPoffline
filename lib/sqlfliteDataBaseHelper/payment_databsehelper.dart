@@ -234,6 +234,19 @@ Future<List<Map<String, dynamic>>> fetch_RV_InformationsDataFromMSSQL() async {
     rethrow;
   }
 }
+Future<List<Map<String, dynamic>>> fetchNewPVParticulars(int lastMssqlAuto) async {
+  final db = await database;
+  
+  // Fetch only newly added rows where auto > last MSSQL auto
+  final List<Map<String, dynamic>> result = await db.query(
+    'PV_Particulars',
+    where: 'auto > ?',
+    whereArgs: [lastMssqlAuto],
+    orderBy: 'auto ASC',
+  );
+
+  return result;
+}
 
     
 }

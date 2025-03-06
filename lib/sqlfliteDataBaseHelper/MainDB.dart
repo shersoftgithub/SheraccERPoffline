@@ -383,9 +383,9 @@ Future<double> getDebitAmountForLedger(String ledgerName) async {
 
 
 Future<double> getOpeningBalance(String ledgerName) async {
-  final db = await database; // Ensure you have a database instance
+  final db = await database; 
   final List<Map<String, dynamic>> result = await db.query(
-    'LedgerNames', // Update this with your actual table name
+    'LedgerNames', 
     columns: ['OpeningBalance'],
     where: 'LedName = ?',
     whereArgs: [ledgerName],

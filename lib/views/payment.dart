@@ -1,13 +1,11 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sheraaccerpoff/models/paymant_model.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
-import 'package:sheraaccerpoff/views/more_home/settings.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
 
 
@@ -37,6 +35,7 @@ class _PaymentFormState extends State<PaymentForm> {
     _fetchSettings();
   // _fetchLedgerBalances();
    _fetchLedger();
+   
        _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
    _DiscountController.addListener(_calculateTotal);
     _amountController.addListener(_calculateTotal);

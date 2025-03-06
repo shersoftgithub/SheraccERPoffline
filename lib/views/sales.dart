@@ -18,6 +18,8 @@ import 'package:sheraaccerpoff/views/Home.dart';
 import 'package:sheraaccerpoff/views/addPaymant.dart';
 import 'package:sheraaccerpoff/views/addpayment2.dart';
 import 'package:sheraaccerpoff/views/newLedger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class SalesOrder extends StatefulWidget {
   final SalesCredit? salesCredit;
@@ -99,10 +101,13 @@ String _selectedCustomer = "";
     _fetchfyData();
    _fetchCompanyData2();
    _fetchSType();
+   _restoreSavedData();
+   openingBalance;
    _InvoicenoController.text = ''; 
     _dateController.text = '';      
     _salerateController.text = '';  
    _cashRecieveController.text='';
+   _OBcontroller.text='';
     _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
   }
    @override
@@ -160,25 +165,34 @@ Future<void> _fetchLedger() async {
     names=cname;
   });
 }
+
+Future<void> _restoreSavedData() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  setState(() {
+    _phonenoController.text = prefs.getString('savedPhone') ?? '';
+    _adressController.text = prefs.getString('savedAddress') ?? '';
+    openingBalance = prefs.getDouble('savedOpeningBalance') ?? 0.0;
+  });
+}
 double openingBalance = 0.0;
+
+
 Future<void> _fetchLedgerDetails(String ledgerName) async {
   if (ledgerName.isNotEmpty) {
     Map<String, dynamic>? ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(ledgerName);
 
     if (ledgerDetails != null) {
       setState(() {
-       // _InvoicenoController.text = ledgerDetails['LedId'] ?? '';
         _phonenoController.text = ledgerDetails['Mobile'] ?? '';
-        _adressController.text = ledgerDetails['add1']?? '';
-          openingBalance = double.tryParse(ledgerDetails['OpeningBalance'].toString()) ?? 0.0;
+        _adressController.text = ledgerDetails['add1'] ?? '';
+        openingBalance = double.tryParse(ledgerDetails['OpeningBalance'].toString()) ?? 0.0;
       });
-    } else {
-      setState(() {
-       // _InvoicenoController.clear();
-        _phonenoController.clear();
-        _adressController.clear();
-         openingBalance = 0.0;
-      });
+
+      // ✅ Save to SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('savedPhone', ledgerDetails['Mobile'] ?? '');
+      await prefs.setString('savedAddress', ledgerDetails['add1'] ?? '');
+      await prefs.setDouble('savedOpeningBalance', openingBalance);
     }
   }
 }
@@ -738,7 +752,7 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       'Location': 1, 
       'Narration': 0,
       'Profit': profit.toString(),
-      'CashReceived': 0.00,
+      'CashReceived': _cashRecieveController.text,
       'BalanceAmount': finalAmt,
       'Ecommision': 0.00,
       'labourCharge': 0.00,
@@ -867,9 +881,9 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       newAuto++; // Increment to avoid same Auto number
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully')),
-    );
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Saved successfully')),
+    // );
 
     setState(() {
       _InvoicenoController.clear();
@@ -1160,7 +1174,7 @@ final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
       'UniqueCode': Ucode,
       'ItemID': itemCode,
       'serialno': 0,
-      'Rate': rate,  
+      'Rate': rate.toString(),  
       'RealRate': realRate,  
       'Qty': qty.toString(),  
       'freeQty': '0.0',
@@ -1197,7 +1211,7 @@ final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
       'Prate': prate,  
       'Rprate': rprate, 
       'location': '0',
-      'Stype': selectedID,
+      'Stype': selectedID.toString(),
 
       'LC': '0.0',
       'ScanBarcode': '0',
@@ -1214,10 +1228,7 @@ final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
       newentryno++;
     }
 
-    // Once all rows are saved
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('All data saved successfully')),
-    );
+  
     setState(() {}); // Update the UI if needed
 
   } catch (e) {
@@ -2088,6 +2099,7 @@ _InvoicenoController.text=updatedInno.toString();
                 _saveDataSaleperti2222222();
                 _saveDataSaleinfor22multi();
                 _saveData2();
+              //  widget.tempdata!.clear();
                }else{
               _saveDataSaleperti();
               _saveDataSaleinfor22();
@@ -2280,6 +2292,7 @@ double balance = additem_total - cashReceived;
           await _fetchItems(customer: value);
            setState(() {
               _CustomerController.text = value;  
+            
               isCustomerSelected = true;
               
             });
@@ -2336,7 +2349,8 @@ double balance = additem_total - cashReceived;
                 padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.024),
                 child: Column(
                   children: [
-                     _field("Adress", _OBcontroller, screenWidth, screenHeight),
+                     _field("Adress", _adressController, screenWidth, screenHeight),
+                     
                      _field("Phone Number", _phonenoController, screenWidth, screenHeight),
                 
                   ],
@@ -2527,7 +2541,7 @@ if(_CustomerController.text.isEmpty){
               )
             : Center(
                 child: Text(
-                  "",
+                  "NO Cart Items",
                   style: formFonts(14, Colors.grey),
                 ),
               ),
@@ -2537,38 +2551,38 @@ if(_CustomerController.text.isEmpty){
 ),
 
 
-             SizedBox(height: screenHeight*0.01,),
-             Container(
-            height: screenHeight * 0.05,
-            width: screenWidth * 0.9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white,
-              border: Border.all(color: Appcolors().searchTextcolor),
-            ),
-            child: Row(
-                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                       children: [
-             Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 9),
-               child: Text("Others Amounts", style: DrewerFonts()),
-             ),
-              IconButton(
-                icon: Icon(
-                  _isExpandedAmt ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  color: Colors.black,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isExpandedAmt = !_isExpandedAmt; 
-                  });
-                },
-              ),
-                       ],
-                     ),
-          ),
+          //    SizedBox(height: screenHeight*0.01,),
+          //    Container(
+          //   height: screenHeight * 0.05,
+          //   width: screenWidth * 0.9,
+          //   decoration: BoxDecoration(
+          //     borderRadius: BorderRadius.circular(5),
+          //     color: Colors.white,
+          //     border: Border.all(color: Appcolors().searchTextcolor),
+          //   ),
+          //   child: Row(
+          //              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //              children: [
+          //    Padding(
+          //      padding: const EdgeInsets.symmetric(horizontal: 9),
+          //      child: Text("Others Amounts", style: DrewerFonts()),
+          //    ),
+          //     IconButton(
+          //       icon: Icon(
+          //         _isExpandedAmt ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+          //         color: Colors.black,
+          //       ),
+          //       onPressed: () {
+          //         setState(() {
+          //           _isExpandedAmt = !_isExpandedAmt; 
+          //         });
+          //       },
+          //     ),
+          //              ],
+          //            ),
+          // ),
           SizedBox(height: screenHeight*0.01,),
-          if (_isExpandedAmt) 
+          
           Container(
             width: screenWidth * 0.9,
             padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01,vertical:screenHeight*0.01 ),
@@ -2659,7 +2673,6 @@ if(_CustomerController.text.isEmpty){
     );
   }
 
-  // Cash Screen Content
   Widget _CashScreenContent(double screenHeight,double screenWidth) {
       List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
    double additem_total=widget.salesDebit?.totalAmt??0.0;

@@ -298,24 +298,48 @@ SET IDENTITY_INSERT RV_Particulars ON;
 
 Future<void> syncPVParticularsToMSSQL() async {
   try {
-    final localData = await PV_DatabaseHelper.instance.fetchPVParticulars();
-    final lastRowQuery = '''
-      SELECT TOP 1 auto, EntryNo FROM PV_Particulars ORDER BY auto DESC
-    ''';
+    // 1️⃣ Fetch the last 'auto' value from MSSQL
+    final lastRowQuery = "SELECT TOP 1 auto FROM PV_Particulars ORDER BY auto DESC";
     final lastRowResult = await MsSQLConnectionPlatform.instance.getData(lastRowQuery);
 
-    int lastAuto = 0;
-    int lastEntryNo = 0;
+    int lastMssqlAuto = 0;
 
     if (lastRowResult is String) {
       final decodedLastRow = jsonDecode(lastRowResult);
       if (decodedLastRow is List && decodedLastRow.isNotEmpty) {
-        lastAuto = (decodedLastRow.first['auto'] ?? 0) as int;
-        lastEntryNo = ((decodedLastRow.first['EntryNo'] ?? 0) as num).toInt(); // ✅ Fixed conversion
+        lastMssqlAuto = (decodedLastRow.first['auto'] ?? 0) as int;
       }
     }
 
+    // 2️⃣ Fetch only new rows from SQLite (auto > lastMssqlAuto)
+    final localData = await PV_DatabaseHelper.instance.fetchNewPVParticulars(lastMssqlAuto);
+    if (localData.isEmpty) {
+      print("✅ No new records to sync.");
+      return;
+    }
+
     for (var row in localData) {
+      final auto = int.tryParse(row['auto'].toString()) ?? 0;
+
+      // 3️⃣ Check if the auto value already exists in MSSQL
+      final checkQuery = "SELECT COUNT(*) AS count FROM PV_Particulars WHERE auto = $auto";
+      final checkResult = await MsSQLConnectionPlatform.instance.getData(checkQuery);
+
+      int existingCount = 0;
+      if (checkResult is String) {
+        final decodedCheck = jsonDecode(checkResult);
+        if (decodedCheck is List && decodedCheck.isNotEmpty) {
+          existingCount = decodedCheck.first['count'] ?? 0;
+        }
+      }
+
+      if (existingCount > 0) {
+        print("⚠️ Skipping duplicate record: Auto $auto already exists in MSSQL.");
+        continue;
+      }
+
+      // 4️⃣ Insert new record
+      final entryNo = int.tryParse(row['EntryNo'].toString()) ?? 0;
       final name = int.tryParse(row['Name'].toString()) ?? 0;
       final amount = double.tryParse(row['Amount'].toString()) ?? 0.0;
       final discount = double.tryParse(row['Discount'].toString()) ?? 0.0;
@@ -324,59 +348,36 @@ Future<void> syncPVParticularsToMSSQL() async {
       final ddate = row['ddate'].toString();
       final fyid = row['FyID'].toString();
       final fmid = row['FrmID'].toString();
-      final checkQuery = "SELECT COUNT(*) AS count FROM PV_Particulars WHERE Name = $name AND ddate = '$ddate'";
-      final checkResult = await MsSQLConnectionPlatform.instance.getData(checkQuery);
 
-      if (checkResult is String) {
-        final decodedCheck = jsonDecode(checkResult);
-        if (decodedCheck is List && decodedCheck.isNotEmpty) {
-          final count = decodedCheck.first['count'] ?? 0;
-
-          if (count > 0) {
-            final updateQuery = '''
-              UPDATE PV_Particulars 
-              SET 
-                Amount = $amount, 
-                Discount = $discount, 
-                Total = $total, 
-                Narration = '$narration',
-                FyID = '$fyid',
-                FrmID = '$fmid'
-              WHERE Name = $name AND ddate = '$ddate'
-            ''';
-            await MsSQLConnectionPlatform.instance.writeData(updateQuery);
-            print("Updated record for Name: $name and ddate: $ddate");
-          } else {
-            lastAuto += 1;
-            lastEntryNo += 1;
-
-            final insertQuery = '''
-              SET IDENTITY_INSERT PV_Particulars ON;
-              INSERT INTO PV_Particulars (auto, EntryNo, Name, Amount, Discount, Total, Narration, ddate, FyID, FrmID)
-              VALUES (
-                $lastAuto,
-                $lastEntryNo,
-                $name, 
-                $amount, 
-                $discount, 
-                $total, 
-                '$narration', 
-                '$ddate',
-                '$fyid',
-                '$fmid'
-              );
-              SET IDENTITY_INSERT PV_Particulars OFF;
-            ''';
-            await MsSQLConnectionPlatform.instance.writeData(insertQuery);
-            print("Inserted new record with auto: $lastAuto, EntryNo: $lastEntryNo");
-          }
-        }
-      }
+      final insertQuery = '''
+  SET IDENTITY_INSERT PV_Particulars ON;
+  INSERT INTO PV_Particulars (auto, EntryNo, Name, Amount, Discount, Total, Narration, ddate, FyID, FrmID)
+  VALUES (
+    $auto,
+    $entryNo,
+    $name, 
+    $amount, 
+    $discount, 
+    $total, 
+    '$narration', 
+    '$ddate',
+    '$fyid',
+    '$fmid'
+  );
+  SET IDENTITY_INSERT PV_Particulars OFF;
+''';
+      await MsSQLConnectionPlatform.instance.writeData(insertQuery);
+      print("✅ Inserted new record: Auto $auto, Name $name, Date $ddate");
     }
+
+    print("✅ Sync completed successfully!");
+
   } catch (e) {
-    print("Error syncing PV_Particulars to MSSQL: $e");
+    print("❌ Error syncing PV_Particulars to MSSQL: $e");
   }
 }
+
+
 
 
 Future<void> syncPVInformationToMSSQL() async {

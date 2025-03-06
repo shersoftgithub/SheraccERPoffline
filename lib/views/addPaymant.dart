@@ -1,5 +1,4 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sheraaccerpoff/models/salescredit_modal.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
@@ -7,8 +6,6 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
-import 'package:sheraaccerpoff/views/more_home/settings.dart';
-import 'package:sheraaccerpoff/views/more_home/update.dart';
 import 'package:sheraaccerpoff/views/sales.dart';
 
 class Addpaymant extends StatefulWidget {
@@ -220,17 +217,17 @@ void _saveDataCash() {
      _fetchSettings();
      _fetchstock();
     _DiscountController.addListener(_onDiscountChanged);
-    _Discpercentroller.addListener(_onPercentChanged);
+    
     _taxController.text;
     _rateController.text = _selectedRate ?? '';
 
   _qtyController.addListener(_onFieldsChanged);
   _rateController.addListener(_onFieldsChanged);
-  _DiscountController.addListener(_onFieldsChanged);
-  _Discpercentroller.addListener(_onFieldsChanged);
+
   _taxController.addListener(_onFieldsChanged);
 _subtotalController.addListener(_onFieldsChanged);
 _totalamtController.addListener(_onFieldsChanged);
+_taxvalueController.addListener(_onFieldsChanged);
 _taxvalueController.addListener(_onFieldsChanged);
        if (widget.selectedItem != null) {
     if (widget.selectedItem!.isNotEmpty) {
@@ -238,15 +235,18 @@ _taxvalueController.addListener(_onFieldsChanged);
       _unitController.text = widget.selectedItem!['unit'] ?? '';
       _qtyController.text = widget.selectedItem!['qty'].toString();
       _rateController.text = widget.selectedItem!['rate'].toString();
-      _DiscountController.text = widget.selectedItem!['discount'].toString();
-      _Discpercentroller.text = widget.selectedItem!['discountpercentage'].toString();
+     if (widget.selectedItem != null && widget.selectedItem!.isNotEmpty) {
+  _DiscountController.text = widget.selectedItem!['discount'].toString();
+  _Discpercentroller.text = widget.selectedItem!['discountpercentage'].toString();
+}
       _taxController.text = widget.selectedItem!['tax'].toString();
       _subtotalController.text = widget.selectedItem!['subtotal'].toString();
       _totalamtController.text = widget.selectedItem!['total'].toString();
       _taxvalueController.text = widget.selectedItem!['taxvalue'].toString();
-
+        selectedValue = widget.selectedItem!['taxtype'].toString();
     }
   }
+  _Discpercentroller.addListener(_onPercentChanged);
 temporaryData = widget.tempdataadd ?? [];
   if (temporaryData.isNotEmpty) {
     _calculateGrandTotal();
@@ -256,27 +256,83 @@ temporaryData = widget.tempdataadd ?? [];
   
 
 void _onFieldsChanged() {
+  if (_isUpdating) return;
+
   setState(() {
-    double qty = double.tryParse(_qtyController.text) ?? 0.0;
-    double rate = double.tryParse(_rateController.text) ?? 0.0;
-    double discount = double.tryParse(_DiscountController.text) ?? 0.0;
-    double discountPercent = double.tryParse(_Discpercentroller.text) ?? 0.0;
-    double tax = double.tryParse(_taxController.text) ?? 0.0;
+    _isUpdating = true;
+    double qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
+    double rate = double.tryParse(_rateController.text.trim()) ?? 0.0;
+    double discount = double.tryParse(_DiscountController.text.trim()) ?? 0.0;
+    double discountPercent = double.tryParse(_Discpercentroller.text.trim()) ?? 0.0;
+    double tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+
+    if (qty == 0 || rate == 0) {
+      _clearControllers();
+      _isUpdating = false;
+      return;
+    }
+
     double subtotal = qty * rate;
-        double discountAmount = (discountPercent > 0) ? (subtotal * discountPercent / 100) : discount;
-        double taxableAmount = subtotal - discountAmount;
-        final totalAmt = (rate * qty) ;
-var taxvalue= (totalAmt*tax)/100;
-    double taxValue = (selectedValue == 'With Tax') ? (taxableAmount * tax / 100) : 0.0;
+    double discountAmount = 0.0;
 
+    // Handle discount percentage to discount amount conversion only when percentage exists
+    if (_Discpercentroller.text.isNotEmpty && discountPercent > 0 && discountPercent <= 100) {
+      discountAmount = (subtotal * discountPercent) / 100;
+      _updateTextController(_DiscountController, discountAmount, allowManualEdit: true);
+    } else if (_DiscountController.text.isNotEmpty) {
+      discountAmount = discount;
+      double calculatedPercent = (subtotal > 0) ? (discount / subtotal) * 100 : 0;
+      if (calculatedPercent.isFinite && calculatedPercent >= 0 && calculatedPercent <= 100) {
+        _updateTextController(_Discpercentroller, calculatedPercent, allowManualEdit: true);
+      }
+    }
+
+    // Calculate taxable amount
+    double taxableAmount = (subtotal - discountAmount).clamp(0, double.infinity);
+
+    // Skip tax value calculation if not needed (editing time)
+    double taxValue = 0.0;
+    if (selectedValue == 'With Tax') {
+      if (_taxController.text.isNotEmpty) {
+        taxValue = (taxableAmount * tax / 100);
+      }
+    }
+
+    // Calculate total amount
     double totalAmount = taxableAmount + taxValue;
+    totalAmount = totalAmount.isFinite ? totalAmount : 0.0;
 
-    _subtotalController.text = subtotal.toStringAsFixed(2);
-    _taxvalueController.text = taxvalue.toStringAsFixed(2);
-    _totalamtController.text = totalAmount.toStringAsFixed(2);
-    _calculateGrandTotal(); 
+    // Update controllers safely
+    _updateTextController(_subtotalController, subtotal);
+    _updateTextController(_taxvalueController, taxValue);
+    _updateTextController(_totalamtController, totalAmount);
+
+    _isUpdating = false;
   });
 }
+
+void _clearControllers() {
+  _subtotalController.clear();
+  _taxvalueController.clear();
+  _totalamtController.clear();
+}
+
+void _updateTextController(TextEditingController controller, double value, {bool allowManualEdit = false}) {
+  // Make sure the value is finite and not NaN or Infinity
+  String newText = value.isFinite ? value.toStringAsFixed(2) : "0.00";
+
+  // Prevent updates if manual edit is allowed and field already has a non-zero value
+  if (allowManualEdit && controller.text.isNotEmpty && controller.text != "0") return;
+
+  // Update the controller if the text has changed
+  if (controller.text != newText) {
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
+    );
+  }
+}
+
 
 
      List<String> items = [];
@@ -351,22 +407,32 @@ Future<void> _onItemnameChanged2(String value) async {
  bool _isDropdownVisible = false;
  bool _isDropdownVisible2 = false;
 bool _isUpdating = false;
- void _onPercentChanged() {
-    if (_isUpdating) return;
-final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
-    final qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
-    final totalAmt = rate * qty;
+void _onPercentChanged() {
+  if (_isUpdating) return;
 
-    double percValue = double.tryParse(_Discpercentroller.text.trim()) ?? 0.0;
+  final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
+  final qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
+  final totalAmt = rate * qty;
 
+  double percValue = double.tryParse(_Discpercentroller.text.trim()) ?? 0.0;
+
+  if (_Discpercentroller.text.isEmpty) {
+    // If the PercentageController is cleared, don't perform calculations or update the discount
+    _DiscountController.text = ''; // Clear discount controller
+  } else if (totalAmt > 0) {
     setState(() {
       _isUpdating = true;
+
+      // Calculate discount amount based on percentage
       final discountAmt = (totalAmt * percValue) / 100;
       _DiscountController.text = discountAmt.toStringAsFixed(2);
+
       _isUpdating = false;
     });
+  } else {
+    _DiscountController.text = '0.00'; // Default discount to 0 if no total amount
   }
-
+}
 Future<void> _validateQuantity( ) async {
   List<Map<String, dynamic>> items = await StockDatabaseHelper.instance.getItemDetails();
   String enteredItem = _itemnameController.text.trim();
@@ -391,21 +457,37 @@ Future<void> _validateQuantity( ) async {
   );
 }
   
-   void _onDiscountChanged() {
-    if (_isUpdating) return;
-final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
-    final qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
-    final totalAmt = rate * qty;
+ 
+void _onDiscountChanged() {
+  if (_isUpdating) return;
+  final rate = double.tryParse(_selectedRate ?? '0') ?? 0.0;
+  final qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
+  final totalAmt = rate * qty;
 
-    double discountAmt = double.tryParse(_DiscountController.text.trim()) ?? 0.0;
+  double discountAmt = double.tryParse(_DiscountController.text.trim()) ?? 0.0;
 
+  if (_DiscountController.text.isEmpty) {
+    _Discpercentroller.text = ''; 
+  } else if (totalAmt > 0) {
     setState(() {
       _isUpdating = true;
+
       final percValue = (discountAmt / totalAmt) * 100;
-      _Discpercentroller.text = percValue.toStringAsFixed(2);
+
+      if (percValue.isFinite && percValue >= 0 && percValue <= 100) {
+        _Discpercentroller.text = percValue.toStringAsFixed(2);
+      } else {
+        _Discpercentroller.text = ''; 
+      }
+
       _isUpdating = false;
     });
+  } else {
+    _Discpercentroller.text = ''; // Set default if invalid
   }
+}
+
+
   String? selectedValue;
 
   List<String> dropdownItems = ['With Tax', 'Without Tax'];
@@ -475,7 +557,6 @@ List<Map<String, dynamic>> temporaryData = [];
 void _addDataToTemporaryList() {
   if (_itemnameController.text.isNotEmpty && _qtyController.text.isNotEmpty && _rateController.text.isNotEmpty) {
     setState(() {
-      String taxStatus = selectedValue == 'With Tax' ? 'T' : 'NT';
       
       Map<String, dynamic> newItem = {
         'itemname': _itemnameController.text,
@@ -488,8 +569,9 @@ void _addDataToTemporaryList() {
         'freeItem': _FreeItemcentroller.text,
         'subtotal': _subtotalController.text,
         'total': _totalamtController.text,
-        'taxtype': taxStatus,
+        'taxtype': selectedValue.toString(),
         'taxvalue': _taxvalueController.text,
+
       };
 
       if (selectedItemIndex != null) {
@@ -550,10 +632,9 @@ void _editDataInTemporaryList() {
         'subtotal': double.tryParse(_subtotalController.text) ?? 0.0,
         'total': double.tryParse(_totalamtController.text) ?? 0.0,
         'taxvalue': double.tryParse(_taxvalueController.text) ?? 0.0,
+        'taxtype': selectedValue.toString(),
       };
     }
-
-    // Ensure Grand Total is updated BEFORE navigating
     setState(() {
       _calculateGrandTotal();
     });
@@ -1217,54 +1298,7 @@ _calculateSubtotal();
       ),
 SizedBox(height: screenHeight*0.04,),
       Text("${widget.customername}",style: getFonts(14, Appcolors().maincolor),),
-     SizedBox(height: screenHeight*0.03,), 
-       ListView.builder(
-              shrinkWrap: true, // To avoid full screen usage
-              itemCount: temporaryData.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal:15),
-                  child: Card(
-                    color: Color.fromRGBO(225, 240, 255, 1),
-                    child: ListTile(
-                      trailing: IconButton(onPressed: (){
-                         setState(() {
-                                      temporaryData.removeAt(index); 
-                                    });
-                                    _calculateGrandTotal();
-                      }, icon: Icon(Icons.delete,color: Colors.red.shade300,size: 20,)),
-                      title: Text("${temporaryData[index]['itemname']}",style: getFonts(12, Colors.black),),
-                      //title: Text("itemname: ${temporaryData[index]['itemname']}  ||   Qty : ${temporaryData[index]['qty']}  ||  Rate: ${temporaryData[index]['rate']} }",style: getFonts(12, Colors.black45),),
-                      subtitle: Column(
-                        children: [
-                          Container(
-                            child: Row(
-                              children: [
-                                Text("Qty : ${temporaryData[index]['qty']}",style: getFonts(12, Colors.black45)),
-                              SizedBox(width: screenHeight*0.03,),
-                                Text("Rate : ${temporaryData[index]['rate']}",style: getFonts(12, Colors.black45)),
-                                SizedBox(width: screenHeight*0.03,),
-                             Text("Dicount : ${temporaryData[index]['discount']}",style: getFonts(12, Colors.black45)),
-
-                              ],
-                            ),
-                          ),
-                          Container(
-                            child: Row(
-                              children: [
-                                Text("Sub total : ${temporaryData[index]['subtotal']}",style: getFonts(12, Colors.black45)),
-                                 SizedBox(width: screenHeight*0.02,),
-                                Text("Total : ${temporaryData[index]['total']}",style: getFonts(12, Colors.black45))
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+     
 
           ],
         ),
@@ -1282,6 +1316,7 @@ SizedBox(height: screenHeight*0.04,),
         setState(() {
           temporaryData.removeAt(index); 
           _calculateGrandTotal(); 
+           _editDataInTemporaryList();
           _itemnameController.clear();
           _qtyController.clear();
           _rateController.clear();
@@ -1314,6 +1349,18 @@ SizedBox(height: screenHeight*0.04,),
       _editDataInTemporaryList();
      
     } else {
+      if(_itemnameController.text.isEmpty && _qtyController.text.isEmpty && _rateController.text.isEmpty){
+ ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please Fill the blanks')),
+    );
+    return;
+}
+if(selectedValue == null || selectedValue!.trim().isEmpty){
+  ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please select Tax')),
+    );
+    return;
+}
       _addDataToTemporaryList();
       Navigator.push(
         context,

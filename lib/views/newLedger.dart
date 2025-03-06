@@ -631,7 +631,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
       
           Center(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: screenHeight*0.024),
+              padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
         height: screenHeight * 0.04,
         width: screenWidth * 0.4,
         decoration: BoxDecoration(
