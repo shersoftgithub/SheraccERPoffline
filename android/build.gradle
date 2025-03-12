@@ -17,7 +17,7 @@ tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
 buildscript {
-    ext.kotlin_version = '1.5.20'  // Update this version
+    ext.kotlin_version = "1.8.22"  // Update this version
     repositories {
         google()
         mavenCentral()

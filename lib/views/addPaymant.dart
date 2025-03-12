@@ -208,10 +208,15 @@ void _saveDataCash() {
     ),
   );
 }
-
+FocusNode _focusNode = FocusNode();
 @override
   void initState() {
     super.initState();
+      _focusNode.addListener(() {
+    if (_focusNode.hasFocus) {
+      print('Focused on text field');
+    }
+  });
     _fetchItemNames(); 
      _fetchProductNames();
      _fetchSettings();
@@ -315,16 +320,13 @@ void _clearControllers() {
   _subtotalController.clear();
   _taxvalueController.clear();
   _totalamtController.clear();
+  _DiscountController.clear();
+  _Discpercentroller.clear();
 }
 
 void _updateTextController(TextEditingController controller, double value, {bool allowManualEdit = false}) {
-  // Make sure the value is finite and not NaN or Infinity
   String newText = value.isFinite ? value.toStringAsFixed(2) : "0.00";
-
-  // Prevent updates if manual edit is allowed and field already has a non-zero value
   if (allowManualEdit && controller.text.isNotEmpty && controller.text != "0") return;
-
-  // Update the controller if the text has changed
   if (controller.text != newText) {
     controller.value = TextEditingValue(
       text: newText,
@@ -483,7 +485,7 @@ void _onDiscountChanged() {
       _isUpdating = false;
     });
   } else {
-    _Discpercentroller.text = ''; // Set default if invalid
+    _Discpercentroller.text = ''; 
   }
 }
 
@@ -571,7 +573,7 @@ void _addDataToTemporaryList() {
         'total': _totalamtController.text,
         'taxtype': selectedValue.toString(),
         'taxvalue': _taxvalueController.text,
-
+        'cusname':widget.customername.toString()
       };
 
       if (selectedItemIndex != null) {
@@ -645,7 +647,7 @@ void _editDataInTemporaryList() {
         MaterialPageRoute(
           builder: (context) => SalesOrder(
             cusname: widget.customername,
-            grandtotal: _grandTotal, // Now updated before navigating
+            grandtotal: _grandTotal, 
             tempdata: temporaryData,
           ),
         ),
@@ -660,33 +662,32 @@ void _editDataInTemporaryList() {
 
   @override
   Widget build(BuildContext context) {
-     final screenWidth = MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
- final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
-  final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
-  var tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  final DiscPerc = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
-  final totalAmt = (rate * qty) ;
-      var taxvalue= (totalAmt*tax)/100;
-final netamt=(totalAmt - taxvalue);
-final PercenDisc = (totalAmt * DiscPerc)/100;
- if (selectedValue == 'Without Tax') {
-  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  taxvalue = 0; 
-} else if (selectedValue == 'With Tax') {
-  final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
-  taxvalue = (totalAmt * tax) / 100; 
-}
-  final finalAmt=((totalAmt - PercenDisc)+taxvalue);
-setState(() {
-  _subtotalController.text = totalAmt.toStringAsFixed(2);  
-  _taxvalueController.text = taxvalue.toStringAsFixed(2);  
-  _totalamtController.text = finalAmt.toStringAsFixed(2);  
-});
+    final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
+    final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
+    var tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+    final DiscPerc = double.tryParse(_Discpercentroller.text.trim()) ?? 0;
+    final totalAmt = (rate * qty) ;
+    var taxvalue= (totalAmt*tax)/100;
+    final netamt=(totalAmt - taxvalue);
+    final PercenDisc = (totalAmt * DiscPerc)/100;
+    if (selectedValue == 'Without Tax') {
+    final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+    taxvalue = 0; 
+    } else if (selectedValue == 'With Tax') {
+    final tax = double.tryParse(_taxController.text.trim()) ?? 0.0;
+    taxvalue = (totalAmt * tax) / 100; 
+    }
+    final finalAmt=((totalAmt - PercenDisc)+taxvalue);
+    setState(() {
+   _subtotalController.text = totalAmt.toStringAsFixed(2);  
+   _taxvalueController.text = taxvalue.toStringAsFixed(2);  
+   _totalamtController.text = finalAmt.toStringAsFixed(2);  
+   });
     
 
- 
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -1128,10 +1129,12 @@ _calculateSubtotal();
                     border: Border.all(color: Appcolors().searchTextcolor),
                   ),
                                 child: TextFormField(
+                                  focusNode: _focusNode,
                     style: getFontsinput(14, Colors.black),
                            controller: _Discpercentroller,
                             keyboardType: TextInputType.number,
                             obscureText: false,
+                            
                            // onChanged: _onRateChanged,
                             decoration: InputDecoration(
                               border: InputBorder.none,

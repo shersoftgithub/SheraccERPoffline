@@ -52,6 +52,10 @@ dependencies:
   easy_pdf_viewer: ^1.0.8
   pdf: ^3.10.4
   open_filex: ^4.6.0
+  number_to_words: ^1.0.0
+  number_to_words_english: ^2.1.1
+  share_plus: ^10.1.4
+  
   
    
   
@@ -66,8 +70,16 @@ dependencies:
   
  
 dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
   flutter_test:
     sdk: flutter
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/launch_1.png"  # Ensure the image path is correct
+  adaptive_icon_background: "#ffffff"  # Optional (for Android)
+  adaptive_icon_foreground: "assets/images/launch_1.png"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

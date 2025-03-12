@@ -206,4 +206,5 @@ Future<List<Map<String, dynamic>>> getSalesDataperticular() async {
       rethrow;
     }
 }
+
 }

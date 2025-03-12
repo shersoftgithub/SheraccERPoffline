@@ -403,7 +403,7 @@ Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
         Sales_Particulars.ItemID  
       FROM Sales_Information
       LEFT JOIN Sales_Particulars
-        ON Sales_Information.RealEntryNo = CAST(Sales_Particulars.EntryNo AS INTEGER)  
+        ON Sales_Information.EntryNo = CAST(Sales_Particulars.EntryNo AS INTEGER)  
       $whereClause;
     ''';
 
@@ -416,7 +416,17 @@ Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
   }
 }
 
+Future<List<Map<String, dynamic>>> fetchNewSaleParticulars(int lastMssqlAuto) async {
+  final db = await database;
+    final List<Map<String, dynamic>> result = await db.query(
+    'Sales_Particulars',
+    where: 'Auto > ?',
+    whereArgs: [lastMssqlAuto],
+    orderBy: 'Auto ASC',
+  );
 
+  return result;
+}
 
 
 }

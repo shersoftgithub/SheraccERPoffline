@@ -1,8 +1,9 @@
+import 'dart:convert';
+
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
+import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -18,13 +19,14 @@ class LedgerReport extends StatefulWidget {
 
 class _LedgerReportState extends State<LedgerReport> {
   final TextEditingController ledgernamesController=TextEditingController();
-DateTime? _fromDate;
-  DateTime? _toDate;
-  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
+  DateTime? _fromDate = DateTime.now();
+  DateTime? _toDate = DateTime.now();
+
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   Future<void> _selectDate(BuildContext context, bool isFromDate) async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: isFromDate ? _fromDate ?? DateTime.now() : _toDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
@@ -37,7 +39,6 @@ DateTime? _fromDate;
           _toDate = selectedDate;
         }
       });
-     
     }
   }
    String selectedValue = "Report Type";
@@ -68,6 +69,31 @@ Future<void> _fetchLedger() async {
   });
 }
 
+Future<void> fetchAndStoreLedgerData(
+    DateTime? fromDate, DateTime? toDate, String ledgerName) async {
+  try {
+    
+    final query = '''
+      EXEC dbo.Sp_AccountReport 
+      @statementType='Simple_LedgerReport',
+      @fromdate=${_fromDate != null ? "'$_fromDate'" : 'NULL'},
+      @todate=${_toDate != null ? "'$_toDate'" : 'NULL'},
+      @ledcode='${ledgerName}'
+    ''';
+    print(query);
+    final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+    print(rawData);
+    if (rawData != null) {
+      print(rawData);
+    } else {
+      print("No data received from SQL Server.");
+    }
+  } catch (e) {
+    print("Error fetching or storing ledger data: $e");
+  }
+}
+
+
 
 void _showLedgerWithFilters() {
   Navigator.of(context).push(
@@ -81,6 +107,9 @@ void _showLedgerWithFilters() {
     ),
   );
 }
+
+
+
   @override
   Widget build(BuildContext context) {
       final screenWidth = MediaQuery.of(context).size.width;
@@ -173,35 +202,33 @@ void _showLedgerWithFilters() {
                    child: Row(
                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                      children: [
-                       GestureDetector(
-                         onTap: () => _selectDate(context, true),
-                         child: Row(
-                           children: [
-                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                             SizedBox(width: 5),
-                             Text(
-                               _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
-                               style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
-                             ),
-                           ],
-                         ),
-                       ),
+                        GestureDetector(
+                onTap: () => _selectDate(context, true),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor ), // Adjust color as needed
+                    SizedBox(width: 5),
+                    Text(
+                      _fromDate != null ? _dateFormat.format(_fromDate!) : "From Date",
+                      style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
                        Text("-", style: TextStyle(color: Appcolors().maincolor)),
-                       GestureDetector(
-                         onTap: () => _selectDate(context, false),
-                         child: Row(
-                           children: [
-                            
-                             Text(
-                               _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
-                               style: getFonts(13, _toDate != null ? Appcolors().maincolor : Colors.grey),
-                             ),
-                              
-                             SizedBox(width: 5),
-                             Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor),
-                           ],
-                         ),
-                       ),
+                      GestureDetector(
+                onTap: () => _selectDate(context, false),
+                child: Row(
+                  children: [
+                    Text(
+                      _toDate != null ? _dateFormat.format(_toDate!) : "To Date",
+                      style: getFonts(13, _fromDate != null ? Appcolors().maincolor : Colors.grey),
+                    ),
+                    SizedBox(width: 5),
+                    Icon(Icons.calendar_month_outlined, color: Appcolors().maincolor ), 
+                  ],
+                ),
+              ),
                      ],
                    ),
                  ),
@@ -229,7 +256,10 @@ void _showLedgerWithFilters() {
                          ),
                    ),
                   GestureDetector(
-          onTap: _showLedgerWithFilters,
+          onTap:() {
+          _showLedgerWithFilters();
+           // fetchAndStoreLedgerData(_fromDate, _toDate, ledgernamesController.text);
+            },
           child: Padding(
             padding: EdgeInsets.all(screenHeight * 0.03),
             child: Container(

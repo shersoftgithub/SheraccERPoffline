@@ -2,8 +2,12 @@ import 'dart:io';
 
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/ledgerbackupDB.dart';
@@ -26,6 +30,12 @@ class _ShowSalesReportState extends State<ShowLedger> {
   List<Map<String, dynamic>> ledgerData = [];
   double totalOpeningBalance = 0.0;  
 double OpeningBalance = 0.0;  
+double totalDebitAmount = 0.0;
+double totalCreditAmount = 0.0;
+double finalClosingBalance = 0.0;
+
+
+
   @override
   void initState() {
     super.initState();
@@ -36,46 +46,42 @@ double OpeningBalance = 0.0;
   }
 
 Future<void> _fetchFilteredData() async {
-  String? fromDateStr = widget.fromDate != null ? DateFormat('dd-MM-yyyy').format(widget.fromDate!) : null;
-  String? toDateStr = widget.toDate != null ? DateFormat('dd-MM-yyyy').format(widget.toDate!) : null;
+  String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
+  String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
 
-  List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.queryFilteredLedgerRows(
-    fromDate: widget.fromDate,
-    toDate: widget.toDate,
-    ledgerName: widget.ledgerName ?? '',
+  List<Map<String, dynamic>> data = await LedgerTransactionsDatabaseHelper.instance.fetchSimpleLedgerReport(
+    ledname: widget.ledgerName!,
+    fromdate: fromDateStr!,
+    todate: toDateStr!,
   );
-  List<Map<String, dynamic>> ledgerDataList = await Future.wait(data.map((ledger) async {
-    String? dateString = ledger['date'];
-    DateTime? ledgerDate;
 
-    if (dateString != null && dateString.isNotEmpty) {
-      try {
-        ledgerDate = DateFormat('dd-MM-yyyy').parse(dateString);
-      } catch (e) {
-        print("Error parsing date: $e");
-        ledgerDate = DateTime.now();
-      }
-    } else {
-      ledgerDate = DateTime.now();
+  double totalOpening = 0.0;
+  double closingBalance = 0.0;
+  double totalDebit = 0.0;
+  double totalCredit = 0.0;
+
+  List<Map<String, dynamic>> ledgerDataList = await Future.wait(data.map((ledger) async {
+    if (ledger['Particulars'] == 'Opening Balance') {
+      totalOpening = double.tryParse(ledger['Debit']?.toString() ?? '0') ?? 0.0;
     }
 
-    double debitAmount = await LedgerTransactionsDatabaseHelper.instance.getDebitAmountForLedger(ledger['LedName'] ?? '');
+    double debitAmount = double.tryParse(ledger['Debit']?.toString() ?? '0') ?? 0.0;
+    double creditAmount = double.tryParse(ledger['Credit']?.toString() ?? '0') ?? 0.0;
 
-    double openingBalance = double.tryParse(ledger['OpeningBalance']?.toString() ?? '0') ?? 0.0;
-    double totalOpeningBalance2 = openingBalance + debitAmount;
-    totalOpeningBalance=totalOpeningBalance2;
-    OpeningBalance=openingBalance;
+    totalDebit += debitAmount;
+    totalCredit += creditAmount;
 
-    return {
-      ...ledger,
-      'date': ledgerDate,
-      'OpeningBalance': openingBalance , 
-    };
+    return ledger;
   }).toList());
+
+  closingBalance = totalDebit - totalCredit;
 
   setState(() {
     ledgerData = ledgerDataList;
-   
+    totalOpeningBalance = totalOpening;
+    totalDebitAmount = totalDebit;
+    totalCreditAmount = totalCredit;
+    finalClosingBalance = closingBalance;
   });
 }
 
@@ -106,42 +112,118 @@ Future<void> _fetchStockData2() async {
 
 
 Future<void> _exportToExcel() async {
+    var excel = Excel.createExcel();
+    Sheet sheet = excel['LedgerReport'];
+
+    List<String> headers = ['Date', 'Particulars', 'Voucher', 'EntryNo', 'Debit', 'Credit', 'Balance', 'Narration'];
+    sheet.appendRow(headers.map((header) => TextCellValue(header)).toList());
+
+    for (var data in ledgerData) {
+      sheet.appendRow([
+        TextCellValue(data['date']?.toString() ?? 'N/A'),
+        TextCellValue(data['Particulars']?.toString() ?? 'N/A'),
+        TextCellValue(data['Voucher']?.toString() ?? 'N/A'),
+        TextCellValue(data['EntryNo']?.toString() ?? 'N/A'),
+        TextCellValue(data['Debit']?.toString() ?? '0'),
+        TextCellValue(data['Credit']?.toString() ?? '0'),
+        TextCellValue(data['Balance']?.toString() ?? '0'),
+        TextCellValue(data['Narration']?.toString() ?? 'N/A'),
+      ]);
+    }
+
+    final directory = await getExternalStorageDirectory();
+    final path = '${directory?.path}/ledger_report.xlsx';
+    final file = File(path);
+    await file.writeAsBytes(await excel.encode()!);
+
+    Fluttertoast.showToast(msg: "Download Completed!", gravity: ToastGravity.BOTTOM);
+    OpenFilex.open(path);
+  }
+
+Future<void> _shareReport() async {
   var excel = Excel.createExcel();
-  Sheet sheet = excel['Sheet1']; 
+  Sheet sheet = excel['LedgerReport'];
 
-  List<String> headers = [
-    'Ledger Name', 'Address', 'Contact', 'Email', 'Tax No', 'Price Level',
-    'Balance', 'Opening Balance', 'Received Balance', 'Pay Amount', 'Under'
-  ];
-
+  List<String> headers = ['Date', 'Particulars', 'Voucher', 'EntryNo', 'Debit', 'Credit', 'Balance', 'Narration'];
   sheet.appendRow(headers.map((header) => TextCellValue(header)).toList());
 
- for (var data in ledgerData) {
-  List<CellValue> row = [
-    TextCellValue(data['ledger_name']?.toString() ?? 'N/A'),
-    TextCellValue(data['address']?.toString() ?? 'N/A'),
-    TextCellValue(data['contact']?.toString() ?? 'N/A'),
-    TextCellValue(data['mail']?.toString() ?? 'N/A'),
-    TextCellValue(data['tax_no']?.toString() ?? 'N/A'),
-    TextCellValue(data['price_level']?.toString() ?? 'N/A'),
-    TextCellValue(data['balance']?.toString() ?? '0'), // Convert to string
-    TextCellValue(data['opening_balance']?.toString() ?? '0'), // Convert to string
-    TextCellValue(data['received_balance']?.toString() ?? '0'), // Convert to string
-    TextCellValue(data['pay_amount']?.toString() ?? '0'), // Convert to string
-    TextCellValue(data['under']?.toString() ?? 'N/A'),
-  ];
-  sheet.appendRow(row);
+  for (var data in ledgerData) {
+    sheet.appendRow([
+      TextCellValue(data['date']?.toString() ?? 'N/A'),
+      TextCellValue(data['Particulars']?.toString() ?? 'N/A'),
+      TextCellValue(data['Voucher']?.toString() ?? 'N/A'),
+      TextCellValue(data['EntryNo']?.toString() ?? 'N/A'),
+      TextCellValue(data['Debit']?.toString() ?? '0'),
+      TextCellValue(data['Credit']?.toString() ?? '0'),
+      TextCellValue(data['Balance']?.toString() ?? '0'),
+      TextCellValue(data['Narration']?.toString() ?? 'N/A'),
+    ]);
+  }
+
+  if (await _requestPermission()) {
+    final directory = await getTemporaryDirectory();
+    final path = '${directory.path}/ledger_report.xlsx';
+    final file = File(path);
+    List<int>? bytes = await excel.encode();
+    if (bytes == null) {
+      Fluttertoast.showToast(msg: "Error generating report!", gravity: ToastGravity.BOTTOM);
+      return;
+    }
+    await file.writeAsBytes(bytes);
+    try {
+      await Share.shareXFiles([XFile(path)], text: 'Here is the Ledger Report.');
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Sharing failed: $e", gravity: ToastGravity.BOTTOM);
+    }
+  } else {
+    Fluttertoast.showToast(msg: "Storage permission denied!", gravity: ToastGravity.BOTTOM);
+  }
+}
+Future<bool> _requestPermission() async {
+  var status = await Permission.storage.request();
+  return status.isGranted;
 }
 
 
-  final directory = await getExternalStorageDirectory();
-  final path = '${directory?.path}/ledger_report.xlsx';
+Future<void> _downloadExcel() async {
+  if (await Permission.storage.request().isDenied) {
+    Fluttertoast.showToast(msg: "Storage permission denied!");
+    return;
+  }
 
+  var excel = Excel.createExcel();
+  Sheet sheet = excel['LedgerReport'];
+
+  List<String> headers = ['Date', 'Particulars', 'Voucher', 'EntryNo', 'Debit', 'Credit', 'Balance', 'Narration'];
+  sheet.appendRow(headers.map((header) => TextCellValue(header)).toList());
+
+  for (var data in ledgerData) {
+    sheet.appendRow([
+      TextCellValue(data['date']?.toString() ?? 'N/A'),
+      TextCellValue(data['Particulars']?.toString() ?? 'N/A'),
+      TextCellValue(data['Voucher']?.toString() ?? 'N/A'),
+      TextCellValue(data['EntryNo']?.toString() ?? 'N/A'),
+      TextCellValue(data['Debit']?.toString() ?? '0'),
+      TextCellValue(data['Credit']?.toString() ?? '0'),
+      TextCellValue(data['Balance']?.toString() ?? '0'),
+      TextCellValue(data['Narration']?.toString() ?? 'N/A'),
+    ]);
+  }
+
+  Directory? downloadsDir = Directory('/storage/emulated/0/Download/');
+  if (!downloadsDir.existsSync()) {
+    downloadsDir.createSync(recursive: true);
+  }
+
+  final path = '${downloadsDir.path}/ledger_report.xlsx';
   final file = File(path);
   await file.writeAsBytes(await excel.encode()!);
 
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Excel file saved at: $path')));
+  //Fluttertoast.showToast(msg: "Download Completed", gravity: ToastGravity.BOTTOM);
+
+  _showDownloadDialog(path);
 }
+
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +236,7 @@ Future<void> _exportToExcel() async {
         toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
         leading: Padding(
-          padding: const EdgeInsets.only(top: 20),
+          padding:  EdgeInsets.only(top: screenHeight * 0.02, left: screenWidth * 0.02),
           child: IconButton(
             onPressed: () {
               Navigator.pop(context);
@@ -162,7 +244,7 @@ Future<void> _exportToExcel() async {
             icon: Icon(
               Icons.arrow_back_ios_new_sharp,
               color: Colors.white,
-              size: 20,
+              size: screenWidth * 0.04,
             ),
           ),
         ),
@@ -187,146 +269,196 @@ Future<void> _exportToExcel() async {
               ),
             ),
           ),
-          IconButton(onPressed: (){_exportToExcel();},
-           icon: Icon(Icons.file_download,size: 19,))
+           Padding(
+            padding: const EdgeInsets.only(top: 20, right: 10),
+            child: PopupMenuButton<String>(
+              onSelected: (String selectedItem) async{
+                if (selectedItem == 'Share') {
+                await _shareReport();
+                }else if (selectedItem== "Download"){
+                await _downloadExcel();
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return [
+                  PopupMenuItem<String>(
+                    value: 'Share',
+                    child: Text('Share'),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'Download',
+                    child: Text('Download'),
+                  ),
+                ];
+              },
+              child: Icon(Icons.more_vert,color: Colors.white,size: screenHeight*0.03,),
+            ),
+          ),
+          // IconButton(onPressed: (){_exportToExcel();},
+          //  icon: Icon(Icons.file_download,size: 19,))
         ],
       ),
       body: SingleChildScrollView( 
         scrollDirection: Axis.horizontal,
         child: Padding(
-          padding: const EdgeInsets.only(top: 10),
+          padding:  EdgeInsets.only(top: screenHeight*0.02,),
           child: SingleChildScrollView( 
             scrollDirection: Axis.vertical,
             child: Table(
+              
   border: TableBorder.all(
     color: Colors.black,
     width: 1.0,
   ),
   columnWidths: {
-    0: FixedColumnWidth(60), 
-    1: FixedColumnWidth(120),
-    2: FixedColumnWidth(120), 
+    
+    0: FixedColumnWidth(80),
+    1: FixedColumnWidth(160), 
+    //2: FixedColumnWidth(100),
+    2: FixedColumnWidth(120),
     3: FixedColumnWidth(120),
-    4: FixedColumnWidth(190),
-    5: FixedColumnWidth(120),
-    6: FixedColumnWidth(120),
-    7: FixedColumnWidth(140),
-    8: FixedColumnWidth(140),
-    9: FixedColumnWidth(140),
-    10: FixedColumnWidth(120),
-    11: FixedColumnWidth(120),
-     12: FixedColumnWidth(120),
+    4: FixedColumnWidth(160),
+    //7: FixedColumnWidth(140),
+    // 9: FixedColumnWidth(140),
+    // 10: FixedColumnWidth(120),
+    // 11: FixedColumnWidth(120),
+    //  12: FixedColumnWidth(120),
   },
   children: [
     TableRow(
       children: [
-        _buildHeaderCell('SiNo'),
-        _buildHeaderCell('Ledcode'),
-        _buildHeaderCell('Ledger Name'),
-        _buildHeaderCell('Address'),
-        _buildHeaderCell('Contact'),
-        _buildHeaderCell('Email'),
-        _buildHeaderCell('Tax No'),
-        _buildHeaderCell('Price Level'),
+        
+        _buildHeaderCell('Date'),
+        _buildHeaderCell('Particulars'),
+        //_buildHeaderCell('Voucher'),
+       // _buildHeaderCell('EntryNo'),
+        _buildHeaderCell('Debit'),
+        _buildHeaderCell('Credit'),
         _buildHeaderCell('Balance'),
-        _buildHeaderCell('Opening Balance'),
-        _buildHeaderCell('Credit Amount'),
-        _buildHeaderCell('Debit Amount'),
-        _buildHeaderCell('Under'),
+       // _buildHeaderCell('Narration'),
+        
       ],
     ),
    ...ledgerData.asMap().entries.map((entry) {
-                  int index = entry.key + 1; // Generate SiNo
+                  int index = entry.key + 1; 
                   Map<String, dynamic> data = entry.value;
+                  Color rowColor = (index % 2 == 0) ? Colors.white : Colors.white;
       return TableRow(
         children: [
-           _buildDataCell(index.toString()),
-          _buildDataCell(data['Ledcode'] ?? 'N/A'),
-          _buildDataCell(data['LedName'] ?? 'N/A'),
-          _buildDataCell(data['add1'] ?? 'N/A'),
-          _buildDataCell(data['Mobile'] ?? 'N/A'),
-          _buildDataCell(data['Email'] ?? 'N/A'),
-          _buildDataCell(data['tax_no'] ?? 'N/A'),
-          _buildDataCell(data['price_level'] ?? 'N/A'),
-          _buildDataCell(data['balance']?.toString() ?? 'N/A'),
-          widget.showOpeningBalance! 
-            ? _buildDataCell(data['OpeningBalance']?.toString() ?? '0') 
-            : _buildDataCell(data['OpeningBalance']?.toString() ?? '0'), 
-          _buildDataCell(data['Debit']?.toString() ?? '0') ,
-          _buildDataCell(data['CAmount']?.toString() ?? '0'),
-          _buildDataCell(data['under'] ?? 'N/A'),
+          _buildDataCell(data['Date']?.toString()  ?? 'N/A',rowColor),
+          _buildDataCell(data['Particulars']?.toString() ?? 'N/A',rowColor),
+          //_buildDataCell(data['Voucher'] ?.toString() ?? 'N/A',rowColor),
+         // _buildDataCell(data['EntryNo']?.toString() ??'N/A',rowColor),
+          _buildDataCellright(data['Debit'] ?.toString() ??'N/A',rowColor),
+          _buildDataCellright(data['Credit'] ?.toString() ?? 'N/A',rowColor),
+          _buildDataCellright(data['Balance'] ?.toString() ??'N/A',rowColor),
+          //_buildDataCell(data['Narration']?.toString() ?? 'N/A',rowColor),
+         
         ],
       );
     }).toList(),
-    TableRow(
-      children: [
-         _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell2('Closing Balance'),
-        _buildDataCell2(OpeningBalance.toStringAsFixed(2)), 
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-      ],
-    ),
-    TableRow(
-  children: [
-    _buildDataCell(''),
-    _buildDataCell(''),
-    _buildDataCell(''),
-    _buildDataCell(''),
-    _buildDataCell(''),
-    _buildDataCell(''),
-    _buildDataCell(''),
-    _buildDataCell(''),
-    widget.showOpeningBalance == true
-        ? _buildDataCell2('Opening Balance')
-        : _buildDataCell(''), // Display Opening Balance based on flag
-    widget.showOpeningBalance == true
-        ? _buildDataCell(totalOpeningBalance.toStringAsFixed(2)) // Display Opening Balance value
-        : _buildDataCell(''), 
-    _buildDataCell(''),
-    _buildDataCell(''),
-    _buildDataCell(''),
-  ],
-),
+   
   ],
 ),
 
           ),
         ),
       ),
+//       bottomNavigationBar: SafeArea(
+//   child: BottomAppBar(
+//     color: Colors.blueGrey[800],
+//     child: Padding(
+//       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
+//       child: Row(
+//         mainAxisAlignment: MainAxisAlignment.spaceAround, // Ensure spacing fits the screen
+//         children: [
+//           Expanded(
+//             child: Column(
+//               mainAxisSize: MainAxisSize.min,
+//               crossAxisAlignment: CrossAxisAlignment.center,
+//               children: [
+//                 Text("Total Debit", 
+//                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+//                     overflow: TextOverflow.ellipsis, maxLines: 1),
+//                 Text(totalDebitAmount.toStringAsFixed(2),
+//                     style: TextStyle(color: Colors.white, fontSize: 12),
+//                     overflow: TextOverflow.ellipsis, maxLines: 1),
+//               ],
+//             ),
+//           ),
+//           Expanded(
+//             child: Column(
+//               mainAxisSize: MainAxisSize.min,
+//               crossAxisAlignment: CrossAxisAlignment.center,
+//               children: [
+//                 Text("Total Credit", 
+//                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+//                     overflow: TextOverflow.ellipsis, maxLines: 1),
+//                 Text(totalCreditAmount.toStringAsFixed(2),
+//                     style: TextStyle(color: Colors.white, fontSize: 12),
+//                     overflow: TextOverflow.ellipsis, maxLines: 1),
+//               ],
+//             ),
+//           ),
+//           Expanded(
+//             child: Column(
+//               mainAxisSize: MainAxisSize.min,
+//               crossAxisAlignment: CrossAxisAlignment.center,
+//               children: [
+//                 Text("Closing Balance", 
+//                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+//                     overflow: TextOverflow.ellipsis, maxLines: 1),
+//                 Text(finalClosingBalance.toStringAsFixed(2),
+//                     style: TextStyle(color: Colors.white, fontSize: 12),
+//                     overflow: TextOverflow.ellipsis, maxLines: 1),
+//               ],
+//             ),
+//           ),
+//         ],
+//       ),
+//     ),
+//   ),
+// ),
+
     );
   }
 
   Widget _buildHeaderCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
-      color: Colors.white,
+      color: Colors.blue,
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: TextStyle(fontWeight: FontWeight.bold),
+        style: TextStyle(fontWeight: FontWeight.bold,fontSize: 11),
       ),
     );
   }
 
-  Widget _buildDataCell(String text) {
+  Widget _buildDataCell(String text,Color rowColor) {
     return Container(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(6.0),
+      color: rowColor,
       child: Text(
         text,
-        style: getFonts(12, Colors.black),
+        style: getFonts(10, Colors.black),
         textAlign: TextAlign.center,
       ),
     );
   }
+
+  Widget _buildDataCellright(String text,Color rowColor) {
+    return Container(
+      padding: const EdgeInsets.only(left: 6,top: 6,bottom: 6,right: 4),
+      color: rowColor,
+      child: Text(
+        text,
+        style: getFonts(10, Colors.black),
+        textAlign: TextAlign.right,
+      ),
+    );
+  }
+
    Widget _buildDataCell2(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
@@ -337,4 +469,52 @@ Future<void> _exportToExcel() async {
       ),
     );
   }
+
+ void _showDownloadDialog(String filePath ) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        child: Container(
+          width: 250, 
+          height: 160, 
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,  
+            children: [
+              Text(
+                "Download Completed",
+                style: TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10),
+              Text(
+                "Your Excel report has been saved successfully.",
+                textAlign: TextAlign.center,
+              ),
+             
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text("Close",style: getFonts(13, Appcolors().maincolor)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      OpenFilex.open(filePath);
+                    },
+                    child: Text("View",style: getFonts(13, Appcolors().maincolor),),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 }

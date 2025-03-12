@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/models/salescredit_modal.dart';
+import 'package:sheraaccerpoff/previews/sales_preview.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/companydb.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
@@ -314,18 +315,26 @@ void _saveData2() async {
       print("Error: Ledger details not found for ${_CustomerController.text}");
       return;
     }
+  double _grandTotal = 0.0; 
 
+void _calculateGrandTotal() {
+  setState(() {
+    _grandTotal = widget.tempdata!.fold(0.0, (sum, item) => sum + (double.tryParse(item['total'].toString()) ?? 0.0));
+     _totalamtController.text = _grandTotal.toStringAsFixed(2);
+  });
+}
     final String ledCode = ledgerDetails['LedId']?.toString() ?? 'Unknown';
     final double openingBalance = double.tryParse(ledgerDetails['OpeningBalance']?.toString() ?? '0.0') ?? 0.0;
 
     final double finalAmt = widget.salesCredit?.totalAmt ?? 0.0;
     final double creditAmt = openingBalance - finalAmt;
-
+    double cashReceived = double.tryParse(_cashRecieveController.text) ?? 0.0;
+double balance = _grandTotal- cashReceived; 
     final transactionData = {
       'atDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
       'atLedCode': ledCode,
       'atDebitAmount': finalAmt,
-      'atCreditAmount': creditAmt,
+      'atCreditAmount': balance,
       'atType': selectedStype,
       'Caccount': _salerateController.text.isNotEmpty ? _salerateController.text : '0.0',
       'atLedName': _CustomerController.text,
@@ -337,9 +346,10 @@ void _saveData2() async {
     await LedgerTransactionsDatabaseHelper.instance.updateLedgerBalance(ledCode, updatedBalance);
 
     print('Transaction saved successfully.');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully')),
-    );
+    Fluttertoast.showToast(msg: "Saved successfully");
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Saved successfully')),
+    // );
 
     setState(() {});
   } catch (e, stackTrace) {
@@ -728,7 +738,7 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       final transactionData = {
 
  'RealEntryNo': newAuto, 
-      'EntryNo': newentryno, 
+      'EntryNo': _InvoicenoController.text, 
       'InvoiceNo': _InvoicenoController.text,
       'DDate':_dateController.text,
       'BTime':_dateController.text,
@@ -1098,7 +1108,7 @@ void _saveDataSaleperti2222222() async {
     final db = await SalesInformationDatabaseHelper.instance.database;
     final db2 = await SalesInformationDatabaseHelper2.instance.database;
 
-    final lastRow = await db.rawQuery(
+    final lastRow = await db2.rawQuery(
       'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1',
     );
 
@@ -1112,124 +1122,110 @@ void _saveDataSaleperti2222222() async {
     if (lastRowinfo.isNotEmpty) {
       final lastData = lastRowinfo.first;
       newentryno = (lastData['RealEntryNo'] as int? ?? 0) + 1;
+       
     }
 
     if (lastRow.isNotEmpty) {
-      final lastData = lastRow.first;
-      newAuto = (lastData['Auto'] as num? ?? 0).toInt();
+      final lastData2 = lastRow.first;
+      newAuto = (lastData2['Auto'] as int? ?? 0) + 1;
     }
 
     for (var tempDataEntry in widget.tempdata!) {
-      // Extract the data from each tempDataEntry
       final itemName = tempDataEntry['itemname'] ?? '';
-      final qty = tempDataEntry['qty'] ?? 0.0;
-      final rate = tempDataEntry['rate'] ?? 0.0;
-      final tax = tempDataEntry['tax'] ?? 0.0;
-      final discount = tempDataEntry['discount'] ?? 0.0;
-      final discountPercentage = tempDataEntry['discountpercentage'] ?? 0.0;
-      final unit = tempDataEntry['unit'] ?? '';
-      final freeItem = tempDataEntry['freeItem'] ?? '';
-      final subtotal = tempDataEntry['subtotal'] ?? '';
-      final totalAmount = tempDataEntry['total'] ?? '';
-final taxtype = tempDataEntry['taxtype'] ?? '';
-      // Assuming you calculate the finalAmt and profit per item
-      final finalAmt = qty * rate; // This can be adjusted based on your logic
-      final profit = finalAmt - (qty * rate); // Adjust if needed
+      
+      // Convert values safely
+      final double qty = double.tryParse(tempDataEntry['qty']?.toString() ?? '0.0') ?? 0.0;
+      final double rate = double.tryParse(tempDataEntry['rate']?.toString() ?? '0.0') ?? 0.0;
+      final double tax = double.tryParse(tempDataEntry['tax']?.toString() ?? '0.0') ?? 0.0;
+      final double discount = double.tryParse(tempDataEntry['discount']?.toString() ?? '0.0') ?? 0.0;
+      final double discountPercentage = double.tryParse(tempDataEntry['discountpercentage']?.toString() ?? '0.0') ?? 0.0;
+      final double subtotal = double.tryParse(tempDataEntry['subtotal']?.toString() ?? '0.0') ?? 0.0;
+      final double totalAmount = double.tryParse(tempDataEntry['total']?.toString() ?? '0.0') ?? 0.0;
+      
+      final String unit = tempDataEntry['unit'] ?? '';
+      final String taxtype = tempDataEntry['taxtype'] ?? '';
 
-      final double cgst = (tax ?? 0.0) / 2;
-      final double sgst = (tax ?? 0.0) / 2;
+      final double finalAmt = qty * rate;
+      final double profit = finalAmt - (qty * rate);
+      final double cgst = tax / 2;
+      final double sgst = tax / 2;
 
-      // Assuming these values come from other parts of your data as before
-      final double total = double.tryParse(totalAmount) ?? 0.0;
-
-      // Get necessary data like stock details and ledger details
       final stockDetails = await StockDatabaseHelper.instance.getStockDetailsByName(itemName);
       final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance.getLedgerDetailsByName(_CustomerController.text);
-
       final String ledCode = ledgerDetails?['LedId']?.toString() ?? 'Unknown';
       final String itemCode = stockDetails?['itemcode']?.toString() ?? 'Unknown';
-
-      final double priceRate = rate; // Can be adjusted
-      final double quantity = qty;
       final String retail = stockDetails?['retail']?.toString() ?? 'Unknown';
-    final String sprate = stockDetails?['sprate']?.toString() ?? 'Unknown';
-    final String wrate = stockDetails?['wsrate']?.toString() ?? 'Unknown';
-final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
-        .getStockSaleDetailsByName(itemCode);
-    final unitsaleDetails = await SaleReferenceDatabaseHelper.instance
-        .getStockunitDetailsByName(itemCode);
+      final String sprate = stockDetails?['sprate']?.toString() ?? 'Unknown';
+      final String wrate = stockDetails?['wsrate']?.toString() ?? 'Unknown';
 
-    final String Ucode = stocksaleDetails?['Uniquecode']?.toString() ?? 'Unknown';
-    final String itemDisc = stocksaleDetails?['Disc']?.toString() ?? '0.0';
-    final String prate = stocksaleDetails?['Prate']?.toString() ?? '0.0';
-    final String rprate = stocksaleDetails?['RealPrate']?.toString() ?? '0.0';
-    int selectedFyID = 0;
-   
-     double realRate = await calculateRealRate(rate);
+      final stocksaleDetails = await SaleReferenceDatabaseHelper.instance.getStockSaleDetailsByName(itemCode);
+      final String Ucode = stocksaleDetails?['Uniquecode']?.toString() ?? 'Unknown';
+      final String itemDisc = stocksaleDetails?['Disc']?.toString() ?? '0.0';
+      final String prate = stocksaleDetails?['Prate']?.toString() ?? '0.0';
+      final String rprate = stocksaleDetails?['RealPrate']?.toString() ?? '0.0';
+
+      double realRate = await calculateRealRate(rate);
 
       final transactionData = {
-
-      'DDate': _dateController.text,
-      'EntryNo': newentryno ,
-      'UniqueCode': Ucode,
-      'ItemID': itemCode,
-      'serialno': 0,
-      'Rate': rate.toString(),  
-      'RealRate': realRate,  
-      'Qty': qty.toString(),  
-      'freeQty': '0.0',
-      'GrossValue': finalAmt.toString(),  
-      'DiscPersent': discountPercentage.toString(), 
-      'Disc': discount.toString(),  
-      'RDisc': '0.0',
-      'Net': subtotal.toString(), 
-      'Vat': '0.0',
-      'freeVat': '0.0',
-      'cess': '0.0',
-      'Total': totalAmount.toString(), 
-      'Profit': profit.toString(),  
-      'Auto': newAuto.toString(),  
-      'Unit': unit, 
-      'UnitValue': '0.0',
-      'Funit': '0',
-      'FValue': '0',
-      'commision': '0.0',
-      'GridID': '0',
-      'takeprintstatus': '0',
-      'QtyDiscPercent': '0.0',
-      'QtyDiscount': itemDisc,  
-      'ScheemDiscPercent': '0.0',
-      'ScheemDiscount': '0.0',
-      'CGST': cgst.toString(), 
-      'SGST': sgst.toString(),  
-      'IGST': '0.0',
-      'adcess': '0.0',
-      'netdisc': '0.0',
-      'taxrate': tax.toString(),  
-      'SalesmanId': '0',
-      'Fcess': '0.0',
-      'Prate': prate,  
-      'Rprate': rprate, 
-      'location': '0',
-      'Stype': selectedID.toString(),
-
-      'LC': '0.0',
-      'ScanBarcode': '0',
-      'Remark': '0',
-      'FyID': "2",  
-      'Supplier': '0',
-      'Retail': retail,  
-      'spretail': sprate,  
-      'wsrate': wrate,
+        'DDate': _dateController.text,
+        'EntryNo':updatedInno.toString(),
+        'UniqueCode': Ucode,
+        'ItemID': itemCode,
+        'serialno': '0',
+        'Rate': rate.toString(),
+        'RealRate': realRate.toString(),
+        'Qty': qty.toString(),
+        'freeQty': '0.0',
+        'GrossValue': finalAmt.toString(),
+        'DiscPersent': discountPercentage.toString(),
+        'Disc': discount.toString(),
+        'RDisc': '0.0',
+        'Net': subtotal.toString(),
+        'Vat': '0.0',
+        'freeVat': '0.0',
+        'cess': '0.0',
+        'Total': totalAmount.toString(),
+        'Profit': profit.toString(),
+        'Auto': newAuto.toString(),
+        'Unit': unit,
+        'UnitValue': '0.0',
+        'Funit': '0',
+        'FValue': '0',
+        'commision': '0.0',
+        'GridID': '0',
+        'takeprintstatus': '0',
+        'QtyDiscPercent': '0.0',
+        'QtyDiscount': itemDisc,
+        'ScheemDiscPercent': '0.0',
+        'ScheemDiscount': '0.0',
+        'CGST': cgst.toString(),
+        'SGST': sgst.toString(),
+        'IGST': '0.0',
+        'adcess': '0.0',
+        'netdisc': '0.0',
+        'taxrate': tax.toString(),
+        'SalesmanId': '0',
+        'Fcess': '0.0',
+        'Prate': prate,
+        'Rprate': rprate,
+        'location': '0',
+        'Stype': selectedID.toString(),
+        'LC': '0.0',
+        'ScanBarcode': '0',
+        'Remark': '0',
+        'FyID': "2",
+        'Supplier': '0',
+        'Retail': retail,
+        'spretail': sprate,
+        'wsrate': wrate,
       };
 
       await SalesInformationDatabaseHelper2.instance.insertParticular(transactionData);
-      newAuto++; 
+      newAuto++;
       newentryno++;
     }
 
-  
-    setState(() {}); // Update the UI if needed
+    setState(() {});
 
   } catch (e) {
     print('Error while saving data: $e');
@@ -1238,6 +1234,8 @@ final stocksaleDetails = await SaleReferenceDatabaseHelper.instance
     );
   }
 }
+
+
 
 
 
@@ -1908,7 +1906,7 @@ int updatedInno = 0;
       'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1'
     );
 
-    int lastEntryNo = lastRow.isNotEmpty ? (lastRow.first['RealEntryNo'] as int? ?? 0) : 0;
+    int lastEntryNo = lastRow.isNotEmpty ? (lastRow.first['EntryNo'] as int? ?? 0) : 0;
     int newInvoiceNo = lastEntryNo + 1; 
     setState(() {
       updatedInno = newInvoiceNo;
@@ -2099,7 +2097,8 @@ _InvoicenoController.text=updatedInno.toString();
                 _saveDataSaleperti2222222();
                 _saveDataSaleinfor22multi();
                 _saveData2();
-              //  widget.tempdata!.clear();
+                PreviewDiaalogue();
+                //widget.tempdata!.clear();
                }else{
               _saveDataSaleperti();
               _saveDataSaleinfor22();
@@ -2135,7 +2134,8 @@ Widget _CreditScreenContent(double screenHeight,double screenWidth) {
   List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
    double additem_total=widget.grandtotal??0.0;
 double cashReceived = double.tryParse(_cashRecieveController.text) ?? 0.0;
-double balance = additem_total - cashReceived;  
+double balance = additem_total - cashReceived; 
+_InvoicenoController.text=updatedInno.toString(); 
   return Column(
       children: [
         SizedBox(height: screenHeight*0.01,),
@@ -3022,4 +3022,47 @@ if(_CustomerController.text.isEmpty){
     },
   );
 }
+
+void PreviewDiaalogue() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Appcolors().scafoldcolor,
+          content: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Text(
+              'If You want to sales Preview ?',
+              style: getFonts(14, Colors.black),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (context)=>HomePageERP()));
+              },
+              child: Text(
+                'Cancel',
+                style: getFonts(15, Appcolors().maincolor),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).push(MaterialPageRoute(builder: (context)=>SalesPreview(
+                  tempdata: widget.tempdata,no: _InvoicenoController.text,date: _dateController.text,
+                  add: _adressController.text,ob: openingBalance.toString(),cashreci: _cashRecieveController.text,
+                  name:  _CustomerController.text,
+                  )));
+              },
+              child: Text(
+                'Yes',
+                style: getFonts(15, Appcolors().maincolor),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }

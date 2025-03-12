@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mssql_connection/mssql_connection.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/databse_Export/syncDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -9,7 +8,7 @@ class ServerConfig extends StatefulWidget {
   _ServerConfigState createState() => _ServerConfigState();
 }
 
-class _ServerConfigState extends State<ServerConfig> {
+  class _ServerConfigState extends State<ServerConfig> {
   final TextEditingController serverNameController = TextEditingController();
   final TextEditingController dbNameController = TextEditingController();
   final TextEditingController userNameController = TextEditingController();
@@ -18,7 +17,6 @@ class _ServerConfigState extends State<ServerConfig> {
   bool isConnecting = false;
   final connection = MssqlConnection.getInstance();
 
-  // Store the connection details
   String? connectedDbName;
 
   Future<void> connectToDatabase() async {
@@ -27,17 +25,16 @@ class _ServerConfigState extends State<ServerConfig> {
     });
 
     try {
-      // Set up the connection
       await connection.connect(
         ip: serverNameController.text.trim(),
-        port: 1433.toString(), // Default MSSQL port
+        port: 1433.toString(), 
         databaseName: dbNameController.text.trim(),
         username: userNameController.text.trim(),
         password: passwordController.text.trim(),
       );
 
       setState(() {
-        connectedDbName = dbNameController.text.trim(); // Store the connected DB name
+        connectedDbName = dbNameController.text.trim(); 
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,7 +43,6 @@ class _ServerConfigState extends State<ServerConfig> {
 
     
     } catch (e) {
-      // Handle connection errors
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error connecting to the database: $e')),
       );
@@ -133,12 +129,32 @@ class _ServerConfigState extends State<ServerConfig> {
               obscureText: true,
             ),
             SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: isConnecting ? null : connectToDatabase,
+       GestureDetector(
+         onTap: isConnecting ? null : connectToDatabase,
+        child: Padding(
+          padding: EdgeInsets.all(screenHeight * 0.03),
+          child: Container(
+            height: screenHeight * 0.05,
+            width: screenWidth * 0.8,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Color(0xFF0A1EBE),
+            ),
+            child: Center(
               child: isConnecting
                   ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Connect to Database'),
+                  : Text('Connect to Database',style: getFonts(15, Colors.white),),
             ),
+          ),
+        ),
+      ),
+
+            // ElevatedButton(
+            //   onPressed: isConnecting ? null : connectToDatabase,
+            //   child: isConnecting
+            //       ? CircularProgressIndicator(color: Colors.white)
+            //       : Text('Connect to Database'),
+            // ),
           ],
         ),
       ),

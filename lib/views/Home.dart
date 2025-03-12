@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
+import 'package:sheraaccerpoff/previews/sales_preview.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/AccountReportDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/accountTransactionDB.dart';
@@ -174,6 +176,177 @@ void _showAuthDialog(BuildContext context) {
   );
 }
 
+Future<void> fetchAndStoreLedgerData() async {
+  try {
+    final query = "EXEC dbo.Sp_AccountReport @statementType='Ledger_Report'";
+    final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+    if (rawData is String) {
+      final decodedData = jsonDecode(rawData);
+      if (decodedData is List) {
+        final List<Map<String, dynamic>> ledgerData =
+            decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        final db = await openDatabase('ledger.db');
+        for (var ledger in ledgerData) {
+          await db.insert(
+            'ledger',
+            {
+              'ledgerId': ledger['auto'],
+              'entryNo': ledger['EntryNo'],
+              'name': ledger['Name'],
+              'amount': ledger['Amount'],
+              'discount': ledger['Discount'],
+              'total': ledger['Total'],
+              'narration': ledger['Narration'],
+              'ddate': ledger['ddate'],
+              'fyID': ledger['FyID'],
+              'frmID': ledger['FrmID'],
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+
+        print("Ledger data synced successfully!");
+      } else {
+        throw Exception("Unexpected JSON format: $decodedData");
+      }
+    } else {
+      throw Exception("Unexpected data format from MS SQL: $rawData");
+    }
+  } catch (e) {
+    print("Error fetching or storing ledger data: $e");
+  }
+}
+
+
+Future<void> fetchAndStoreAllLedgerReports() async {
+  final mssqlDb = MsSQLConnectionPlatform.instance; 
+  
+  try {
+    final ledgerCodesQuery = "SELECT Ledcode, LedName FROM LedgerNames";
+    final ledgerCodesRawData = await mssqlDb.getData(ledgerCodesQuery);
+    
+    if (ledgerCodesRawData is String) {
+      final decodedData = jsonDecode(ledgerCodesRawData);
+      if (decodedData is List) {
+        for (var ledger in decodedData) {
+           String ledCode = (ledger['Ledcode']?.toString() ?? ''); 
+          String ledName = ledger['LedName'];
+
+          final transactionsQuery = '''
+            SELECT 
+              atDate AS date,
+              b.LedName AS particulars,
+              atType AS voucher,
+              atEntryno AS entryNo,
+              atDebitAmount AS debit,
+              atCreditAmount AS credit,
+              atNarration AS narration
+            FROM Account_Transactions a
+            JOIN LedgerNames b ON a.atOpposite = b.Ledcode
+            WHERE a.atLedCode = '$ledCode'
+            ORDER BY atDate
+          ''';
+          
+          final transactionsRawData = await mssqlDb.getData(transactionsQuery); 
+
+          if (transactionsRawData is String) {
+            final decodedTransactions = jsonDecode(transactionsRawData);
+            if (decodedTransactions is List) {
+              double runningBalance = 0.0;
+              List<Map<String, dynamic>> ledgerData = [];
+
+              ledgerData.add({
+                'ledCode': ledCode,
+                'ledName': ledName,
+                'date': '',
+                'particulars': 'Opening Balance',
+                'voucher': '',
+                'entryNo': null,
+                'debit': runningBalance > 0 ? runningBalance : 0.0,
+                'credit': runningBalance < 0 ? -runningBalance : 0.0,
+                'balance': runningBalance > 0
+                    ? '${runningBalance.toStringAsFixed(2)} Dr'
+                    : '${(-runningBalance).toStringAsFixed(2)} Cr',
+                'narration': ''
+              });
+
+              for (var row in decodedTransactions) {
+                double debit = double.tryParse(row['debit']?.toString() ?? '0.0') ?? 0.0;
+                double credit = double.tryParse(row['credit']?.toString() ?? '0.0') ?? 0.0;
+
+                runningBalance += (debit - credit);
+
+                ledgerData.add({
+                  'ledCode': ledCode,
+                  'ledName': ledName,
+                  'date': row['date'],
+                  'particulars': row['particulars'],
+                  'voucher': row['voucher'],
+                  'entryNo': row['entryNo'],
+                  'debit': debit,
+                  'credit': credit,
+                  'balance': runningBalance > 0
+                      ? '${runningBalance.toStringAsFixed(2)} Dr'
+                      : '${(-runningBalance).toStringAsFixed(2)} Cr',
+                  'narration': row['narration']
+                });
+              }
+              double totalDebit = ledgerData.fold(0.0, (sum, row) => sum + (row['debit'] ?? 0.0));
+              double totalCredit = ledgerData.fold(0.0, (sum, row) => sum + (row['credit'] ?? 0.0));
+
+              ledgerData.add({
+                'ledCode': ledCode,
+                'ledName': ledName,
+                'date': '',
+                'particulars': 'Total',
+                'voucher': '',
+                'entryNo': null,
+                'debit': totalDebit,
+                'credit': totalCredit,
+                'balance': '',
+                'narration': ''
+              });
+
+              ledgerData.add({
+                'ledCode': ledCode,
+                'ledName': ledName,
+                'date': '',
+                'particulars': 'Closing Balance',
+                'voucher': '',
+                'entryNo': null,
+                'debit': totalDebit > totalCredit ? totalDebit - totalCredit : 0.0,
+                'credit': totalCredit > totalDebit ? totalCredit - totalDebit : 0.0,
+                'balance': '',
+                'narration': ''
+              });
+
+              await LedgerReportDatabaseHelper.instance.insertLedgerReport(ledgerData);
+            } else {
+              throw Exception('Unexpected data format for transactions: $decodedTransactions');
+            }
+          } else {
+            throw Exception('Unexpected data format for transactions: $transactionsRawData');
+          }
+        }
+        print("All ledger reports stored successfully!");
+      } else {
+        throw Exception('Unexpected data format for ledger codes: $decodedData');
+      }
+    } else {
+      throw Exception('Unexpected data format for ledger codes: $ledgerCodesRawData');
+    }
+  } catch (e) {
+    print('Error fetching and storing all ledger reports: $e');
+    rethrow;
+  }
+}
+
+
+
+
+
+
   void navigateToPage(BuildContext context, String item) {
     switch (item) {
       case "Company":
@@ -187,9 +360,10 @@ void _showAuthDialog(BuildContext context) {
       _showAuthDialogsettings(context);
         break;
       case "Sync Data":
-      LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances();
-      //  Navigator.push(
-      //                   context, MaterialPageRoute(builder: (_) => SyncButtonPage()));
+       fetchAndStoreLedgerData();
+
+       //fetchAndStoreAllLedgerReports();
+     
         print("Syncing data...");
         break;
       case "Import":
@@ -202,7 +376,8 @@ void _showAuthDialog(BuildContext context) {
         print("Exporting backup...");
         break;
       case "Clear Data":
-        _showClearDataDialog();
+
+       // _showClearDataDialog();
         break;
         case "Export":
         Navigator.push(

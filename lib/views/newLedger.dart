@@ -562,9 +562,58 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
           padding: EdgeInsets.symmetric(horizontal: screenHeight*0.03),
           child: Column(
             children: [
+             
                 _paymentField("Address", _adressController, screenWidth, screenHeight),
                     SizedBox(height: screenHeight * 0.02),
-                    _paymentField("Contact NO", _contactController, screenWidth, screenHeight),
+                     Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Contact NO',
+                style: formFonts(14, Colors.black),
+              ),
+              
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(padding: EdgeInsets.symmetric(vertical: screenHeight*0.024),
+            height: screenHeight * 0.06,
+            width: screenWidth * 0.9,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            child: Row(
+              children: [
+                SizedBox(width: screenWidth * 0.02),
+                Expanded(
+                  child: TextFormField(
+                    keyboardType: TextInputType.number,
+                    style: getFontsinput(14, Colors.black),
+                    controller: _contactController,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter Contact NO';
+                      }
+                      return null;
+                    },
+                    obscureText: false,
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
                     SizedBox(height: screenHeight * 0.02),
                     _paymentField("Mail", _mailController, screenWidth, screenHeight),
                     SizedBox(height: screenHeight * 0.02),
@@ -679,7 +728,7 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 5),
         child: Text(
-          "Active", // This is your dynamic text
+          "Active", 
           style: getFonts(14, Colors.white),
         ),
       ),

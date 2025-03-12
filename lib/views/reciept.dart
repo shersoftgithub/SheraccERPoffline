@@ -1,5 +1,6 @@
 import 'package:easy_autocomplete/easy_autocomplete.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:sheraaccerpoff/models/paymant_model.dart';
@@ -178,7 +179,7 @@ if (lastRow.isNotEmpty) {
     print("Fetched lastAuto: lastEntryNo: $lastEntryNo"); // Debugging
 
    
-    newEntryNo = lastEntryNo + 1.0; // Ensure increment as double
+    newEntryNo = lastEntryNo + 1.0; 
   }
     final double amount = double.tryParse(_amountController.text) ?? 0.0;
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
@@ -228,9 +229,9 @@ for (var fyRecord in fy) {
     } else {
       print('Ledger not found for name: ${_selectlnamesController.text}');
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully')),
-    );
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Saved successfully')),
+    // );
     setState(() {
       _amountController.clear();
       _balanceController.clear();
@@ -337,9 +338,9 @@ void _saveDataRV_Perticular() async {
 
     await RV_DatabaseHelper.instance.insertRVParticulars(transactionData);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully')),
-    );
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Saved successfully')),
+    // );
 
     setState(() {
       _amountController.clear();
@@ -454,9 +455,11 @@ for (var fyRecord in fy) {
 
     await RV_DatabaseHelper.instance.insertRVInformation(transactionData);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully')),
-    );
+    Fluttertoast.showToast(msg: "Saved successfully");
+
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Saved successfully')),
+    // );
 
     setState(() {
       _amountController.clear();
@@ -592,9 +595,9 @@ void _settingCashAccChanged(String value) {
 
     await batch.commit(noResult: true); // Execute batch insert
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully'))
-    );
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Saved successfully'))
+    // );
 
     setState(() {
       temporaryData.clear(); // Clear temporary list after saving
@@ -702,9 +705,11 @@ void _saveDataRV_Information2() async {
 
     await batch.commit(noResult: true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Data saved successfully!')),
-    );
+    Fluttertoast.showToast(msg: "Data saved successfully");
+
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Data saved successfully!')),
+    // );
 
     setState(() {
       temporaryData.clear();
@@ -772,6 +777,7 @@ double _TotalController=_total;
               onTap: () {
 
                    if (_isKeyLockSaleRateEnabled()) {
+                     _saveData();
              _saveDataRV_Perticular2();
             _saveDataRV_Information2();
               } else {
@@ -957,7 +963,13 @@ double _TotalController=_total;
       child: Container(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
         child: Row(children: [
           Text("Balance : ",style: getFonts(14, Appcolors().maincolor),),
-          Text("${_balanceController.text}",style: getFonts(14, Colors.black),)
+Flexible(
+  child: Text(
+    "${_balanceController.text}",
+    style: getFonts(14, Colors.black),
+    overflow: TextOverflow.ellipsis, // Truncate text if too long
+  ),
+)
         ],),
       ),
     ),
@@ -975,14 +987,73 @@ double _TotalController=_total;
         child: Row(
           children: [
             Text("Total : ",style: getFonts(16, Appcolors().maincolor),),
-            Text("${_TotalController.toString()}",style: getFonts(16, Colors.black),)
+            Flexible(
+  child: Text(
+    "${_TotalController.toString()}",
+    style: getFonts(16, Colors.black),
+    overflow: TextOverflow.ellipsis, 
+  ),
+)
+
           ],
         ),
       ),
     ),
       SizedBox(height: screenHeight * 0.02),
-            _paymentField("Narration",_narrationController,screenWidth, screenHeight),
-
+           // _paymentField("Narration",_narrationController,screenWidth, screenHeight),
+Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Narration',
+                style: formFonts(14, Colors.black),
+              ),
+             
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.01),
+          Container(padding: EdgeInsets.symmetric(vertical: 3),
+            height: screenHeight * 0.06,
+            width: screenWidth * 0.9,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              color: Colors.white,
+              border: Border.all(color: Appcolors().searchTextcolor),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+              child: Row(
+                children: [
+                  SizedBox(width: screenWidth * 0.02),
+                  Expanded(
+                    child: TextFormField(
+                      textAlign: TextAlign.right,
+                      style: getFontsinput(14, Colors.black),
+                      controller: _narrationController,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter Narration';
+                        }
+                        return null;
+                      },
+                      obscureText: false,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                        
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
              SizedBox(height: screenHeight*0.01,),
      if (_isKeyLockSaleRateEnabled())
             Padding(

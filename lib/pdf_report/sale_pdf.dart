@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
@@ -75,6 +76,18 @@ class _SalePDFscreenState extends State<SalePDFscreen> {
     );
   }
 }
+
+Future<void> _sharePDF() async {
+    try {
+      String filePath = widget.pdfFile.path;
+            await Share.shareXFiles([XFile(filePath)], text: 'Here is the PDF!');
+    } catch (e) {
+      print("Error sharing PDF: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to share PDF.")),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -119,7 +132,7 @@ class _SalePDFscreenState extends State<SalePDFscreen> {
           Padding(
            padding: const EdgeInsets.only(top: 15),
            child: IconButton(onPressed: (){
-                   
+                   _sharePDF();
             }, icon: Icon(Icons.share,color: Colors.white,)),
          ),
       ],

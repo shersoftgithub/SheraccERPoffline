@@ -1037,6 +1037,138 @@ String formatValue(dynamic value) {
   }
 }
 
+////////////////////////////////////////////////////////////////////
+
+Future<List<Map<String, dynamic>>> fetchSimpleLedgerReport({
+  required String ledname,  
+  required String fromdate,
+  required String todate,
+}) async {
+  final db = await database;
+
+  try {
+    var ledCodeResult = await db.rawQuery('''
+      SELECT Ledcode 
+      FROM LedgerNames 
+      WHERE LedName = ?
+    ''', [ledname]);
+
+    if (ledCodeResult.isEmpty) {
+      print("No ledger code found for the provided ledger name.");
+      return [];
+    }
+
+    String ledcode = ledCodeResult[0]['Ledcode'] as String;
+    var openingBalance = await db.rawQuery('''
+      SELECT 
+        '' AS Date, 
+        'Opening Balance' AS Particulars, 
+        '' AS Voucher, 
+        NULL AS EntryNo, 
+        CASE 
+          WHEN SUM(atDebitAmount - atCreditAmount) > 0 THEN CAST(SUM(atDebitAmount - atCreditAmount) AS numeric(10, 3))
+          ELSE 0 
+        END AS Debit,
+        CASE 
+          WHEN SUM(atCreditAmount - atDebitAmount) > 0 THEN CAST(SUM(atCreditAmount - atDebitAmount) AS numeric(10, 3))
+          ELSE 0 
+        END AS Credit,
+        '' AS Narration,
+        1 AS RowNum
+      FROM Account_Transactions
+      WHERE atLedCode = ?
+        AND atBankEntry = 0 
+        AND atDate < ?
+    ''',
+     [ledcode, fromdate]);
+
+    double openingBalDebit = openingBalance.isNotEmpty
+        ? (openingBalance[0]['Debit'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    double openingBalCredit = openingBalance.isNotEmpty
+        ? (openingBalance[0]['Credit'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    List<Map<String, dynamic>> result = [
+      {
+        'Date': '',
+        'Particulars': 'Opening Balance',
+        'Voucher': '',
+        'EntryNo': '',
+        'Debit': openingBalDebit > 0 ? openingBalDebit : 0.0,
+        'Credit': openingBalCredit > 0 ? openingBalCredit : 0.0,
+        'Balance': '',
+        'Narration': '',
+      }
+    ];
+
+    var transactions = await db.rawQuery('''
+      SELECT
+        strftime('%d-%m-%Y', atDate) AS Date,
+        LedName AS Particulars,
+        atType AS Voucher,
+        atEntryno AS EntryNo,
+        CAST(atDebitAmount AS NUMERIC(10, 3)) AS Debit,
+        CAST(atCreditAmount AS NUMERIC(10, 3)) AS Credit,
+        atNarration AS Narration
+      FROM Account_Transactions a
+      JOIN LedgerNames b ON a.atOpposite = b.Ledcode
+      WHERE a.atLedCode = ? 
+        AND a.atBankEntry = 0
+        AND a.atDate BETWEEN ? AND ?
+      ORDER BY a.atDate, a.atLedCode
+    ''', [ledcode, fromdate, todate]);
+
+    double runningBalance = openingBalDebit - openingBalCredit; 
+    for (var transaction in transactions) {
+      double debit = (transaction['Debit'] as num?)?.toDouble() ?? 0.0;
+      double credit = (transaction['Credit'] as num?)?.toDouble() ?? 0.0;
+      runningBalance += debit - credit;
+
+      String balance = runningBalance > 0 ? "${runningBalance} Dr" : "${-runningBalance} Cr";
+
+      result.add({
+        'Date': transaction['Date'],
+        'Particulars': transaction['Particulars'],
+        'Voucher': transaction['Voucher'],
+        'EntryNo': transaction['EntryNo'],
+        'Debit': debit,
+        'Credit': credit,
+        'Balance': balance, 
+        'Narration': transaction['Narration']
+      });
+    }
+    double totalDebit = result.fold(0.0, (sum, item) => sum + (item['Debit'] ?? 0.0));
+    double totalCredit = result.fold(0.0, (sum, item) => sum + (item['Credit'] ?? 0.0));
+    result.add({
+      'Date': '',
+      'Particulars': 'Total',
+      'Voucher': '',
+      'EntryNo': '',
+      'Debit': totalDebit,
+      'Credit': totalCredit,
+      'Balance': '',
+      'Narration': ''
+    });
+    result.add({
+      'Date': '',
+      'Particulars': 'Closing Balance',
+      'Voucher': '',
+      'EntryNo': '',
+      'Debit': totalDebit > totalCredit ? totalDebit - totalCredit : 0,
+      'Credit': totalCredit > totalDebit ? totalCredit - totalDebit : 0,
+      'Balance': '', 
+      'Narration': ''
+    });
+
+    return result;
+  } catch (e) {
+    print('Error fetching simple ledger report: $e');
+    return [];
+  }
+}
+
+
+
 
 
 }

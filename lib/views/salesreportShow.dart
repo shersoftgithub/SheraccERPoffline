@@ -96,10 +96,10 @@ Future<void> _fetchSType() async {
 }
 
 
-Future<void> _fetchFilteredData() async {
+  Future<void> _fetchFilteredData() async {
   String? fromDateStr = widget.fromDate != null ? DateFormat('yyyy-MM-dd').format(widget.fromDate!) : null;
   String? toDateStr = widget.toDate != null ? DateFormat('yyyy-MM-dd').format(widget.toDate!) : null;
-
+         
   List<Map<String, dynamic>> ledgerData = await LedgerTransactionsDatabaseHelper.instance.fetchLedgerCodesAndNames();
   Map<String, String> ledgerCodeToNameMap = {
     for (var ledger in ledgerData) ledger['Ledcode'].toString(): ledger['LedName'].toString()
@@ -155,7 +155,6 @@ if (stype == '0') {
   stype = matchingType['Type'] ?? 'Other Status';  
 }
 
-
       return {
         ...ledger,
         'Name': ledName,
@@ -168,8 +167,6 @@ if (stype == '0') {
     }).toList();
   });
 }
-
-
 
 Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
   final pdf = pw.Document();
@@ -200,8 +197,8 @@ Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
                   data['Qty'].toString(),
                   data['Rate'].toString(),
                   data['Discount'].toString(),
-                   data['GrandTotal'].toString(),
-                    data['SType'].toString(),
+                  data['GrandTotal'].toString(),
+                  data['SType'].toString(),
                     
                 ];
               }).toList(),
@@ -304,7 +301,6 @@ void _generateAndViewPDF() async {
                 7: FixedColumnWidth(100),
                  8: FixedColumnWidth(100),
                  9: FixedColumnWidth(100),
-                // 10: FixedColumnWidth(100),
               },
               children: [
                 TableRow(
@@ -313,10 +309,10 @@ void _generateAndViewPDF() async {
                     _buildHeaderCell('Date'),
                     _buildHeaderCell('Cutomer Name'),
                     _buildHeaderCell('itemId'),
-                     _buildHeaderCell('Itemname'),
+                    _buildHeaderCell('Itemname'),
                     _buildHeaderCell('Qty'),
-                     _buildHeaderCell('Rate'),
-                     _buildHeaderCell('Dicount'),
+                    _buildHeaderCell('Rate'),
+                    _buildHeaderCell('Dicount'),
                     _buildHeaderCell('Total'),
                     _buildHeaderCell('SType'),
                     
@@ -326,7 +322,7 @@ void _generateAndViewPDF() async {
                   return TableRow(
                     children: [
                        
-                      _buildDataCell(data['RealEntryNo'].toString()),
+                  _buildDataCell(data['EntryNo'].toString()),
                   _buildDataCell(data['InfoDDate'].toString()),
                   _buildDataCell(data['Toname'].toString()),
                   _buildDataCell(data['ItemID'].toString()),
@@ -337,18 +333,6 @@ void _generateAndViewPDF() async {
                   _buildDataCell(data['GrandTotal'].toString()),
                   _buildDataCell(data['SType'].toString()),
                   
-                      // _buildDataCell(data[SaleDatabaseHelper.columnId].toString()), // Invoice No
-                      // _buildDataCell(DateFormat('dd-MM-yyyy').format(data[SaleDatabaseHelper.columnDate])),
-
-                      // _buildDataCell(data[SaleDatabaseHelper.columnSaleRate].toString()), // Sale Rate
-                      // _buildDataCell(data[SaleDatabaseHelper.columnCustomer]), // Customer
-                      // _buildDataCell(data[SaleDatabaseHelper.columnPhoneNo]), // Phone No
-                      // _buildDataCell(data[SaleDatabaseHelper.columnItemName]), // Item Name
-                      // _buildDataCell(data[SaleDatabaseHelper.columnQTY].toString()), // Quantity
-                      // _buildDataCell(data[SaleDatabaseHelper.columnUnit]), // Unit
-                      // _buildDataCell(data[SaleDatabaseHelper.columnRate].toString()), // Rate
-                      // _buildDataCell(data[SaleDatabaseHelper.columnTax].toString()), // Tax
-                      // _buildDataCell(data[SaleDatabaseHelper.columnTotalAmt].toString()), // Total Amount
                     ],
                   );
                 }).toList(),
