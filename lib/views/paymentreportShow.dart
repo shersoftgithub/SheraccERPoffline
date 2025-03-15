@@ -160,11 +160,10 @@ Future<File> generatePdf(List<Map<String, dynamic>> Data) async {
             ),
             pw.SizedBox(height: 10),
             pw.Table.fromTextArray(
-              headers: ['No', 'Date', 'Debit', 'Credit', 'Name', 'Discount', 'Narration'],
+              headers: [ 'Date', 'Debit', 'Credit', 'Name', 'Discount', 'Narration'],
               data: [
                 ...Data.map((report) {
-                  return [
-                    report['auto'].toString(),
+                  return [                  
                     report['ddate'] ?? '',
                     report['Amount']?.toString() ?? 'N/A',
                     report['Total']?.toString() ?? 'N/A',
@@ -173,8 +172,6 @@ Future<File> generatePdf(List<Map<String, dynamic>> Data) async {
                     report['Narration'] ?? 'N/A',
                   ];
                 }).toList(),
-                // Closing Balance Row
-                ['', '', 'Closing Balance', closingBalance.toStringAsFixed(2), '', '', ''],
               ],
             ),
           ],
@@ -264,18 +261,18 @@ void _generateAndViewPDF() async {
                 width: 1.0,
               ),
               columnWidths: {
-                0: FixedColumnWidth(50),
-                1: FixedColumnWidth(120),
-                2: FixedColumnWidth(150),
-                3: FixedColumnWidth(150),
-                4: FixedColumnWidth(150),
-                5: FixedColumnWidth(150),
-                6: FixedColumnWidth(150),
+               
+                0: FixedColumnWidth(80),
+                1: FixedColumnWidth(100),
+                2: FixedColumnWidth(100),
+                3: FixedColumnWidth(110),
+                4: FixedColumnWidth(100),
+                5: FixedColumnWidth(90),
               },
               children: [
                 TableRow(
                   children: [
-                    _buildHeaderCell('No'),
+                   
                       _buildHeaderCell('Date'),
                       _buildHeaderCell('Debit'),
                       _buildHeaderCell('Credit'),
@@ -290,12 +287,12 @@ void _generateAndViewPDF() async {
                   Map<String, dynamic> data = entry.value;
                   return TableRow(
                     children: [
-                    _buildDataCell(data['auto'].toString()), 
+                    //_buildDataCell(data['auto'].toString()), 
                      _buildDataCell(data['ddate'].toString()), 
-                     _buildDataCell(data['Amount'] != null ? data['Amount'].toString() : 'N/A'), 
-                    _buildDataCell(data['Total'] != null ? data['Total'].toString() : 'N/A'), 
+                     _buildDataCell3(data['Amount'] != null ? data['Amount'].toString() : 'N/A'), 
+                    _buildDataCell3(data['Total'] != null ? data['Total'].toString() : 'N/A'), 
                       _buildDataCell(data['Name'] ?? 'N/A'), 
-                      _buildDataCell(data['Discount'] != null ? data['Discount'].toString() : 'N/A'), 
+                      _buildDataCell3(data['Discount'] != null ? data['Discount'].toString() : 'N/A'), 
                        _buildDataCell(data['Narration'] ?? 'N/A'),
                       // _buildDataCell(index.toString()),
                       // _buildDataCell(data['atLedCode'].toString()),
@@ -312,17 +309,17 @@ void _generateAndViewPDF() async {
                     ],
                   );
                 }).toList(),
-                TableRow(
-      children: [
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell2('Closing Balance'),
-        _buildDataCell(OpeningBalance.toStringAsFixed(2)),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-      ],
-    ),
+    //             TableRow(
+    //   children: [
+        
+    //     _buildDataCell(''),
+    //     _buildDataCell2('Closing Balance'),
+    //     _buildDataCell(OpeningBalance.toStringAsFixed(2)),
+    //     _buildDataCell(''),
+    //     _buildDataCell(''),
+    //     _buildDataCell(''),
+    //   ],
+    // ),
               ],
             ),
           ),
@@ -334,22 +331,32 @@ void _generateAndViewPDF() async {
   Widget _buildHeaderCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
-      color: Colors.white,
+      color: Colors.blue,
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: getFonts(13, Colors.black),
+        style: getFonts(11, Colors.black),
       ),
     );
   }
 
   Widget _buildDataCell(String text) {
     return Container(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(5.0),
       child: Text(
         text,
-        style: getFonts(12, Colors.black),
+        style: getFonts(10, Colors.black),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+  Widget _buildDataCell3(String text) {
+    return Container(
+      padding: const EdgeInsets.all(5.0),
+      child: Text(
+        text,
+        style: getFonts(10, Colors.black),
+        textAlign: TextAlign.right,
       ),
     );
   }

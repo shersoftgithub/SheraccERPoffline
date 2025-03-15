@@ -50,10 +50,10 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
 
 
   final List<String> menuItems = [
-    "Company",
+    //"Company",
     "Configure",
     "Settings",
-    "Sync Data",
+   // "Sync Data",
     "Import",
     "Export Backup",
     "Clear Data",
@@ -178,7 +178,7 @@ void _showAuthDialog(BuildContext context) {
 
 Future<void> fetchAndStoreLedgerData() async {
   try {
-    final query = "EXEC dbo.Sp_AccountReport @statementType='Ledger_Report'";
+    final query = "select CONVERT(char(10),getdate(),126) as DDate,atLedCode Name,'OPENING BALANCE' Type,0 Opposite,0 EntryNo,(CASE WHEN sum(atDebitAmount-atCreditAmount)>0 Then sum(atDebitAmount-atCreditAmount) else 0 end) DebitAmount,(CASE WHEN sum(atDebitAmount-atCreditAmount)>0 Then 0 else sum(atCreditAmount-atDebitAmount) end) CreditAmount,'1' Firm,0 Auto,'' Narration,0 Project from Account_Transactions where atLedCode In (select Ledcode from LedgerNames l inner join LedgerHeads lh on l.lh_id = lh.lh_id where l.Active=1) group by atLedCode\n";
     final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
     if (rawData is String) {
@@ -349,23 +349,23 @@ Future<void> fetchAndStoreAllLedgerReports() async {
 
   void navigateToPage(BuildContext context, String item) {
     switch (item) {
-      case "Company":
-      Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => Company()));
-        break;
+      // case "Company":
+      // Navigator.push(
+      //                   context, MaterialPageRoute(builder: (_) => Company()));
+      //   break;
       case "Configure":
       _showAuthDialog(context);
         break;
       case "Settings":
       _showAuthDialogsettings(context);
         break;
-      case "Sync Data":
-       fetchAndStoreLedgerData();
+      // case "Sync Data":
+      //  fetchAndStoreLedgerData();
 
-       //fetchAndStoreAllLedgerReports();
+      //  //fetchAndStoreAllLedgerReports();
      
-        print("Syncing data...");
-        break;
+      //   print("Syncing data...");
+      //   break;
       case "Import":
       Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Backupdata()));

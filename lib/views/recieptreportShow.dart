@@ -133,60 +133,60 @@ List<Map<String, dynamic>> Data=[];
 // }
 
 
-Future<File> generatePdf(List<Map<String, dynamic>> Data) async {
-  final pdf = pw.Document();
+  Future<File> generatePdf(List<Map<String, dynamic>> Data) async {
+    final pdf = pw.Document();
 
-  // Calculate total debit and credit
-  double totalDebit = 0;
-  double totalCredit = 0;
+    double totalDebit = 0;
+    double totalCredit = 0;
 
-  for (var report in Data) {
-    totalDebit += double.tryParse(report['Amount']?.toString() ?? '0') ?? 0;
-    totalCredit += double.tryParse(report['Total']?.toString() ?? '0') ?? 0;
+    // Ensure to handle the data properly to sum up the totals for debit and credit
+    for (var report in Data) {
+      totalDebit += double.tryParse(report['Amount']?.toString() ?? '0') ?? 0;
+      totalCredit += double.tryParse(report['Total']?.toString() ?? '0') ?? 0;
+    }
+
+    double closingBalance = totalDebit - totalCredit;
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Receipt Report',
+                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Table.fromTextArray(
+                headers: ['Date', 'Debit', 'Credit', 'Name', 'Discount', 'Narration'],
+                data: [
+                  ...Data.map((report) {
+                    return [
+                      report['ddate'] ?? '',
+                      report['Amount']?.toString() ?? 'N/A',
+                      report['Total']?.toString() ?? 'N/A',
+                      report['Name'] ?? 'N/A',
+                      report['Discount']?.toString() ?? 'N/A',
+                      report['Narration'] ?? 'N/A',
+                    ];
+                  }).toList(),
+                ],
+              ),
+              pw.SizedBox(height: 10),
+             
+            ],
+          );
+        },
+      ),
+    );
+
+    final output = await getExternalStorageDirectory();
+    final file = File("${output!.path}/receipt_report.pdf");
+    await file.writeAsBytes(await pdf.save());
+    return file;
   }
-
-  double closingBalance = totalDebit - totalCredit;
-
-  pdf.addPage(
-    pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      build: (pw.Context context) {
-        return pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              'Reciept Report',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 10),
-            pw.Table.fromTextArray(
-              headers: ['No', 'Date', 'Debit', 'Credit', 'Name', 'Discount', 'Narration'],
-              data: [
-                ...Data.map((report) {
-                  return [
-                    report['auto'].toString(),
-                    report['ddate'] ?? '',
-                    report['Amount']?.toString() ?? 'N/A',
-                    report['Total']?.toString() ?? 'N/A',
-                    report['Name'] ?? 'N/A',
-                    report['Discount']?.toString() ?? 'N/A',
-                    report['Narration'] ?? 'N/A',
-                  ];
-                }).toList(),
-                ['', '', 'Closing Balance', closingBalance.toStringAsFixed(2), '', '', ''],
-              ],
-            ),
-          ],
-        );
-      },
-    ),
-  );
-
-  final output = await getExternalStorageDirectory();
-  final file = File("${output!.path}/payment_report.pdf");
-  await file.writeAsBytes(await pdf.save());
-  return file;
-}
 
 
 void _generateAndViewPDF() async {
@@ -260,18 +260,16 @@ void _generateAndViewPDF() async {
                 width: 1.0,
               ),
               columnWidths: {
-                 0: FixedColumnWidth(50),
-                1: FixedColumnWidth(120),
-                2: FixedColumnWidth(150),
-                3: FixedColumnWidth(150),
-                4: FixedColumnWidth(150),
-                5: FixedColumnWidth(150),
-                6: FixedColumnWidth(150),
+                0: FixedColumnWidth(80),
+                1: FixedColumnWidth(100),
+                2: FixedColumnWidth(100),
+                3: FixedColumnWidth(110),
+                4: FixedColumnWidth(100),
+                5: FixedColumnWidth(90),
               },
               children: [
                 TableRow(
                   children: [
-                    _buildHeaderCell('No'),
                       _buildHeaderCell('Date'),
                       _buildHeaderCell('Debit'),
                       _buildHeaderCell('Credit'),
@@ -284,12 +282,12 @@ void _generateAndViewPDF() async {
                 ...Data.map((data) {
                   return TableRow(
                     children: [
-                  _buildDataCell(data['auto'].toString()), 
+                 // _buildDataCell(data['auto'].toString()), 
                      _buildDataCell(data['ddate'].toString()), 
-                     _buildDataCell(data['Amount'] != null ? data['Amount'].toString() : 'N/A'), 
-                    _buildDataCell(data['Total'] != null ? data['Total'].toString() : 'N/A'), 
+                     _buildDataCell3(data['Amount'] != null ? data['Amount'].toString() : 'N/A'), 
+                    _buildDataCell3(data['Total'] != null ? data['Total'].toString() : 'N/A'), 
                       _buildDataCell(data['Name'] ?? 'N/A'), 
-                      _buildDataCell(data['Discount'] != null ? data['Discount'].toString() : 'N/A'), 
+                      _buildDataCell3(data['Discount'] != null ? data['Discount'].toString() : 'N/A'), 
                        _buildDataCell(data['Narration'] ?? 'N/A'),
                       // _buildDataCell(data[ReceiptDatabaseHelper.columnId].toString()),
                       // _buildDataCell(data[ReceiptDatabaseHelper.columnDate].toString()),
@@ -300,17 +298,16 @@ void _generateAndViewPDF() async {
                     ],
                   );
                 }).toList(),
-                      TableRow(
-      children: [
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell2('Closing Balance'),
-        _buildDataCell(OpeningBalance.toStringAsFixed(2)),
-        _buildDataCell(''),
-        _buildDataCell(''),
-        _buildDataCell(''),
-      ],
-    ),
+    //                   TableRow(
+    //   children: [
+    //     _buildDataCell(''),
+    //     _buildDataCell2('Closing Balance'),
+    //     _buildDataCell(OpeningBalance.toStringAsFixed(2)),
+    //     _buildDataCell(''),
+    //     _buildDataCell(''),
+    //     _buildDataCell(''),
+    //   ],
+    // ),
                 // TableRow(
                 //   children: [
                 //     _buildDataCell(''),
@@ -331,11 +328,11 @@ void _generateAndViewPDF() async {
   Widget _buildHeaderCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
-      color: Colors.white,
+      color: Colors.blue,
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: TextStyle(fontWeight: FontWeight.bold),
+        style: TextStyle(fontWeight: FontWeight.bold,fontSize: 11),
         overflow: TextOverflow.ellipsis,  
         softWrap: false,  
       ),
@@ -344,11 +341,21 @@ void _generateAndViewPDF() async {
 
     Widget _buildDataCell(String text) {
     return Container(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(5.0),
       child: Text(
         text,
-        style: getFonts(12, Colors.black),
+        style: getFonts(10, Colors.black),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+   Widget _buildDataCell3(String text) {
+    return Container(
+      padding: const EdgeInsets.all(5.0),
+      child: Text(
+        text,
+        style: getFonts(10, Colors.black),
+        textAlign: TextAlign.right,
       ),
     );
   }

@@ -49,7 +49,7 @@ class _PaymentFormState extends State<PaymentForm> {
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
 
     setState(() {
-      _total = balance - amount - discount;
+      _total = double.parse(_balanceText)  - amount - discount;
     });
   }
     
@@ -173,22 +173,33 @@ for (var fyRecord in fy) {
     break;  
   }
 }
-    final transactionData = {
-      'atDate': _dateController.text,
-      'atLedCode': ledCode,
-      'atDebitAmount': amount,
-      'atCreditAmount': total,
-      'atType': 'PAYMENT',
-      'Caccount': _cashAccController.text,
-      'atDiscount': _DiscountController.text,
-      'atNaration': _narrationController.text,
-      'atLedName': _selectlnamesController.text,
-      'atEntryno': 0,
-      'atFyID': selectedFyID
-    };
+    // final transactionData = {
+    //   'atDate': _dateController.text,
+    //   'atLedCode': ledCode,
+    //   'atDebitAmount': amount,
+    //   'atCreditAmount': _TotalController.text,
+    //   'atType': 'PAYMENT',
+    //   'Caccount': _cashAccController.text,
+    //   'atDiscount': _DiscountController.text,
+    //   'atNaration': _narrationController.text,
+    //   'atLedName': _selectlnamesController.text,
+    //   'atEntryno': 0,
+    //   'atFyID': selectedFyID
+    // };
 
-    await LedgerTransactionsDatabaseHelper.instance.insertAccTrans(transactionData);
+    final transactionDataaa={
+    'date' : _dateController.text,
+    'ledId' : ledCode,
+    'ledgername': _selectlnamesController,
+    'amount': amount,
+    'discount':_DiscountController.text,
+    'total': _TotalController.text,
+    'narration':_narrationController.text,
+    'FyID': selectedFyID
+     };
 
+    //await LedgerTransactionsDatabaseHelper.instance.insertAccTrans(transactionData);
+await LedgerTransactionsDatabaseHelper.instance.inserttmp_voucher(transactionDataaa);
     if (ledgerDetails != null) {
       final double currentBalance = ledgerDetails['OpeningBalance'] as double? ?? 0.0;
       final double updatedBalance = currentBalance - amount - discount;
@@ -307,9 +318,9 @@ void _saveDataPV_Perticular() async {
 
     await PV_DatabaseHelper.instance.insertPVParticulars(transactionData);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved successfully')),
-    );
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Saved successfully')),
+    // );
 
     setState(() {
       _amountController.clear();
@@ -705,6 +716,48 @@ void _saveDataPV_Information2() async {
     );
   }
 }
+// String? selectedLedgerName;
+//   double openingBalance = 0.0;
+//   List<Map<String, dynamic>> ledgerData = [];
+//  Future<void> _fetchLedgerDetailsOB(String ledgerName) async {
+//     var report = await LedgerTransactionsDatabaseHelper.instance.fetchSimpleLedgerReport(
+//       ledname: ledgerName,
+//       fromdate: '2025-01-01',
+//       todate: '2025-12-31',    
+//     );
+
+//     setState(() {
+//       selectedLedgerName = ledgerName;
+//       openingBalance = report['openingBalance'];
+//       ledgerData = List<Map<String, dynamic>>.from(report['ledgerData']);
+//     });
+//   }
+String _balanceText = "0.00"; 
+  double _balance = 0.0;
+  String _balanceType = ''; 
+ void _fetchBalance(String ledgerName) async {
+    if (ledgerName.isEmpty) return;
+
+    try {
+      Map<String, dynamic> result = await LedgerTransactionsDatabaseHelper.instance.getLedgerBalance(ledgerName);
+
+      if (result.containsKey('error')) {
+        setState(() {
+          _balanceText = result['error'];
+        });
+      } else {
+        setState(() {
+          _balance = (result['balance'] as double).abs();
+          _balanceType = result['balanceType'];
+          _balanceText = "${_balance.toStringAsFixed(2)}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _balanceText = "Error fetching balance: $e";
+      });
+    }
+  }
 
 bool _isLocked = false;
   @override
@@ -911,12 +964,13 @@ double _TotalController=_total;
                   SizedBox(width: screenWidth * 0.02),
                   Expanded(
                     child: EasyAutocomplete(
-                      suggestionBackgroundColor: Appcolors().Scfold,
-                        controller: _selectlnamesController,
-                        suggestions: names,
-                           inputTextStyle: getFontsinput(14, Colors.black),
-                        onSubmitted: (value) {
-                _fetchLedgerDetails(value); 
+                suggestionBackgroundColor: Appcolors().Scfold,
+                controller: _selectlnamesController,
+                suggestions: names,
+                inputTextStyle: getFontsinput(14, Colors.black),
+                onSubmitted: (value) {
+                  _fetchBalance(value);
+                //_fetchLedgerDetails(value); 
               },
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -966,7 +1020,7 @@ double _TotalController=_total;
       child: Container(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
         child: Row(children: [
           Text("Balance : ",style: getFonts(14, Appcolors().maincolor),),
-          Text("${_balanceController.text}",style: getFonts(14, Colors.black),)
+          Text("${_balanceText}",style: getFonts(14, Colors.black),)
         ],),
       ),
     ),
@@ -978,17 +1032,14 @@ double _TotalController=_total;
         SizedBox(height: screenHeight * 0.01),
         _paymentField("Discount", _DiscountController, screenWidth, screenHeight),
         SizedBox(height: screenHeight * 0.02),
-         Padding(
-      padding: const EdgeInsets.only(right: 220),
-      child: Container(
-        child: Row(
-          children: [
-            Text("Total : ",style: getFonts(16, Appcolors().maincolor),),
-            Text("${_TotalController.toString()}",style: getFonts(16, Colors.black),)
-          ],
-        ),
-      ),
-    ),
+         Container(
+           child: Row(
+             children: [
+               Expanded(child: Text("Total : ",style: getFonts(16, Appcolors().maincolor),)),
+               Text("${_TotalController.toString()}",style: getFonts(16, Colors.black),)
+             ],
+           ),
+         ),
       SizedBox(height: screenHeight * 0.02),
       Container(
       child: Column(

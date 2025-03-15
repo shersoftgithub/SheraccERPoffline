@@ -716,8 +716,8 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
                      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
            Container(
-  height: 35,
-  width: 170,
+  height: screenHeight * 0.043,
+        width: screenWidth * 0.4,
   decoration: BoxDecoration(
     borderRadius: BorderRadius.circular(8),
     color: Color(0xFF0A1EBE),
@@ -833,8 +833,8 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
           ),
           SizedBox(height: screenHeight * 0.01),
           Container(
-            height: 35,
-            width: 170,
+            height: screenHeight * 0.043,
+        width: screenWidth * 0.4,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(screenWidth * 0.02),
               color: Colors.white,
@@ -875,8 +875,8 @@ Widget _accfield(double screenHeight,double screenWidth,String label,TextEditing
   Widget _buttonOB(double screenHeight,double screenWidth,String txt){
      
     return Container(
-            height: 35,
-            width: 170,
+           height: screenHeight * 0.043,
+        width: screenWidth * 0.4,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: Color(0xFF0A1EBE),

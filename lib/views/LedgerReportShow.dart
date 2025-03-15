@@ -270,7 +270,7 @@ Future<void> _downloadExcel() async {
             ),
           ),
            Padding(
-            padding: const EdgeInsets.only(top: 20, right: 10),
+            padding:  EdgeInsets.only(top: screenHeight*0.02, right: screenHeight*0.02),
             child: PopupMenuButton<String>(
               onSelected: (String selectedItem) async{
                 if (selectedItem == 'Share') {
@@ -304,121 +304,69 @@ Future<void> _downloadExcel() async {
           padding:  EdgeInsets.only(top: screenHeight*0.02,),
           child: SingleChildScrollView( 
             scrollDirection: Axis.vertical,
-            child: Table(
-              
-  border: TableBorder.all(
-    color: Colors.black,
-    width: 1.0,
-  ),
-  columnWidths: {
-    
-    0: FixedColumnWidth(80),
-    1: FixedColumnWidth(160), 
-    //2: FixedColumnWidth(100),
-    2: FixedColumnWidth(120),
-    3: FixedColumnWidth(120),
-    4: FixedColumnWidth(160),
-    //7: FixedColumnWidth(140),
-    // 9: FixedColumnWidth(140),
-    // 10: FixedColumnWidth(120),
-    // 11: FixedColumnWidth(120),
-    //  12: FixedColumnWidth(120),
-  },
-  children: [
-    TableRow(
-      children: [
-        
-        _buildHeaderCell('Date'),
-        _buildHeaderCell('Particulars'),
-        //_buildHeaderCell('Voucher'),
-       // _buildHeaderCell('EntryNo'),
-        _buildHeaderCell('Debit'),
-        _buildHeaderCell('Credit'),
-        _buildHeaderCell('Balance'),
-       // _buildHeaderCell('Narration'),
-        
-      ],
-    ),
-   ...ledgerData.asMap().entries.map((entry) {
-                  int index = entry.key + 1; 
-                  Map<String, dynamic> data = entry.value;
-                  Color rowColor = (index % 2 == 0) ? Colors.white : Colors.white;
-      return TableRow(
-        children: [
-          _buildDataCell(data['Date']?.toString()  ?? 'N/A',rowColor),
-          _buildDataCell(data['Particulars']?.toString() ?? 'N/A',rowColor),
-          //_buildDataCell(data['Voucher'] ?.toString() ?? 'N/A',rowColor),
-         // _buildDataCell(data['EntryNo']?.toString() ??'N/A',rowColor),
-          _buildDataCellright(data['Debit'] ?.toString() ??'N/A',rowColor),
-          _buildDataCellright(data['Credit'] ?.toString() ?? 'N/A',rowColor),
-          _buildDataCellright(data['Balance'] ?.toString() ??'N/A',rowColor),
-          //_buildDataCell(data['Narration']?.toString() ?? 'N/A',rowColor),
-         
-        ],
-      );
-    }).toList(),
-   
-  ],
-),
+            
+            child: Container(
+              child: Table(
+                
+                border: TableBorder.all(
+                  color: Colors.black,
+                  width: 1.0,
+                ),
+                columnWidths: {
+                  
+                  0: FixedColumnWidth(80),
+                  1: FixedColumnWidth(140), 
+                  //2: FixedColumnWidth(100),
+                  2: FixedColumnWidth(110),
+                  3: FixedColumnWidth(110),
+                  4: FixedColumnWidth(140),
+                  //7: FixedColumnWidth(140),
+                  // 9: FixedColumnWidth(140),
+                  // 10: FixedColumnWidth(120),
+                  // 11: FixedColumnWidth(120),
+                  //  12: FixedColumnWidth(120),
+                },
+                children: [
+                  TableRow(
+                    children: [
+                      
+                      _buildHeaderCell('Date'),
+                      _buildHeaderCell('Particulars'),
+                      //_buildHeaderCell('Voucher'),
+                     // _buildHeaderCell('EntryNo'),
+                      _buildHeaderCell('Debit'),
+                      _buildHeaderCell('Credit'),
+                      _buildHeaderCell('Balance'),
+                     // _buildHeaderCell('Narration'),
+                      
+                    ],
+                  ),
+                 ...ledgerData.asMap().entries.map((entry) {
+                    int index = entry.key + 1; 
+                    Map<String, dynamic> data = entry.value;
+                    Color rowColor = (index % 2 == 0) ? Colors.white : Colors.white;
+                    return TableRow(
+                      children: [
+                        _buildDataCell(data['Date']?.toString()  ?? 'N/A',rowColor),
+                        _buildDataCellleft(data['Particulars']?.toString() ?? 'N/A',rowColor),
+                        //_buildDataCell(data['Voucher'] ?.toString() ?? 'N/A',rowColor),
+                       // _buildDataCell(data['EntryNo']?.toString() ??'N/A',rowColor),
+                        _buildDataCellright(data['Debit'] ?.toString() ??'N/A',rowColor),
+                        _buildDataCellright(data['Credit'] ?.toString() ?? 'N/A',rowColor),
+                        _buildDataCellright(data['Balance'] ?.toString() ??'N/A',rowColor),
+                        //_buildDataCell(data['Narration']?.toString() ?? 'N/A',rowColor),
+                       
+                      ],
+                    );
+                  }).toList(),
+                 
+                ],
+              ),
+            ),
 
           ),
         ),
       ),
-//       bottomNavigationBar: SafeArea(
-//   child: BottomAppBar(
-//     color: Colors.blueGrey[800],
-//     child: Padding(
-//       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
-//       child: Row(
-//         mainAxisAlignment: MainAxisAlignment.spaceAround, // Ensure spacing fits the screen
-//         children: [
-//           Expanded(
-//             child: Column(
-//               mainAxisSize: MainAxisSize.min,
-//               crossAxisAlignment: CrossAxisAlignment.center,
-//               children: [
-//                 Text("Total Debit", 
-//                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-//                     overflow: TextOverflow.ellipsis, maxLines: 1),
-//                 Text(totalDebitAmount.toStringAsFixed(2),
-//                     style: TextStyle(color: Colors.white, fontSize: 12),
-//                     overflow: TextOverflow.ellipsis, maxLines: 1),
-//               ],
-//             ),
-//           ),
-//           Expanded(
-//             child: Column(
-//               mainAxisSize: MainAxisSize.min,
-//               crossAxisAlignment: CrossAxisAlignment.center,
-//               children: [
-//                 Text("Total Credit", 
-//                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-//                     overflow: TextOverflow.ellipsis, maxLines: 1),
-//                 Text(totalCreditAmount.toStringAsFixed(2),
-//                     style: TextStyle(color: Colors.white, fontSize: 12),
-//                     overflow: TextOverflow.ellipsis, maxLines: 1),
-//               ],
-//             ),
-//           ),
-//           Expanded(
-//             child: Column(
-//               mainAxisSize: MainAxisSize.min,
-//               crossAxisAlignment: CrossAxisAlignment.center,
-//               children: [
-//                 Text("Closing Balance", 
-//                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-//                     overflow: TextOverflow.ellipsis, maxLines: 1),
-//                 Text(finalClosingBalance.toStringAsFixed(2),
-//                     style: TextStyle(color: Colors.white, fontSize: 12),
-//                     overflow: TextOverflow.ellipsis, maxLines: 1),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//     ),
-//   ),
-// ),
 
     );
   }
@@ -458,6 +406,17 @@ Future<void> _downloadExcel() async {
       ),
     );
   }
+   Widget _buildDataCellleft(String text,Color rowColor) {
+    return Container(
+      padding: const EdgeInsets.only(left: 6,top: 6,bottom: 6,right: 4),
+      color: rowColor,
+      child: Text(
+        text,
+        style: getFonts(10, Colors.black),
+        textAlign: TextAlign.left,
+      ),
+    );
+  }
 
    Widget _buildDataCell2(String text) {
     return Container(
@@ -468,7 +427,7 @@ Future<void> _downloadExcel() async {
         textAlign: TextAlign.center,
       ),
     );
-  }
+   } 
 
  void _showDownloadDialog(String filePath ) {
   showDialog(

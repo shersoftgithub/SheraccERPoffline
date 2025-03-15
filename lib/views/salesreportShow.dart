@@ -133,9 +133,9 @@ Future<void> _fetchSType() async {
       String itemName = itemIdToNameMap[itemID] ?? 'N/A';
 
       String formattedDate = 'N/A';
-      if (ledger['DDate'] != null && ledger['DDate'].toString().isNotEmpty) {
+      if (ledger['InfoDDate'] != null && ledger['InfoDDate'].toString().isNotEmpty) {
         try {
-          DateTime parsedDate = DateTime.parse(ledger['DDate'].toString());
+          DateTime parsedDate = DateTime.parse(ledger['InfoDDate'].toString());
           formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
         } catch (e) {
           print("Error parsing date: $e");
@@ -185,21 +185,20 @@ Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
             pw.SizedBox(height: 10),
             pw.Table.fromTextArray(
               headers: [
-                'Invoice No', 'Date', 'Customer','ItemId','Item Name', 'Qty','Rate', 'Discount', 'Total', ''
+                'Invoice No', 'Date', 'Customer', 'ItemId', 'Item Name', 'Qty', 'Rate', 'Discount', 'Total', 'SType',
               ],
               data: paymentData.map((data) {
                 return [
-                  data['RealEntryNo'].toString(),
-                  data['InfoDDate'].toString(),
-                  data['Toname'].toString(),
-                  data['ItemID'].toString(),
-                  data['itemname'].toString(),
-                  data['Qty'].toString(),
-                  data['Rate'].toString(),
-                  data['Discount'].toString(),
-                  data['GrandTotal'].toString(),
-                  data['SType'].toString(),
-                    
+                  data['EntryNo']?.toString() ?? '',
+                  data['InfoDDate']?.toString() ?? '',
+                  data['Toname']?.toString() ?? '',
+                  data['ItemID']?.toString() ?? '',
+                  data['itemname']?.toString() ?? '',
+                  data['TotalQty']?.toString() ?? '',
+                  data['Rate']?.toString() ?? '',
+                  data['Discount']?.toString() ?? '',
+                  data['GrandTotal']?.toString() ?? '',
+                  data['SType']?.toString() ?? '',
                 ];
               }).toList(),
             ),
@@ -214,6 +213,8 @@ Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
   await file.writeAsBytes(await pdf.save());
   return file;
 }
+
+
 
 void _generateAndViewPDF() async {
   File pdfFile = await generatePdf(paymentData);
@@ -291,16 +292,16 @@ void _generateAndViewPDF() async {
                 width: 1.0,
               ),
               columnWidths: {
-                0: FixedColumnWidth(100),
+                0: FixedColumnWidth(80),
                 1: FixedColumnWidth(100),
-                2: FixedColumnWidth(200),
-                3: FixedColumnWidth(100),
-                4: FixedColumnWidth(150),
-                5: FixedColumnWidth(100),
-                6: FixedColumnWidth(150),
-                7: FixedColumnWidth(100),
-                 8: FixedColumnWidth(100),
-                 9: FixedColumnWidth(100),
+                2: FixedColumnWidth(120),
+                3: FixedColumnWidth(60),
+                4: FixedColumnWidth(120),
+                5: FixedColumnWidth(40),
+                6: FixedColumnWidth(80),
+                7: FixedColumnWidth(70),
+                 8: FixedColumnWidth(80),
+                 9: FixedColumnWidth(80),
               },
               children: [
                 TableRow(
@@ -328,9 +329,9 @@ void _generateAndViewPDF() async {
                   _buildDataCell(data['ItemID'].toString()),
                   _buildDataCell(data['itemname'].toString()),
                   _buildDataCell(data['TotalQty'].toString()),
-                  _buildDataCell(data['Rate'].toString()),
-                  _buildDataCell(data['Discount'].toString()),
-                  _buildDataCell(data['GrandTotal'].toString()),
+                  _buildDataCell3(data['Rate'].toString()),
+                  _buildDataCell3(data['Discount'].toString()),
+                  _buildDataCell3(data['GrandTotal'].toString()),
                   _buildDataCell(data['SType'].toString()),
                   
                     ],
@@ -361,10 +362,11 @@ void _generateAndViewPDF() async {
 
   Widget _buildHeaderCell(String text) {
     return Container(
-      padding: const EdgeInsets.all(8.0),
+      color: Colors.blue,
+      padding: const EdgeInsets.all(5.0),
       child: Text(
         text,
-        style: getFonts(13, Colors.black),
+        style: getFonts(11, Colors.black),
         textAlign: TextAlign.center,
       ),
     );
@@ -372,11 +374,22 @@ void _generateAndViewPDF() async {
 
   Widget _buildDataCell(String text) {
     return Container(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(5.0),
       child: Text(
         text,
-        style: getFonts(12, Colors.black),
+        style: getFonts(10, Colors.black),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildDataCell3(String text) {
+    return Container(
+      padding: const EdgeInsets.all(5.0),
+      child: Text(
+        text,
+        style: getFonts(10, Colors.black),
+        textAlign: TextAlign.right,
       ),
     );
   }
@@ -391,3 +404,5 @@ void _generateAndViewPDF() async {
     );
   }
 }
+
+

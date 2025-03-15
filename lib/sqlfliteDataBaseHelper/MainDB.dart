@@ -108,6 +108,17 @@ class LedgerTransactionsDatabaseHelper {
       );
     ''');
 
+    db.execute('''CREATE TABLE IF NOT EXISTS tmp_voucher (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT,
+        ledgername TEXT,
+        amount REAL,
+        discount REAL,
+        total REAL,
+        narration TEXT,
+        ledId INTEGER,
+        FyID INTEGER
+      )''');
     print('Tables created successfully.');
   } catch (e) {
     print('Error creating tables: $e');
@@ -115,21 +126,54 @@ class LedgerTransactionsDatabaseHelper {
   }
   }
 
+Future<void> inserttmp_voucher(Map<String, dynamic> payData) async {
+  final db = await database;
+
+  try {
+    print('Inserting LedgerData: $payData');
+
+    final result = await db.insert(
+      'tmp_voucher',
+      payData,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    if (result > 0) {
+      print('Insertion successful. Row inserted with ID: $result');
+    } else {
+      print('Insertion failed. No row inserted.');
+    }
+
+    // Check if the data exists
+    final checkResult = await db.query(
+      'tmp_voucher',
+      where: 'id = ?',
+      whereArgs: [payData['id']],
+    );
+
+    if (checkResult.isNotEmpty) {
+      print('Data successfully inserted: ${checkResult.first}');
+    } else {
+      print('Data insertion was unsuccessful. Unable to find the inserted record.');
+    }
+  } catch (e) {
+    print('Error inserting ledger data: $e');
+  }
+}
+
 Future<void> insertAccTrans(Map<String, dynamic> newTableData) async {
   final db = await database;
 
   try {
-    // Fetch the last Auto value
     final List<Map<String, dynamic>> lastRecord = await db.rawQuery(
       "SELECT Auto FROM Account_Transactions ORDER BY CAST(Auto AS INTEGER) DESC LIMIT 1"
     );
 
-    int newAuto = 1; // Default value if table is empty
+    int newAuto = 1; 
     if (lastRecord.isNotEmpty && lastRecord.first['Auto'] != null) {
       newAuto = (int.tryParse(lastRecord.first['Auto'].toString()) ?? 0) + 1;
     }
 
-    // Add the new Auto value to the transaction data
     newTableData['Auto'] = newAuto.toString();
 
     await db.insert('Account_Transactions', newTableData, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -884,7 +928,6 @@ Future<void> updateMSSQLLedger(Map<String, dynamic> ledgerData) async {
 
 Future<void> syncAccountTransactionsToMSSQL(Map<String, dynamic> transaction) async {
   try {
-    // Validate 'Auto' value
     var auto = transaction['Auto'];
     if (auto == null || auto.toString().trim().isEmpty) {
       throw Exception('Auto is required for updates.');
@@ -895,12 +938,10 @@ Future<void> syncAccountTransactionsToMSSQL(Map<String, dynamic> transaction) as
       throw Exception('Invalid Auto value: $auto. It must be numeric.');
     }
 
-    // Function to escape strings for SQL
     String escapeString(String? value) {
       return value != null && value.isNotEmpty ? "'${value.replaceAll("'", "''")}'" : "NULL";
     }
 
-    // Function to parse numbers safely
     num? parseNumber(dynamic value) {
       if (value == null || value.toString().trim().isEmpty) return null;
       return num.tryParse(value.toString());
@@ -926,7 +967,6 @@ Future<void> syncAccountTransactionsToMSSQL(Map<String, dynamic> transaction) as
     final atFxDebit = parseNumber(transaction['atFxDebit']) ?? 0;
     final atFxCredit = parseNumber(transaction['atFxCredit']) ?? 0;
 
-    // SQL Query
     final query = '''
     SET IDENTITY_INSERT Account_Transactions ON;
 
@@ -964,18 +1004,14 @@ Future<void> syncAccountTransactionsToMSSQL(Map<String, dynamic> transaction) as
     SET IDENTITY_INSERT Account_Transactions OFF;
     ''';
 
-    // Debugging output
     print('Executing SQL query: $query');
 
-    // Ensure MSSQL connection is available
     if (MsSQLConnectionPlatform.instance == null) {
       throw Exception('MsSQLConnectionPlatform is not initialized');
     }
 
-    // Execute the query
     final result = await MsSQLConnectionPlatform.instance!.writeData(query);
 
-    // Log success
     if (result != null) {
       print('Query executed successfully: $result');
     } else {
@@ -1167,6 +1203,44 @@ Future<List<Map<String, dynamic>>> fetchSimpleLedgerReport({
   }
 }
 
+Future<Map<String, dynamic>> getLedgerBalance(String ledgerName) async {
+  final db = await database;
+
+  var ledgerCodeQuery = await db.rawQuery(''' 
+    SELECT Ledcode FROM LedgerNames WHERE LedName = ? 
+  ''', [ledgerName]);
+
+  if (ledgerCodeQuery.isEmpty) {
+    return {'error': 'Ledger not found'};
+  }
+
+  String ledgerCode = ledgerCodeQuery[0]['Ledcode'].toString();
+
+  try {
+    var result = await db.rawQuery('''
+      SELECT 
+        IFNULL(SUM(atDebitAmount), 0) AS totalDebit, 
+        IFNULL(SUM(atCreditAmount), 0) AS totalCredit
+      FROM Account_Transactions
+      WHERE atLedCode = ?
+    ''', [ledgerCode]);
+
+    double totalDebit = result.isNotEmpty ? result[0]['totalDebit'] as double : 0.0;
+    double totalCredit = result.isNotEmpty ? result[0]['totalCredit'] as double : 0.0;
+
+    double balance = totalDebit - totalCredit;
+
+    String balanceType = balance >= 0 ? 'DR' : 'CR';
+
+    return {
+      'balance': balance,
+      'balanceType': balanceType,
+    };
+  } catch (e) {
+    print('Error fetching ledger balance: $e');
+    return {'error': 'Failed to fetch ledger balance'};
+  }
+}
 
 
 
@@ -1222,8 +1296,6 @@ Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
             }
           }
         }
-
-        // Remove duplicates based on "Auto"
         Map<String, Map<String, dynamic>> uniqueDataMap = {
           for (var item in validData) item["Auto"].toString(): item
         };

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:easy_pdf_viewer/easy_pdf_viewer.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:open_filex/open_filex.dart';
@@ -41,41 +42,41 @@ class _SalePDFscreenState extends State<PayPDFscreen> {
     }
   }
 
-  Future<void> _downloadPDF() async {
-    try {
-      if (await Permission.storage.request().isDenied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Storage permission required!")),
-        );
-        return;
-      }
-
-      Directory? downloadsDir = await getExternalStorageDirectory();
-
-      if (downloadsDir == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to access storage directory.")),
-        );
-        return;
-      }
-
-      String newPath = "${downloadsDir.path}/payment_report.pdf";
-      File newFile = File(newPath);
-      
-      Uint8List bytes = await widget.pdfFile.readAsBytes();
-      await newFile.writeAsBytes(bytes);
-
+Future<void> _downloadPDF() async {
+  try {
+    var status = await Permission.storage.request();
+    if (!status.isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("PDF saved to: $newPath")),
+        const SnackBar(content: Text("Storage permission required!")),
       );
-      OpenFilex.open(newPath); 
-    } catch (e) {
-      print("Error downloading PDF: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to download PDF.")),
-      );
+      return;
     }
+    Directory? downloadsDir;
+    if (Platform.isAndroid) {
+      downloadsDir = Directory('/storage/emulated/0/Download/');
+    } else {
+      downloadsDir = await getDownloadsDirectory();
+    }
+
+    if (downloadsDir == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to access storage directory.")),
+      );
+      return;
+    }
+    final path = '${downloadsDir.path}/Payment_report.pdf';
+    File newFile = File(path);
+    Uint8List bytes = await widget.pdfFile.readAsBytes();
+    await newFile.writeAsBytes(bytes);
+   Fluttertoast.showToast(msg: "PDF Download Succesfully");
+    OpenFilex.open(path);
+  } catch (e) {
+    print("Error downloading PDF: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Failed to download PDF.")),
+    );
   }
+}
 
   Future<void> _sharePDF() async {
     try {

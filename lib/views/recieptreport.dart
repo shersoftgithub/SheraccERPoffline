@@ -115,29 +115,38 @@ void _showLedgerWithFilters() {
         child: Column(
           children: [
             SizedBox(height: screenHeight * 0.02),
-            Container(
-              height: screenHeight * 0.05,
-              width: screenWidth * 0.9,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
-                color: Colors.white,
-                border: Border.all(color: Appcolors().searchTextcolor),
-              ),
-              child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: SingleChildScrollView(
-                child: EasyAutocomplete(
-                    controller: ledgernamesController,
-                    suggestions: ledgerNames,
-                       
-                    onSubmitted: (value) {
-                              },
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                    ),
+           
+                 
+            Column(crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("select Ledger Name",style: formFonts(12, Colors.black),),
+                SizedBox(height: screenHeight * 0.01),
+                Container(
+                  height: screenHeight * 0.05,
+                  width: screenWidth * 0.9,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    color: Colors.white,
+                    border: Border.all(color: Appcolors().searchTextcolor),
                   ),
-              ),
-            ),
+                  child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                  child: SingleChildScrollView(
+                    child: EasyAutocomplete(
+                      suggestionBackgroundColor: Appcolors().scafoldcolor,
+                        controller: ledgernamesController,
+                        suggestions: ledgerNames,
+                           
+                        onSubmitted: (value) {
+                                  },
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                      ),
+                  ),
+                ),
+                ),
+              ],
             ),
          SizedBox(height: screenHeight * 0.02),
              Padding(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -36,10 +37,8 @@ class ServerConfig extends StatefulWidget {
       setState(() {
         connectedDbName = dbNameController.text.trim(); 
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connected to the database successfully!')),
-      );
+     Fluttertoast.showToast(msg:'Connected to the database successfully!' );
+     
 
     
     } catch (e) {

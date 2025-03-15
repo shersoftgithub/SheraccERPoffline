@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:easy_pdf_viewer/easy_pdf_viewer.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -43,36 +44,38 @@ class _SalePDFscreenState extends State<SalePDFscreen> {
 
   Future<void> _downloadPDF() async {
   try {
-    if (await Permission.storage.request().isDenied) {
+    var status = await Permission.storage.request();
+    if (!status.isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Storage permission required!")),
       );
       return;
     }
-    late Directory downloadsDir;
-
+    Directory? downloadsDir;
     if (Platform.isAndroid) {
-      downloadsDir = Directory('/storage/emulated/0/Download');
+      downloadsDir = Directory('/storage/emulated/0/Download/');
     } else {
-      downloadsDir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+      downloadsDir = await getDownloadsDirectory();
     }
 
-    if (!downloadsDir.existsSync()) {
-      downloadsDir.createSync(recursive: true);
+    if (downloadsDir == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to access storage directory.")),
+      );
+      return;
     }
-    String newPath = "${downloadsDir.path}/payment_report.pdf";
-    File newFile = File(newPath);
+
+    final path = '${downloadsDir.path}/Sales_report.pdf';
+    File newFile = File(path);
     Uint8List bytes = await widget.pdfFile.readAsBytes();
     await newFile.writeAsBytes(bytes);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("PDF saved to: $newPath")),
-    );
-    OpenFilex.open(newPath);
+    Fluttertoast.showToast(msg: "PDF Download Sucessfully");
+    
+    OpenFilex.open(path);
   } catch (e) {
     print("Error downloading PDF: $e");
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Failed to download PDF.")),
+      SnackBar(content: Text("Failed to download PDF.")),
     );
   }
 }

@@ -523,32 +523,26 @@ void _settingCashAccChanged(String value) {
   void _saveDataRV_Perticular2() async {
   try {
     final db = await PV_DatabaseHelper.instance.database;
-
     final lastDateRow = await db.rawQuery(
       'SELECT ddate FROM RV_Particulars ORDER BY ddate DESC LIMIT 1'
     );
-
     int newAuto = 1;
     double newEntryNo = 1.0;
-
     if (lastDateRow.isNotEmpty) {
       final lastDate = lastDateRow.first['ddate']?.toString() ?? '';
-
       final lastRow = await db.rawQuery(
         'SELECT auto, EntryNo FROM RV_Particulars WHERE ddate = ? ORDER BY auto DESC LIMIT 1',
         [lastDate]
       );
-
       if (lastRow.isNotEmpty) {
         final lastAuto = int.tryParse(lastRow.first['auto']?.toString() ?? '0') ?? 0;
         final lastEntryNo = double.tryParse(lastRow.first['EntryNo']?.toString() ?? '0') ?? 0.0;
-
         newAuto = lastAuto + 1;
         newEntryNo = lastEntryNo + 1.0;
       }
     }
 
-    final batch = db.batch(); // Start a batch transaction
+    final batch = db.batch(); 
 
     for (var item in temporaryData) {
       final double amount = double.tryParse(item['amount'].toString()) ?? 0.0;
