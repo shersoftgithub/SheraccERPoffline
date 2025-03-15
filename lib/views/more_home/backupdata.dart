@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
@@ -679,7 +680,7 @@ final stockData2 = await fetchDataFromMSSQLStock();
       final DbHelper = LedgerTransactionsDatabaseHelper.instance;
 for (var row in CompanyLedgerData) {
   Map<String, dynamic> rowData = {
-    'Ledcode': row['Ledcode']?.toString() ?? '', // Default empty string for null values
+    'Ledcode': row['Ledcode']?.toString() ?? '', 
     'LedName': row['LedName']?.toString() ?? 'Unknown',
     'lh_id': row['lh_id']?.toString() ?? '',
     'add1': row['add1']?.toString() ?? 'Default Address',
@@ -1235,10 +1236,10 @@ for (var row in stypeData) {
   Future<void> performBackup() async {
     setState(() => _isLoadingBackup = true); // Start loading
     try {
-      await backupMSSQLToSQLite();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup completed successfully.'))
-      );
+       await backupMSSQLToSQLite();
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('Backup completed successfully.'))
+      // );
       print("");
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1298,7 +1299,7 @@ for (var row in stypeData) {
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight * 0.02),
             child: GestureDetector(
               onTap: () {},
-              child: Icon(Icons.more_vert, color: Colors.white, size: 15),
+              child: Icon(Icons.more_vert, color: Colors.white, size: screenHeight*0.03),
             ),
           ),
         ],
@@ -1310,24 +1311,25 @@ for (var row in stypeData) {
 
       GestureDetector(
         onTap: _isLoadingBackup || _isLoadingCompany
-            ? null  // Disable button when any backup is running
+            ? null  
             : () async {
-                setState(() => _isLoadingBackup = true); // Start loading
+                setState(() => _isLoadingBackup = true);
 
                 try {
-                  await backupToLocalDatabase(); // Step 1
-                  await performBackup();         // Step 2
-                  await LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances(); // Step 3
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Backup process completed successfully!'))
-                  );
+                  await backupToLocalDatabase(); 
+                  await performBackup();         
+                 // await LedgerTransactionsDatabaseHelper.instance.updateOpeningBalances(); 
+                
+                Fluttertoast.showToast(msg: 'Backup process completed successfully!');
+                  // ScaffoldMessenger.of(context).showSnackBar(
+                  //   SnackBar(content: Text('Backup process completed successfully!'))
+                  // );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error during backup: $e'))
                   );
                 } finally {
-                  setState(() => _isLoadingBackup = false); // Stop loading
+                  setState(() => _isLoadingBackup = false); 
                 }
             },
         child: Container(
@@ -1336,12 +1338,12 @@ for (var row in stypeData) {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(5),
             color: _isLoadingBackup || _isLoadingCompany 
-                ? Colors.grey // Disable button while loading
+                ? Colors.grey 
                 : Appcolors().maincolor,
           ),
           child: Center(
             child: _isLoadingBackup
-                ? CircularProgressIndicator(color: Colors.white) // Show loading
+                ? CircularProgressIndicator(color: Colors.white) 
                 : Text("BackUp Data", style: getFonts(14, Colors.white)),
           ),
         ),
@@ -1349,12 +1351,11 @@ for (var row in stypeData) {
 
       SizedBox(height: 20),
 
-      /// Button for Company Backup (Runs Independently)
       GestureDetector(
         onTap: _isLoadingBackup || _isLoadingCompany
-            ? null  // Disable button if any backup is running
+            ? null  
             : () async {
-                setState(() => _isLoadingCompany = true); // Start loading
+                setState(() => _isLoadingCompany = true); 
                 try {
                   await companyBackup();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1365,7 +1366,7 @@ for (var row in stypeData) {
                     SnackBar(content: Text('Error during company backup: $e'))
                   );
                 } finally {
-                  setState(() => _isLoadingCompany = false); // Stop loading
+                  setState(() => _isLoadingCompany = false); 
                 }
             },
         child: Container(
@@ -1374,12 +1375,12 @@ for (var row in stypeData) {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(5),
             color: _isLoadingBackup || _isLoadingCompany
-                ? Colors.grey // Disable button while loading
+                ? Colors.grey 
                 : Appcolors().maincolor,
           ),
           child: Center(
             child: _isLoadingCompany
-                ? CircularProgressIndicator(color: Colors.white) // Show loading
+                ? CircularProgressIndicator(color: Colors.white)
                 : Text("Company Data", style: getFonts(14, Colors.white)),
           ),
         ),
