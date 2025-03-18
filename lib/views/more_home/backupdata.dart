@@ -407,6 +407,26 @@ Future<List<Map<String, dynamic>>> fetchDataSTYPEFromMSSQL() async {
     rethrow;
   }
 }
+
+ Future<List<Map<String, dynamic>>> fetchDataFormRegistrationFromMSSQL() async {
+    try {
+      final query = 'SELECT * FROM FormRegistration';
+      final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+      if (rawData is String) {
+        final decodedData = jsonDecode(rawData);
+        if (decodedData is List) {
+          return decodedData.map((row) => Map<String, dynamic>.from(row)).toList();
+        } else {
+          throw Exception('Unexpected JSON format for FormRegistration data: $decodedData');
+        }
+      }
+      throw Exception('Unexpected data format for FormRegistration: $rawData');
+    } catch (e) {
+      print('Error fetching data from FormRegistration: $e');
+      rethrow;
+    }
+  }
   //    Future<List<Map<String, dynamic>>> fetchDataCompanyFromMSSQL() async {
   //   try {
   //     final query = 'SELECT * FROM Company';
@@ -723,7 +743,7 @@ final paymentData = await fetch_P_vPerticularsDataFromMSSQL();
         );
         return;
       }
-      final DbHelperpay = PV_DatabaseHelper.instance;
+      final DbHelperpay = LedgerTransactionsDatabaseHelper.instance;
 for (var row in paymentData) {
   Map<String, dynamic> rowData = {
     'auto': row['auto']?.toString() ?? '', 
@@ -747,7 +767,7 @@ final paymentDatainfo = await fetch_P_vInformationsDataFromMSSQL();
         );
         return;
       }
-      final DbHelperpayinfo = PV_DatabaseHelper.instance;
+      final DbHelperpayinfo = LedgerTransactionsDatabaseHelper.instance;
 for (var row in paymentDatainfo) {
   Map<String, dynamic> rowData = {
     'RealEntryNo': row['RealEntryNo']?.toString() ?? '', 
@@ -781,7 +801,7 @@ final recimentData = await fetch_R_vPerticularsDataFromMSSQL();
         );
         return;
       }
-      final DbHelperReci = RV_DatabaseHelper.instance;
+      final DbHelperReci = LedgerTransactionsDatabaseHelper.instance;
 for (var row in recimentData) {
   Map<String, dynamic> rowData = {
     'auto': row['auto']?.toString() ?? '', 
@@ -808,7 +828,7 @@ final recieDatainfo = await fetch_R_vInformationsDataFromMSSQL();
         );
         return;
       }
-      final DbHelperreciinfo = RV_DatabaseHelper.instance;
+      final DbHelperreciinfo = LedgerTransactionsDatabaseHelper.instance;
 for (var row in recieDatainfo) {
   Map<String, dynamic> rowData = {
     'RealEntryNo': row['RealEntryNo']?.toString() ?? '', 
@@ -1193,9 +1213,26 @@ for (var row in stypeData) {
   await DbHelperstype.insertStype(rowData);
 }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('')),
-      );
+final FormregData = await fetchDataFormRegistrationFromMSSQL();
+ if (productData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperFormReg = LedgerTransactionsDatabaseHelper.instance;
+for (var row in FormregData) {
+  Map<String, dynamic> rowData = {
+      'fmrEntryNo': row['fmrEntryNo']?.toString() ?? '',  
+      'fmrName': row['fmrName']?.toString() ?? '',
+      'fmrTypeOfVoucher': row['fmrTypeOfVoucher']?.toString() ?? '',
+      'fmrAbbreviation': row['fmrAbbreviation']?.toString() ?? '',
+  };
+  await DbHelperFormReg.insertFormRegistration(rowData);
+}
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('')),
+      // );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error during local backup: $e')),

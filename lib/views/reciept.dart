@@ -57,7 +57,7 @@ class _PaymentFormState extends State<Reciept> {
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
 
     setState(() {
-      _total = balance - amount - discount;
+      _total = amount + discount;
     });
   }
 
@@ -251,7 +251,7 @@ for (var fyRecord in fy) {
 
 void _saveDataRV_Perticular() async {
   try {
-    final db = await RV_DatabaseHelper.instance.database;
+    final db = await LedgerTransactionsDatabaseHelper.instance.database;
 
     final lastDateRow = await db.rawQuery(
       'SELECT ddate FROM RV_Particulars ORDER BY ddate DESC LIMIT 1'
@@ -327,7 +327,7 @@ void _saveDataRV_Perticular() async {
       'EntryNo': newEntryNo.toString(),
       'ddate': selectedDate,
       'Amount': amount,
-      'Total': total,
+      'Total': _total,
       'CashAccount': _cashAccController.text,
       'Discount': _DiscountController.text,
       'Narration': _narrationController.text,
@@ -336,7 +336,7 @@ void _saveDataRV_Perticular() async {
       'FrmID': 2,
     };
 
-    await RV_DatabaseHelper.instance.insertRVParticulars(transactionData);
+    await LedgerTransactionsDatabaseHelper.instance.insertRVParticulars(transactionData);
 
     // ScaffoldMessenger.of(context).showSnackBar(
     //   SnackBar(content: Text('Saved successfully')),
@@ -375,7 +375,7 @@ List fy=[];
 
 void _saveDataRV_Information() async {
   try {
-    final db = await RV_DatabaseHelper.instance.database;
+    final db = await LedgerTransactionsDatabaseHelper.instance.database;
 
     final lastRow = await db.rawQuery(
       'SELECT * FROM RV_Information ORDER BY RealEntryNo DESC LIMIT 1'
@@ -453,7 +453,7 @@ for (var fyRecord in fy) {
       'pdate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
     };
 
-    await RV_DatabaseHelper.instance.insertRVInformation(transactionData);
+    await LedgerTransactionsDatabaseHelper.instance.insertRVInformation(transactionData);
 
     Fluttertoast.showToast(msg: "Saved successfully");
 
@@ -717,6 +717,33 @@ void _saveDataRV_Information2() async {
   }
 }
 
+String _balanceText = "0.00"; 
+  double _balance = 0.0;
+  String _balanceType = ''; 
+ void _fetchBalance(String ledgerName) async {
+    if (ledgerName.isEmpty) return;
+
+    try {
+      Map<String, dynamic> result = await LedgerTransactionsDatabaseHelper.instance.getLedgerBalance(ledgerName);
+
+      if (result.containsKey('error')) {
+        setState(() {
+          _balanceText = result['error'];
+        });
+      } else {
+        setState(() {
+          _balance = (result['balance'] as double).abs();
+          _balanceType = result['balanceType'];
+          _balanceText = "${_balance.toStringAsFixed(2)}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _balanceText = "$e";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -775,7 +802,7 @@ double _TotalController=_total;
              _saveDataRV_Perticular2();
             _saveDataRV_Information2();
               } else {
-                 _saveData();
+                 //_saveData();
                 _saveDataRV_Perticular();
                 _saveDataRV_Information();
               }
@@ -907,7 +934,8 @@ double _TotalController=_total;
                         suggestions: names,
                           inputTextStyle: getFontsinput(14, Colors.black), 
                         onSubmitted: (value) {
-                _fetchLedgerDetails(value); 
+                          _fetchBalance(value);
+                //_fetchLedgerDetails(value); 
               },
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -959,7 +987,7 @@ double _TotalController=_total;
           Text("Balance : ",style: getFonts(14, Appcolors().maincolor),),
 Flexible(
   child: Text(
-    "${_balanceController.text}",
+    "${_balanceText.toString()}",
     style: getFonts(14, Colors.black),
     overflow: TextOverflow.ellipsis, // Truncate text if too long
   ),
@@ -975,24 +1003,21 @@ Flexible(
         SizedBox(height: screenHeight * 0.01),
         _paymentField("Discount",_DiscountController, screenWidth, screenHeight),
         SizedBox(height: screenHeight * 0.02),
-         Padding(
-      padding: const EdgeInsets.only(right: 220),
-      child: Container(
-        child: Row(
-          children: [
-            Text("Total : ",style: getFonts(16, Appcolors().maincolor),),
-            Flexible(
-  child: Text(
-    "${_TotalController.toString()}",
-    style: getFonts(16, Colors.black),
-    overflow: TextOverflow.ellipsis, 
-  ),
-)
-
-          ],
-        ),
-      ),
-    ),
+         Container(
+           child: Row(
+             children: [
+               Text("Total : ",style: getFonts(16, Appcolors().maincolor),),
+               Flexible(
+           child: Text(
+             "${_TotalController.toString()}",
+             style: getFonts(16, Colors.black),
+             overflow: TextOverflow.ellipsis, 
+           ),
+         )
+         
+             ],
+           ),
+         ),
       SizedBox(height: screenHeight * 0.02),
            // _paymentField("Narration",_narrationController,screenWidth, screenHeight),
 Container(

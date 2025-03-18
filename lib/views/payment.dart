@@ -49,7 +49,7 @@ class _PaymentFormState extends State<PaymentForm> {
     final double balance = double.tryParse(_balanceController.text) ?? 0.0;
 
     setState(() {
-      _total = double.parse(_balanceText)  - amount - discount;
+      _total =  amount + discount;
     });
   }
     
@@ -231,9 +231,100 @@ await LedgerTransactionsDatabaseHelper.instance.inserttmp_voucher(transactionDat
   }
 }
 
+void saveTransactionData({
+  required int entryno,
+  required int fyid,
+  required int fmrid,
+  required double discountAmount,
+  required double cashAmount,
+  required String narration,
+}) async {
+
+  final db = await LedgerTransactionsDatabaseHelper.instance.database;
+
+   final lastRow = await db.rawQuery(
+  'SELECT * FROM Account_Transactions ORDER BY Auto DESC '
+
+);
+double newEntryNo = 1; 
+
+if (lastRow.isNotEmpty) {
+    final lastEntryNo = double.tryParse(lastRow.first['atEntryno']?.toString() ?? '0') ?? 0.0; // FIXED: Correct key lookup
+
+    print("Fetched lastAuto: lastEntryNo: $lastEntryNo"); 
+
+   
+    newEntryNo = lastEntryNo + 1;
+  }
+    final double amount = double.tryParse(_amountController.text) ?? 0.0;
+    final double balance = double.tryParse(_balanceController.text) ?? 0.0;
+    final double discount = double.tryParse(_DiscountController.text) ?? 0.0;
+    final double total = balance - amount - discount;
+
+    final ledgerDetails = await LedgerTransactionsDatabaseHelper.instance
+        .getLedgerDetailsByName(_selectlnamesController.text);
+
+    final String ledCode = ledgerDetails?['LedId'] ?? 'Unknown';
+int selectedFyID = 0; 
+String selectedDate = _dateController.text;
+for (var fyRecord in fy) {
+  DateTime fromDate = DateTime.parse(fyRecord['Frmdate'].toString());  
+  DateTime toDate = DateTime.parse(fyRecord['Todate'].toString());  
+  DateTime selected = DateTime.parse(selectedDate);  
+
+  if (selected.isAfter(fromDate) && selected.isBefore(toDate)) {
+    selectedFyID = int.tryParse(fyRecord['Fyid'].toString()) ?? 0;  
+    break;  
+  }
+}
+
+  await LedgerTransactionsDatabaseHelper.instance.insertTransactionData(
+    atDate: DateTime.now().toString(),
+    atLedCode:ledCode, 
+    atType: "PAYMENT", 
+    atEntryno: entryno,
+    atDebitAmount: 0,
+    atCreditAmount: amount,
+    atNarration: _narrationController.text,
+    atOpposite: ledCode, 
+    atSalesType: '0', 
+    atLocation: "1", 
+    atChequeNo: "0", 
+    atProject: "0", 
+    atFyID: selectedFyID,
+    atFxDebit: 0,
+    atFxCredit: cashAmount,
+  );
+
+  // Saving the Discount (if any)
+  if (discountAmount > 0) {
+    await LedgerTransactionsDatabaseHelper.instance.insertTransactionData(
+      atDate: DateTime.now().toString(),
+      atLedCode: "DISCOUNT ALLOWED",
+      atType: "Discount",
+      atEntryno: entryno,
+      atDebitAmount: discountAmount,
+      atCreditAmount: 0,
+     atNarration: _narrationController.text,
+    atOpposite: ledCode, 
+    atSalesType: '0', 
+    atLocation: "1", 
+    atChequeNo: "0", 
+    atProject: "0", 
+    atFyID: selectedFyID,
+    atFxDebit: 0,
+    atFxCredit: cashAmount,
+    );
+  }
+
+  print("Transaction saved successfully.");
+}
+
+
+
 void _saveDataPV_Perticular() async {
   try {
-    final db = await PV_DatabaseHelper.instance.database;
+    final db = await LedgerTransactionsDatabaseHelper.instance.database;
     final lastDateRow = await db.rawQuery(
       'SELECT ddate FROM PV_Particulars ORDER BY ddate DESC LIMIT 1'
     );
@@ -307,7 +398,7 @@ void _saveDataPV_Perticular() async {
       'EntryNo': newEntryNo.toString(),
       'ddate': selectedDate,
       'Amount': amount,
-      'Total': total,
+      'Total': _total,
       'CashAccount': _cashAccController.text,
       'Discount': _DiscountController.text,
       'Narration': _narrationController.text,
@@ -316,7 +407,7 @@ void _saveDataPV_Perticular() async {
       'FrmID': 1,
     };
 
-    await PV_DatabaseHelper.instance.insertPVParticulars(transactionData);
+    await LedgerTransactionsDatabaseHelper.instance.insertPVParticulars(transactionData);
 
     // ScaffoldMessenger.of(context).showSnackBar(
     //   SnackBar(content: Text('Saved successfully')),
@@ -354,7 +445,7 @@ List fy=[];
 
 void _saveDataPV_Information() async {
   try {
-    final db = await PV_DatabaseHelper.instance.database;
+    final db = await LedgerTransactionsDatabaseHelper.instance.database;
 
     final lastRow = await db.rawQuery(
       'SELECT * FROM PV_Information ORDER BY RealEntryNo DESC LIMIT 1'
@@ -430,7 +521,7 @@ for (var fyRecord in fy) {
       'pdate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
     };
 
-    await PV_DatabaseHelper.instance.insertPVInformation(transactionData);
+    await LedgerTransactionsDatabaseHelper.instance.insertPVInformation(transactionData);
     Fluttertoast.showToast(msg: "Saved successfully");
     // ScaffoldMessenger.of(context).showSnackBar(
     //   SnackBar(content: Text('Saved successfully')),
@@ -634,7 +725,7 @@ void _saveDataPV_Information2() async {
     if (lastRow.isNotEmpty) {
       final lastData = lastRow.first;
 
-      newEntryNo = (lastData['RealEntryNo'] as int? ?? 0) + 1;  // Increment EntryNo correctly
+      newEntryNo = (lastData['RealEntryNo'] as int? ?? 0) + 1;  
       lastTakeUser = lastData['takeuser'] as String? ?? '';
       lastLocation = lastData['Location'] as int? ?? 0;
       lastProject = lastData['Project'] as int? ?? 0;
@@ -647,7 +738,6 @@ void _saveDataPV_Information2() async {
       lastPviCurrencyValue = lastData['pviCurrencyValue'] as int? ?? 0;
     }
 
-    // Use a batch operation for efficiency
     final batch = db.batch();
 
     for (var entry in temporaryData) {
@@ -749,12 +839,12 @@ String _balanceText = "0.00";
         setState(() {
           _balance = (result['balance'] as double).abs();
           _balanceType = result['balanceType'];
-          _balanceText = "${_balance.toStringAsFixed(2)}";
+          _balanceText = "${_balance.toStringAsFixed(2)} $_balanceType";
         });
       }
     } catch (e) {
       setState(() {
-        _balanceText = "Error fetching balance: $e";
+        _balanceText = "$e";
       });
     }
   }
@@ -806,7 +896,7 @@ double _TotalController=_total;
       _saveDataPV_Information2();
       
     } else {
-      _saveData();
+      //_saveData();
       _saveDataPV_Perticular();
       _saveDataPV_Information();
       
@@ -1015,14 +1105,11 @@ double _TotalController=_total;
         ),
       ),
     
-    Padding(
-      padding: const EdgeInsets.only(right: 190),
-      child: Container(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02),
-        child: Row(children: [
-          Text("Balance : ",style: getFonts(14, Appcolors().maincolor),),
-          Text("${_balanceText}",style: getFonts(14, Colors.black),)
-        ],),
-      ),
+    Container(padding: EdgeInsets.symmetric(horizontal: screenHeight*0.025),
+      child: Row(children: [
+        Text("Balance : ",style: getFonts(14, Appcolors().maincolor),),
+        SafeArea(child: Text("${_balanceText}",style: getFonts(14, Colors.black),))
+      ],),
     ),
     SizedBox(height: screenHeight * 0.02),
     Container(
@@ -1033,13 +1120,20 @@ double _TotalController=_total;
         _paymentField("Discount", _DiscountController, screenWidth, screenHeight),
         SizedBox(height: screenHeight * 0.02),
          Container(
-           child: Row(
-             children: [
-               Expanded(child: Text("Total : ",style: getFonts(16, Appcolors().maincolor),)),
-               Text("${_TotalController.toString()}",style: getFonts(16, Colors.black),)
-             ],
-           ),
-         ),
+        child: Row(
+          children: [
+            Text("Total : ",style: getFonts(16, Appcolors().maincolor),),
+            Flexible(
+  child: Text(
+    "${_TotalController.toString()}",
+    style: getFonts(16, Colors.black),
+    overflow: TextOverflow.ellipsis, 
+  ),
+)
+
+          ],
+        ),
+      ),
       SizedBox(height: screenHeight * 0.02),
       Container(
       child: Column(

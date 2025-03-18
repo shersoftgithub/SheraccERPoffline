@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:mssql_connection/mssql_connection_platform_interface.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -72,6 +73,43 @@ class RV_DatabaseHelper {
       );
     ''');
 
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS FormRegistration ( 
+        fmrEntryNo TEXT,
+        fmrName TEXT,
+        fmrTypeOfVoucher TEXT,
+        fmrAbbreviation TEXT
+      );
+    ''');
+
+    await db.execute(''' 
+      CREATE TABLE IF NOT EXISTS Account_Transactions (
+       Auto TEXT,
+        atDate TEXT,
+        atLedCode TEXT,
+        atType TEXT,
+        atEntryno TEXT,
+        atDebitAmount REAL,
+        atCreditAmount REAL,
+        atNarration TEXT,
+        atOpposite TEXT,
+        atSalesEntryno TEXT,
+        atSalesType TEXT,
+        atLocation TEXT,
+        atChequeNo TEXT,
+        atProject TEXT,
+        atBankEntry TEXT,
+        atInvestor TEXT,
+        atFyID TEXT,
+        atFxDebit TEXT,
+        atFxCredit TEXT,
+        Caccount TEXT,
+        atDiscount REAL,
+        atNaration TEXT,
+        atLedName TEXT
+      );
+    ''');
+
   }
  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
   if (oldVersion < 2) {  
@@ -82,6 +120,27 @@ class RV_DatabaseHelper {
     ''');
   }
 }
+
+ Future<void> insertFormRegistration(Map<String, dynamic> data) async {
+    final db = await database;
+    try {
+      final result = await db.insert(
+        'FormRegistration',
+        data,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (result > 0) {
+        print('FormRegistration Inserted: $data');
+      } else {
+        print(' Failed to insert FormRegistration.');
+      }
+    } catch (e) {
+      print(' Error inserting into FormRegistration: $e');
+    }
+  }
+
+
   Future<void> insertPVParticulars(List<Map<String, dynamic>> data) async {
     final db = await database;
         Batch batch = db.batch();
@@ -96,39 +155,31 @@ class RV_DatabaseHelper {
   }
 
   Future<void> insertRVParticulars(Map<String, dynamic> payData) async {
-  final db = await database;
+    final db = await database;
 
-  try {
-    print('Inserting LedgerData: $payData');
+    try {
+      print('Inserting RV_Particulars: $payData');
 
-    final result = await db.insert(
-      'RV_Particulars',
-      payData,
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+      // Insert into RV_Particulars
+      final result = await db.insert(
+        'RV_Particulars',
+        payData,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
 
-    if (result > 0) {
-      print('Insertion successful. Row inserted with ID: $result');
-    } else {
-      print('Insertion failed. No row inserted.');
+      if (result > 0) {
+        print('RV_Particulars Insertion successful. Row inserted with ID: $result');
+
+        // After inserting into RV_Particulars, execute SQL queries for Account_Transactions
+        await _insertAccountTransaction(payData);
+      } else {
+        print('Insertion failed. No row inserted.');
+      }
+
+    } catch (e) {
+      print('Error inserting RV_Particulars: $e');
     }
-
-    // Check if the data exists
-    final checkResult = await db.query(
-      'RV_Particulars',
-      where: 'auto = ?',
-      whereArgs: [payData['auto']],
-    );
-
-    if (checkResult.isNotEmpty) {
-      print('Data successfully inserted: ${checkResult.first}');
-    } else {
-      print('Data insertion was unsuccessful. Unable to find the inserted record.');
-    }
-  } catch (e) {
-    print('Error inserting ledger data: $e');
   }
-}
   
   Future<List<Map<String, dynamic>>> fetchPVParticulars() async {
     final db = await database;
@@ -212,8 +263,6 @@ class RV_DatabaseHelper {
 
   List<String> whereClauses = [];
   List<dynamic> whereArgs = [];
-
-  // Date filtering
   if (fromDate != null && toDate != null) {
     String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
     String toDateString = DateFormat('yyyy-MM-dd').format(toDate);
@@ -221,14 +270,10 @@ class RV_DatabaseHelper {
     whereClauses.add("DATE(ddate) BETWEEN DATE(?) AND DATE(?)");
     whereArgs.addAll([fromDateString, toDateString]);
   }
-
-  // Ledger name filtering
   if (ledgerName != null && ledgerName.isNotEmpty) {
     whereClauses.add('Name LIKE ?');
     whereArgs.add('%$ledgerName%');
   }
-
-  // Construct WHERE clause
   String whereClause = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : '';
 
   try {
@@ -257,7 +302,6 @@ Future<List<Map<String, dynamic>>> fetchNewRVParticulars(int lastMssqlAuto) asyn
 Future<List<Map<String, dynamic>>> fetchNewRVInformation(int lastMssqlAuto) async {
   final db = await database;
   
-  // Fetch only newly added rows where auto > last MSSQL auto
   final List<Map<String, dynamic>> result = await db.query(
     'RV_Information',
     where: 'RealEntryNo > ?',
@@ -267,4 +311,65 @@ Future<List<Map<String, dynamic>>> fetchNewRVInformation(int lastMssqlAuto) asyn
 
   return result;
 }
+
+Future<void> _insertAccountTransaction(Map<String, dynamic> payData) async {
+  final results = await Future.wait([
+    database,
+    LedgerTransactionsDatabaseHelper.instance.database, 
+  ]);
+
+  final db = results[0];
+  final db2 = results[1];
+  try {
+    await db.transaction((txn) async {
+      if (payData['Amount'] > 0) {
+        await txn.rawInsert('''
+          INSERT INTO Account_Transactions (
+            atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+            atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+            atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+          ) 
+          SELECT 
+            a.ddate, a.Name, b.fmrAbbreviation, a.EntryNo, 
+            0, a.Amount, a.Narration, c.DEBITACCOUNT, 0, fmrAbbreviation, c.Location, 
+            '', 0, 0, 0, a.FyID, 0, a.Amount
+          FROM RV_Particulars a
+          JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+          JOIN RV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+          WHERE a.Amount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+        ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+        print('Account Transaction inserted for Amount');
+      }
+
+      if (payData['Discount'] > 0) {
+        await txn.rawInsert('''
+          INSERT INTO Account_Transactions (
+            atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+            atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+            atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+          ) 
+          SELECT 
+            a.ddate, a.Name, b.fmrAbbreviation, a.EntryNo, 
+            a.Discount, 0, a.Narration, 
+            (SELECT ledcode FROM LedgerNames WHERE LedName = 'DISCOUNT ALLOWED'), 
+            0, fmrAbbreviation, c.Location, '', 0, 0, 0, a.FyID, a.Discount, 0
+          FROM RV_Particulars a
+          JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+          JOIN RV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+          WHERE a.Discount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+        ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+        print('Account Transaction inserted for Discount');
+      }
+    });
+
+  } catch (e) {
+    print('Error inserting into Account_Transactions: $e');
+  }
 }
+
+
+}
+
+

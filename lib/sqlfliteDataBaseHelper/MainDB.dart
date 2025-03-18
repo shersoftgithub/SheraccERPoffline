@@ -108,6 +108,55 @@ class LedgerTransactionsDatabaseHelper {
       );
     ''');
 
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS RV_Particulars (
+        auto TEXT PRIMARY KEY,
+        EntryNo TEXT,
+        Name TEXT,
+        Amount REAL,
+        Discount REAL,
+        Total REAL,
+        Narration TEXT,
+        ddate TEXT,
+        CashAccount TEXT,
+        FyID TEXT,
+        FrmID TEXT
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS RV_Information (
+        RealEntryNo INTEGER PRIMARY KEY AUTOINCREMENT,
+        DDATE TEXT,
+        AMOUNT TEXT,
+        Discount REAL,
+        Total REAL,
+        DEBITACCOUNT TEXT,
+        takeuser TEXT,
+        Location INTEGER,
+        Project INTEGER,
+        SalesMan INTEGER,
+        MonthDate TEXT,
+        app INTEGER,
+        Transfer_Status INTEGER,
+        FyID INTEGER,
+        EntryNo INTEGER,
+        FrmID INTEGER,
+        pviCurrency INTEGER,
+        pviCurrencyValue INTEGER,
+        pdate TEXT
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS FormRegistration ( 
+        fmrEntryNo TEXT,
+        fmrName TEXT,
+        fmrTypeOfVoucher TEXT,
+        fmrAbbreviation TEXT
+      );
+    ''');
+
     db.execute('''CREATE TABLE IF NOT EXISTS tmp_voucher (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT,
@@ -119,12 +168,498 @@ class LedgerTransactionsDatabaseHelper {
         ledId INTEGER,
         FyID INTEGER
       )''');
+
+         await db.execute('''
+      CREATE TABLE IF NOT EXISTS PV_Particulars (
+        auto TEXT PRIMARY KEY,
+        EntryNo TEXT,
+        Name TEXT,
+        Amount REAL,
+        Discount REAL,
+        Total REAL,
+        Narration TEXT,
+        ddate TEXT,
+        CashAccount TEXT,
+        FyID TEXT,
+        FrmID TEXT
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS PV_Information (
+        RealEntryNo INTEGER PRIMARY KEY AUTOINCREMENT,
+        DDATE TEXT,
+        AMOUNT REAL,
+        Discount REAL,
+        Total REAL,
+        CreditAccount TEXT,
+        takeuser TEXT,
+        Location INTEGER,
+        Project INTEGER,
+        SalesMan INTEGER,
+        MonthDate TEXT,
+        app INTEGER,
+        Transfer_Status INTEGER,
+        FyID INTEGER,
+        EntryNo INTEGER,
+        FrmID INTEGER,
+        pviCurrency INTEGER,
+        pviCurrencyValue INTEGER,
+        pdate TEXT
+      );
+    ''');
+
     print('Tables created successfully.');
   } catch (e) {
     print('Error creating tables: $e');
     rethrow;
   }
   }
+
+Future<void> insertRVParticulars(Map<String, dynamic> payData) async {
+    final db = await database;
+
+    try {
+      print('Inserting RV_Particulars: $payData');
+      final result = await db.insert(
+        'RV_Particulars',
+        payData,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (result > 0) {
+        print('RV_Particulars Insertion successful. Row inserted with ID: $result');
+        await _insertAccountTransaction(payData);
+      } else {
+        print('Insertion failed. No row inserted.');
+      }
+
+    } catch (e) {
+      print('Error inserting RV_Particulars: $e');
+    }
+  }
+
+
+   Future<void> insertRVInformation(Map<String, dynamic> data) async {
+    final db = await database;
+    try {
+      final result = await db.insert(
+        'RV_Information',
+        data,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (result > 0) {
+        print('RV_Information Inserted: $data');
+      } else {
+        print(' Failed to insert RV_Information.');
+      }
+    } catch (e) {
+      print(' Error inserting into RV_Information: $e');
+    }
+  }
+   Future<void> insertFormRegistration(Map<String, dynamic> data) async {
+    final db = await database;
+    try {
+      final result = await db.insert(
+        'FormRegistration',
+        data,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (result > 0) {
+        print('FormRegistration Inserted: $data');
+      } else {
+        print(' Failed to insert FormRegistration.');
+      }
+    } catch (e) {
+      print(' Error inserting into FormRegistration: $e');
+    }
+  }
+
+Future<void> _insertAccountTransaction(Map<String, dynamic> payData) async {
+  final results = await Future.wait([database, LedgerTransactionsDatabaseHelper.instance.database]);
+
+  final db = results[0];
+  final db2 = results[1];
+
+  try {
+    double amount = 0.0;
+    if (payData['Amount'] != null) {
+      amount = double.tryParse(payData['Amount'].toString()) ?? 0.0;
+    }
+
+    print("Amount parsed: $amount");
+
+    await db.transaction((txn) async {
+      if (amount > 0) {
+        await txn.rawInsert('''
+          INSERT INTO Account_Transactions (
+            atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+            atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+            atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+          ) 
+          SELECT 
+            a.ddate, a.Name, b.fmrAbbreviation, a.EntryNo, 
+            0, a.Amount, a.Narration, c.DEBITACCOUNT, 0, fmrAbbreviation, c.Location, 
+            '', 0, 0, 0, a.FyID, 0, a.Amount
+          FROM RV_Particulars a
+          JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+          JOIN RV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+          WHERE a.Amount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+        ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+        print('Account Transaction inserted for Amount');
+
+        List<Map<String, dynamic>> insertedData = await txn.rawQuery(''' 
+          SELECT * FROM Account_Transactions
+          WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
+        ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+        print('Inserted Account Transaction Data for Amount: $insertedData');
+
+        await txn.rawInsert('''
+          INSERT INTO Account_Transactions (
+            atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+            atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+            atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+          ) 
+          SELECT 
+            a.ddate, c.DEBITACCOUNT, b.fmrAbbreviation, a.EntryNo, 
+            a.Amount, 0, a.Narration, a.Name, 0, fmrAbbreviation, c.Location, 
+            '', 0, 0, 0, a.FyID, 0, a.Amount
+          FROM RV_Particulars a
+          JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+          JOIN RV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+          WHERE a.Amount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+        ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+        print('Second Account Transaction inserted for Amount');
+
+        List<Map<String, dynamic>> secondInsertedData = await txn.rawQuery(''' 
+          SELECT * FROM Account_Transactions
+          WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
+        ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+        print('Inserted Account Transaction Data for Amount (Second): $secondInsertedData');
+      }
+
+      if (payData['Discount'] != null) {
+        double discount = double.tryParse(payData['Discount'].toString()) ?? 0.0;
+
+        if (discount > 0) {
+          await txn.rawInsert('''
+            INSERT INTO Account_Transactions (
+              atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+              atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+              atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+            ) 
+            SELECT 
+              a.ddate, a.Name, b.fmrAbbreviation, a.EntryNo, 
+              a.Discount, 0, a.Narration, 
+              (SELECT ledcode FROM LedgerNames WHERE LedName = 'DISCOUNT ALLOWED'), 
+              0, fmrAbbreviation, c.Location, '', 0, 0, 0, a.FyID, a.Discount, 0
+            FROM RV_Particulars a
+            JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+            JOIN RV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+            WHERE a.Discount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+          ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+          print('Account Transaction inserted for Discount');
+
+          List<Map<String, dynamic>> discountData = await txn.rawQuery(''' 
+            SELECT * FROM Account_Transactions
+            WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
+          ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+          print('Inserted Account Transaction Data for Discount: $discountData');
+
+          await txn.rawInsert('''
+            INSERT INTO Account_Transactions (
+              atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+              atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+              atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+            ) 
+            SELECT 
+              a.ddate, (SELECT ledcode FROM LedgerNames WHERE LedName = 'DISCOUNT ALLOWED'), 
+              b.fmrAbbreviation, a.EntryNo, 
+              0, a.Discount, a.Narration, a.Name, 0, fmrAbbreviation, c.Location, 
+              '', 0, 0, 0, a.FyID, a.Discount, 0
+            FROM RV_Particulars a
+            JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+            JOIN RV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+            WHERE a.Discount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+          ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+          print('Second Account Transaction inserted for Discount');
+
+          List<Map<String, dynamic>> secondDiscountData = await txn.rawQuery(''' 
+            SELECT * FROM Account_Transactions
+            WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
+          ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
+
+          print('Inserted Account Transaction Data for Discount (Second): $secondDiscountData');
+        }
+      }
+    });
+  } catch (e) {
+    print('Error inserting into Account_Transactions: $e');
+  }
+}
+
+   Future<List<Map<String, dynamic>>> queryFilteredRowsReci({
+  DateTime? fromDate, 
+  DateTime? toDate, 
+  String? ledgerName,
+}) async {
+  Database db = await instance.database;
+
+  List<String> whereClauses = [];
+  List<dynamic> whereArgs = [];
+  if (fromDate != null && toDate != null) {
+    String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
+    String toDateString = DateFormat('yyyy-MM-dd').format(toDate);
+
+    whereClauses.add("DATE(ddate) BETWEEN DATE(?) AND DATE(?)");
+    whereArgs.addAll([fromDateString, toDateString]);
+  }
+  if (ledgerName != null && ledgerName.isNotEmpty) {
+    whereClauses.add('Name LIKE ?');
+    whereArgs.add('%$ledgerName%');
+  }
+  String whereClause = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : '';
+
+  try {
+    return await db.query(
+      'RV_Particulars',
+      where: whereClause.isNotEmpty ? whereClause : null, 
+      whereArgs: whereClause.isNotEmpty ? whereArgs : null,
+    );
+  } catch (e) {
+    print("Error fetching filtered data: $e");
+    rethrow;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////PV_TABLES////////////////////////////////////////////////////
+
+ Future<void> insertPVParticulars(Map<String, dynamic> payData2) async {
+    final db = await database;
+
+    try {
+      print('Inserting LedgerData: $payData2');
+
+      final result = await db.insert(
+        'PV_Particulars',
+        payData2,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (result > 0) {
+        print(' PV_Particulars Inserted: $payData2');
+        await _insertAccountTransactionPV(payData2);
+      } else {
+        print(' Failed to insert PV_Particulars.');
+      }
+    } catch (e) {
+      print('Error inserting into PV_Particulars: $e');
+    }
+  }
+
+  Future<void> insertPVInformation(Map<String, dynamic> data) async {
+    final db = await database;
+    try {
+      final result = await db.insert(
+        'PV_Information',
+        data,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (result > 0) {
+        print(' PV_Information Inserted: $data');
+      } else {
+        print(' Failed to insert PV_Information.');
+      }
+    } catch (e) {
+      print(' Error inserting into PV_Information: $e');
+    }
+  }
+
+
+Future<void> _insertAccountTransactionPV(Map<String, dynamic> payData2) async {
+  final results = await Future.wait([database, LedgerTransactionsDatabaseHelper.instance.database]);
+
+  final db = results[0];
+  final db2 = results[1];
+
+  try {
+    double amount = 0.0;
+    if (payData2['Amount'] != null) {
+      amount = double.tryParse(payData2['Amount'].toString()) ?? 0.0;
+    }
+
+    print("Amount parsed: $amount");
+
+    await db.transaction((txn) async {
+      if (amount > 0) {
+        await txn.rawInsert('''
+          INSERT INTO Account_Transactions (
+            atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+            atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+            atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+          ) 
+          SELECT 
+            a.ddate, a.Name, b.fmrAbbreviation, a.EntryNo, 
+            0, a.Amount, a.Narration, c.CreditAccount, 0, fmrAbbreviation, c.Location, 
+            '', 0, 0, 0, a.FyID, 0, a.Amount
+          FROM PV_Particulars a
+          JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+          JOIN PV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+          WHERE a.Amount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+        ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+
+        print('Account Transaction inserted for Amount');
+
+        List<Map<String, dynamic>> insertedData = await txn.rawQuery(''' 
+          SELECT * FROM Account_Transactions
+          WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
+        ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+
+        print('Inserted Account Transaction Data for Amount: $insertedData');
+
+        await txn.rawInsert('''
+          INSERT INTO Account_Transactions (
+            atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+            atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+            atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+          ) 
+          SELECT 
+            a.ddate, c.CreditAccount, b.fmrAbbreviation, a.EntryNo, 
+            a.Amount, 0, a.Narration, a.Name, 0, fmrAbbreviation, c.Location, 
+            '', 0, 0, 0, a.FyID, 0, a.Amount
+          FROM PV_Particulars a
+          JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+          JOIN PV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+          WHERE a.Amount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+        ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+
+        print('Second Account Transaction inserted for Amount');
+
+        List<Map<String, dynamic>> secondInsertedData = await txn.rawQuery(''' 
+          SELECT * FROM Account_Transactions
+          WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
+        ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+
+        print('Inserted Account Transaction Data for Amount (Second): $secondInsertedData');
+      }
+
+      if (payData2['Discount'] != null) {
+        double discount = double.tryParse(payData2['Discount'].toString()) ?? 0.0;
+
+        if (discount > 0) {
+          await txn.rawInsert('''
+            INSERT INTO Account_Transactions (
+              atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+              atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+              atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+            ) 
+            SELECT 
+              a.ddate, a.Name, b.fmrAbbreviation, a.EntryNo, 
+              a.Discount, 0, a.Narration, 
+              (SELECT ledcode FROM LedgerNames WHERE LedName = 'DISCOUNT ALLOWED'), 
+              0, fmrAbbreviation, c.Location, '', 0, 0, 0, a.FyID, a.Discount, 0
+            FROM PV_Particulars a
+            JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+            JOIN PV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+            WHERE a.Discount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+          ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+
+          print('Account Transaction inserted for Discount');
+
+          List<Map<String, dynamic>> discountData = await txn.rawQuery(''' 
+            SELECT * FROM Account_Transactions
+            WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
+          ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+
+          print('Inserted Account Transaction Data for Discount: $discountData');
+
+          await txn.rawInsert('''
+            INSERT INTO Account_Transactions (
+              atDate, atLedCode, atType, atEntryno, atDebitAmount, atCreditAmount, 
+              atNarration, atOpposite, atSalesEntryno, atSalesType, atLocation, 
+              atChequeNo, atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+            ) 
+            SELECT 
+              a.ddate, (SELECT ledcode FROM LedgerNames WHERE LedName = 'DISCOUNT ALLOWED'), 
+              b.fmrAbbreviation, a.EntryNo, 
+              0, a.Discount, a.Narration, a.Name, 0, fmrAbbreviation, c.Location, 
+              '', 0, 0, 0, a.FyID, a.Discount, 0
+            FROM PV_Particulars a
+            JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
+            JOIN PV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
+            WHERE a.Discount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
+          ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+
+          print('Second Account Transaction inserted for Discount');
+
+          List<Map<String, dynamic>> secondDiscountData = await txn.rawQuery(''' 
+            SELECT * FROM Account_Transactions
+            WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
+          ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+
+          print('Inserted Account Transaction Data for Discount (Second): $secondDiscountData');
+        }
+      }
+    });
+  } catch (e) {
+    print('Error inserting into Account_Transactions: $e');
+  }
+}
+
+  Future<List<Map<String, dynamic>>> queryFilteredRowsPV({
+  DateTime? fromDate, 
+  DateTime? toDate, 
+  String? ledgerName,
+}) async {
+  Database db = await instance.database;
+
+  List<String> whereClauses = [];
+  List<dynamic> whereArgs = [];
+
+  // Date filtering
+  if (fromDate != null && toDate != null) {
+    String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
+    String toDateString = DateFormat('yyyy-MM-dd').format(toDate);
+
+    whereClauses.add("DATE(ddate) BETWEEN DATE(?) AND DATE(?)");
+    whereArgs.addAll([fromDateString, toDateString]);
+  }
+
+  // Ledger name filtering
+  if (ledgerName != null && ledgerName.isNotEmpty) {
+    whereClauses.add('Name LIKE ?');
+    whereArgs.add('%$ledgerName%');
+  }
+
+  // Construct WHERE clause
+  String whereClause = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : '';
+
+  try {
+    return await db.query(
+      'PV_Particulars',
+      where: whereClause.isNotEmpty ? whereClause : null, 
+      whereArgs: whereClause.isNotEmpty ? whereArgs : null,
+    );
+  } catch (e) {
+    print("Error fetching filtered data: $e");
+    rethrow;
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
 
 Future<void> inserttmp_voucher(Map<String, dynamic> payData) async {
   final db = await database;
@@ -160,6 +695,56 @@ Future<void> inserttmp_voucher(Map<String, dynamic> payData) async {
     print('Error inserting ledger data: $e');
   }
 }
+
+
+
+ Future<void> insertTransactionData({
+    required String atDate,
+    required String atLedCode,
+    required String atType,
+    required int atEntryno,
+    required double atDebitAmount,
+    required double atCreditAmount,
+    required String atNarration,
+    required String atOpposite,
+    required String atSalesType,
+    required String atLocation,
+    required String atChequeNo,
+    required String atProject,
+    required int atFyID,
+    required double atFxDebit,
+    required double atFxCredit,
+  }) async {
+    final db = await database;
+
+    await db.insert(
+      'Account_Transactions',
+      {
+        'atDate': atDate,
+        'atLedCode': atLedCode,
+        'atType': atType,
+        'atEntryno': atEntryno,
+        'atDebitAmount': atDebitAmount,
+        'atCreditAmount': atCreditAmount,
+        'atNarration': atNarration,
+        'atOpposite': atOpposite,
+        'atSalesEntryno': atEntryno,  
+        'atSalesType': atSalesType,
+        'atLocation': atLocation,
+        'atChequeNo': atChequeNo,
+        'atProject': atProject,
+        'atBankEntry': 0, 
+        'atInvestor': 0,  
+        'atFyID': atFyID,
+        'atFxDebit': atFxDebit,
+        'atFxCredit': atFxCredit,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+
+
 
 Future<void> insertAccTrans(Map<String, dynamic> newTableData) async {
   final db = await database;
@@ -1205,7 +1790,6 @@ Future<List<Map<String, dynamic>>> fetchSimpleLedgerReport({
 
 Future<Map<String, dynamic>> getLedgerBalance(String ledgerName) async {
   final db = await database;
-
   var ledgerCodeQuery = await db.rawQuery(''' 
     SELECT Ledcode FROM LedgerNames WHERE LedName = ? 
   ''', [ledgerName]);
@@ -1223,13 +1807,12 @@ Future<Map<String, dynamic>> getLedgerBalance(String ledgerName) async {
         IFNULL(SUM(atCreditAmount), 0) AS totalCredit
       FROM Account_Transactions
       WHERE atLedCode = ?
+        AND atBankEntry = 0
     ''', [ledgerCode]);
 
     double totalDebit = result.isNotEmpty ? result[0]['totalDebit'] as double : 0.0;
     double totalCredit = result.isNotEmpty ? result[0]['totalCredit'] as double : 0.0;
-
     double balance = totalDebit - totalCredit;
-
     String balanceType = balance >= 0 ? 'DR' : 'CR';
 
     return {
@@ -1241,6 +1824,7 @@ Future<Map<String, dynamic>> getLedgerBalance(String ledgerName) async {
     return {'error': 'Failed to fetch ledger balance'};
   }
 }
+
 
 
 

@@ -41,10 +41,11 @@ final String? taxstatusCC;
 final String? selectedType;
 final String? selectedid;
 final List<Map<String, dynamic>>? tempdata;
+final List<Map<String, dynamic>>? tempdataCASH;
 final String?cusname;
 final double? grandtotal;
   const SalesOrder({super.key, this.salesCredit,this.salesDebit,this.itemDetails,this.discPerc,this.discnt,this.net,this.tot,this.tax,this.taxstatus,this.selectedType,this.selectedid,
-  this.discPercCC,this.discntCC,this.netCC,this.totCC,this.taxCC,this.taxstatusCC,this.tempdata,this.cusname,this.grandtotal
+  this.discPercCC,this.discntCC,this.netCC,this.totCC,this.taxCC,this.taxstatusCC,this.tempdata,this.cusname,this.grandtotal,this.tempdataCASH
   });
   @override
   State<SalesOrder> createState() => _SalesOrderState();
@@ -1920,6 +1921,34 @@ List<String> Ratedetails=[
 ];
 
 
+String _balanceText = "0.00"; 
+  double _balance = 0.0;
+  String _balanceType = ''; 
+ void _fetchBalance(String ledgerName) async {
+    if (ledgerName.isEmpty) return;
+
+    try {
+      Map<String, dynamic> result = await LedgerTransactionsDatabaseHelper.instance.getLedgerBalance(ledgerName);
+
+      if (result.containsKey('error')) {
+        setState(() {
+          _balanceText = result['error'];
+        });
+      } else {
+        setState(() {
+          _balance = (result['balance'] as double).abs();
+          _balanceType = result['balanceType'];
+          _balanceText = "${_balance.toStringAsFixed(2)} $_balanceType";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _balanceText = "$e";
+      });
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -2233,7 +2262,7 @@ _InvoicenoController.text=updatedInno.toString();
     child: DropdownButton<String>(
       dropdownColor: Appcolors().Scfold,
       style: getFontsinput(14, Colors.black),
-      value: _selectedKey, // Ensure _selectedKey is initialized with a value from RateDetails
+      value: _selectedKey, 
       onChanged: (String? newValue) {
         setState(() {
           _selectedKey = newValue;
@@ -2286,9 +2315,10 @@ _InvoicenoController.text=updatedInno.toString();
 
       inputTextStyle: getFontsinput(14, Colors.black),
       onSubmitted: (value) async {
- 
+          _fetchBalance(value); 
         if (!isCustomerSelected) {
           await _fetchLedgerDetails(value);
+         
           await _fetchItems(customer: value);
            setState(() {
               _CustomerController.text = value;  
@@ -2599,7 +2629,7 @@ if(_CustomerController.text.isEmpty){
                         children: [
                            Text("₹",style: getFonts(14, Colors.black)),
                      Text(
-                          '${openingBalance.toString()}'
+                          '${_balanceText}',style: getFonts(14, Colors.black54),
                         )
                         ],
                       ),
@@ -2676,7 +2706,10 @@ if(_CustomerController.text.isEmpty){
   Widget _CashScreenContent(double screenHeight,double screenWidth) {
       List<String> ledgerNamesAsString = ledgerIds.map((id) => id.toString()).toList();
    double additem_total=widget.salesDebit?.totalAmt??0.0;
-   
+   _InvoicenoController.text=updatedInno.toString(); 
+   double cashReceived = double.tryParse(_cashRecieveController.text) ?? 0.0;
+
+   double balance = additem_total - cashReceived; 
     return Column(
       children: [
         SizedBox(height: screenHeight*0.02,),
@@ -2702,7 +2735,7 @@ if(_CustomerController.text.isEmpty){
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
-           child: Text("$nextInvoiceId",style: getFontsinput(14, Colors.black),),
+           child: Text("${updatedInno.toString()}",style: getFontsinput(14, Colors.black),),
           ),
         ],
       ),
@@ -2762,24 +2795,33 @@ if(_CustomerController.text.isEmpty){
               color: Colors.white,
               border: Border.all(color: Appcolors().searchTextcolor),
             ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _CashsalerateController,
-                      style: getFontsinput(14, Colors.black),
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+     Expanded(
+  child: DropdownButtonHideUnderline(
+    child: DropdownButton<String>(
+      dropdownColor: Appcolors().Scfold,
+      style: getFontsinput(14, Colors.black),
+      value: _selectedKey, 
+      onChanged: (String? newValue) {
+        setState(() {
+          _selectedKey = newValue;
+        });
+      },
+      items: Ratedetails.map<DropdownMenuItem<String>>((String rate) {
+        return DropdownMenuItem<String>(
+          value: rate,
+          child: Text(rate.toUpperCase()),
+        );
+      }).toList(),
+      menuMaxHeight: 150,
+      isExpanded: true,
+    ),
+  ),
+),
+    ],
+  )
           ),
         ],
       ),
@@ -2792,7 +2834,12 @@ if(_CustomerController.text.isEmpty){
              GestureDetector(
         onTap: () {
           Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => Addpaymant2(salesdebit: widget.salesDebit,)));
+                        context, MaterialPageRoute(builder: (_) => Addpaymant2(
+                          salesdebit: widget.salesDebit,
+                          billname: _billnameController.text,
+                          tempdataaddC: widget.tempdataCASH?? [],
+                          RateKeyC: _selectedKey,
+                          )));
         },
         child: Padding(
           padding: EdgeInsets.all(screenHeight * 0.03),
@@ -2852,92 +2899,201 @@ if(_CustomerController.text.isEmpty){
           )
          ),
        ),
-       Container(
-        padding: EdgeInsets.symmetric(vertical: screenHeight*0.01),
-  width: screenWidth * 0.9,
-  child: Card(
-    child: Padding(
-      padding:  EdgeInsets.symmetric(horizontal: screenWidth * 0.025, vertical: screenHeight * 0.00625,),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Itemname",
-                  style: formFonts(12, Colors.black),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  ":  ${widget.salesDebit?.itemName ?? ''}",
-                  style: getFontsinput(12, Colors.black),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Unit",
-                  style: formFonts(12, Colors.black),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  ":  ${widget.salesDebit?.unit ?? ''}",
-                  style: getFontsinput(12, Colors.black),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Quantity",
-                  style: formFonts(12, Colors.black),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  ":  ${widget.salesDebit?.qty.toString() ?? ''}",
-                  style: getFontsinput(12, Colors.black),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Rate",
-                  style: formFonts(12, Colors.black),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  ":  ${widget.salesDebit?.rate.toString() ?? ''}",
-                  style: getFontsinput(12, Colors.black),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  ),
-)
+       SizedBox(
+  height: screenHeight * 0.3,
+  child: Column(
+    children: [
+      Expanded(
+        child: widget.tempdataCASH != null && widget.tempdataCASH!.isNotEmpty
+            ? ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: screenHeight * 0.022),
+                itemCount: widget.tempdataCASH!.length,
+                itemBuilder: (context, index) {
+                  final item = widget.tempdataCASH![index];
 
+                  return GestureDetector(
+                    onTap: (){
+
+                                    if(widget.tempdataCASH != null && widget.tempdataCASH!.isNotEmpty){
+                                      Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => Addpaymant2(
+                                          salesdebit: widget.salesDebit,
+                                          billname: _billnameController.text,
+                                          selectedItemC: item,
+                                          tempdataaddC: widget.tempdataCASH??[], 
+                                        ),
+                                      ),
+                                    );
+                                    }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: screenHeight * 0.001),
+                      width: screenWidth * 0.9,
+                      child: Card(
+                        color: Colors.grey.shade100,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          child: Column(
+                            children: [
+                              Text('${item['itemname']??''}',style: getFonts(13, Colors.black),),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Item Subtotal",
+                                    style: formFonts(12, Colors.black),
+                                  ),
+                                  Text(
+                                    " ${item['subtotal'] ?? 'N/A'}",
+                                    style: getFontsinput(12, Colors.black),
+                                  ),
+                                ],
+                              ),
+                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Diccount(%):0.00",
+                                    style: formFonts(12, Colors.black),
+                                  ),
+                                  Text(
+                                    "${item['discount'] ?? 'N/A'}",
+                                    style: getFontsinput(12, Colors.black),
+                                  ),
+                                ],
+                              ),
+                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Tax(%):${item['tax'] ?? ''}",
+                                    style: formFonts(12, Colors.black),
+                                  ),
+                                  Text(
+                                    " ${item['taxvalue'] ?? ''}",
+                                    style: getFontsinput(12, Colors.black),
+                                  ),
+                                ],
+                              ),
+                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Total",
+                                    style: formFonts(12, Colors.black),
+                                  ),
+                                  Text(
+                                    "${item['total'] ?? 'N/A'}",
+                                    style: getFontsinput(12, Colors.black),
+                                  ),
+                                ],
+                              ),
+                              
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              )
+            : Center(
+                child: Text(
+                  "NO Cart Items",
+                  style: formFonts(14, Colors.grey),
+                ),
+              ),
+      ),
+    ],
+  ),
+),
+
+ SizedBox(height: screenHeight*0.01,),
+          
+          Container(
+            width: screenWidth * 0.9,
+            padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01,vertical:screenHeight*0.01 ),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey)
+            ),
+            child:Column(
+              children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("OB",style: getFonts(14, Colors.black),),
+                    Container(
+                      child: Row(
+                        children: [
+                           Text("₹",style: getFonts(14, Colors.black)),
+                     Text(
+                          '${_balanceText}',style: getFonts(14, Colors.black54),
+                        )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+                 SizedBox(height: screenHeight*0.01,),
+                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Total Amount",style: getFonts(14, Colors.black),),
+                    Container(
+                      child: Row(
+                        children: [
+                           Text("₹",style: getFonts(14, Colors.black)),
+                      Text(
+                                    _totalamtController.text.isEmpty
+                                        ? additem_total.toString()
+                                        : _totalamtController.text,
+                                    style: getFonts(14, Colors.black),
+                                  ), 
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+                 SizedBox(height: screenHeight*0.01,),
+                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Cash Recieved",style: getFonts(14, Colors.green.shade500),),
+                    SizedBox(width: screenHeight*0.1,),
+                    Expanded(
+            child: TextField(
+              controller: _cashRecieveController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                prefixIcon: Padding(
+                  padding:  EdgeInsets.only(left: screenHeight*0.03,top: 12,right: screenHeight*0.05),
+                  child: Text("₹", style: getFonts(14, Colors.black)),
+                ),
+                border: UnderlineInputBorder(
+                  
+                  borderSide: BorderSide(color: const Color.fromARGB(255, 66, 44, 44)),
+                ),
+              ),
+            ),
+          ),
+                  ],
+                ),
+                 SizedBox(height: screenHeight*0.01,),
+                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Balance Due",style: getFonts(14, Colors.black),),
+                    Container(
+                      child: Row(
+                        children: [
+                           Text("₹",style: getFonts(14, Colors.black)),
+                     Text(
+                          '${balance.toString()}'
+                        )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ],
+            ),
+          ),
+                   SizedBox(height: screenHeight*0.2,),
       ],
     );
   }

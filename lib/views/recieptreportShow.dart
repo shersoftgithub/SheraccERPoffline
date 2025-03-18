@@ -71,7 +71,7 @@ List<Map<String, dynamic>> Data=[];
         : null;
 
     List<Map<String, dynamic>> data =
-        await RV_DatabaseHelper.instance.queryFilteredRowsPay(
+        await LedgerTransactionsDatabaseHelper.instance.queryFilteredRowsReci(
       fromDate: widget.fromDate!,
       toDate: widget.toDate!,
       ledgerName: selectedLedgerCode ?? '',

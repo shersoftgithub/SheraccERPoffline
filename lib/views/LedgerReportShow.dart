@@ -305,63 +305,69 @@ Future<void> _downloadExcel() async {
           child: SingleChildScrollView( 
             scrollDirection: Axis.vertical,
             
-            child: Container(
-              child: Table(
-                
-                border: TableBorder.all(
-                  color: Colors.black,
-                  width: 1.0,
-                ),
-                columnWidths: {
-                  
-                  0: FixedColumnWidth(80),
-                  1: FixedColumnWidth(140), 
-                  //2: FixedColumnWidth(100),
-                  2: FixedColumnWidth(110),
-                  3: FixedColumnWidth(110),
-                  4: FixedColumnWidth(140),
-                  //7: FixedColumnWidth(140),
-                  // 9: FixedColumnWidth(140),
-                  // 10: FixedColumnWidth(120),
-                  // 11: FixedColumnWidth(120),
-                  //  12: FixedColumnWidth(120),
-                },
-                children: [
-                  TableRow(
+            child: Column(
+              children: [
+              //   Text('ACCOUNT SUMMERY',style: getFonts(16, Colors.black),),
+              //  Text('${widget.ledgerName}',style: getFonts(14, Colors.black),),
+                Container(
+                  child: Table(
+                    
+                    border: TableBorder.all(
+                      color: Colors.black,
+                      width: 1.0,
+                    ),
+                    columnWidths: {
+                      
+                      0: FixedColumnWidth(80),
+                      1: FixedColumnWidth(140), 
+                      //2: FixedColumnWidth(100),
+                      2: FixedColumnWidth(110),
+                      3: FixedColumnWidth(110),
+                      4: FixedColumnWidth(140),
+                      //7: FixedColumnWidth(140),
+                      // 9: FixedColumnWidth(140),
+                      // 10: FixedColumnWidth(120),
+                      // 11: FixedColumnWidth(120),
+                      //  12: FixedColumnWidth(120),
+                    },
                     children: [
-                      
-                      _buildHeaderCell('Date'),
-                      _buildHeaderCell('Particulars'),
-                      //_buildHeaderCell('Voucher'),
-                     // _buildHeaderCell('EntryNo'),
-                      _buildHeaderCell('Debit'),
-                      _buildHeaderCell('Credit'),
-                      _buildHeaderCell('Balance'),
-                     // _buildHeaderCell('Narration'),
-                      
+                      TableRow(
+                        children: [
+                          
+                          _buildHeaderCell('Date'),
+                          _buildHeaderCell('Particulars'),
+                          //_buildHeaderCell('Voucher'),
+                         // _buildHeaderCell('EntryNo'),
+                          _buildHeaderCell('Debit'),
+                          _buildHeaderCell('Credit'),
+                          _buildHeaderCell('Balance'),
+                         // _buildHeaderCell('Narration'),
+                          
+                        ],
+                      ),
+                     ...ledgerData.asMap().entries.map((entry) {
+                        int index = entry.key + 1; 
+                        Map<String, dynamic> data = entry.value;
+                        Color rowColor = (index % 2 == 0) ? Colors.white : Colors.white;
+                        return TableRow(
+                          children: [
+                            _buildDataCell(data['Date']?.toString()  ?? 'N/A',rowColor),
+                            _buildDataCellleft(data['Particulars']?.toString() ?? 'N/A',rowColor),
+                            //_buildDataCell(data['Voucher'] ?.toString() ?? 'N/A',rowColor),
+                           // _buildDataCell(data['EntryNo']?.toString() ??'N/A',rowColor),
+                            _buildDataCellright(data['Debit'] ?.toString() ??'N/A',rowColor),
+                            _buildDataCellright(data['Credit'] ?.toString() ?? 'N/A',rowColor),
+                            _buildDataCellright(data['Balance'] ?.toString() ??'N/A',rowColor),
+                            //_buildDataCell(data['Narration']?.toString() ?? 'N/A',rowColor),
+                           
+                          ],
+                        );
+                      }).toList(),
+                     
                     ],
                   ),
-                 ...ledgerData.asMap().entries.map((entry) {
-                    int index = entry.key + 1; 
-                    Map<String, dynamic> data = entry.value;
-                    Color rowColor = (index % 2 == 0) ? Colors.white : Colors.white;
-                    return TableRow(
-                      children: [
-                        _buildDataCell(data['Date']?.toString()  ?? 'N/A',rowColor),
-                        _buildDataCellleft(data['Particulars']?.toString() ?? 'N/A',rowColor),
-                        //_buildDataCell(data['Voucher'] ?.toString() ?? 'N/A',rowColor),
-                       // _buildDataCell(data['EntryNo']?.toString() ??'N/A',rowColor),
-                        _buildDataCellright(data['Debit'] ?.toString() ??'N/A',rowColor),
-                        _buildDataCellright(data['Credit'] ?.toString() ?? 'N/A',rowColor),
-                        _buildDataCellright(data['Balance'] ?.toString() ??'N/A',rowColor),
-                        //_buildDataCell(data['Narration']?.toString() ?? 'N/A',rowColor),
-                       
-                      ],
-                    );
-                  }).toList(),
-                 
-                ],
-              ),
+                ),
+              ],
             ),
 
           ),

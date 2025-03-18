@@ -82,7 +82,7 @@ Future<void> _fetchFilteredData() async {
         : null;
 
     List<Map<String, dynamic>> data =
-        await PV_DatabaseHelper.instance.queryFilteredRowsPay(
+        await LedgerTransactionsDatabaseHelper.instance.queryFilteredRowsPV(
       fromDate: widget.fromDate!,
       toDate: widget.toDate!,
       ledgerName: selectedLedgerCode ?? '',
