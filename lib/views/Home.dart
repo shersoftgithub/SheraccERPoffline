@@ -17,10 +17,12 @@ import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/payment_databsehelper.dart
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/reciept_databasehelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:sheraaccerpoff/views/Ledgerreport.dart';
 import 'package:sheraaccerpoff/views/more_home/backupdata.dart';
+import 'package:sheraaccerpoff/views/more_home/cleardata.dart';
 import 'package:sheraaccerpoff/views/more_home/company.dart';
 import 'package:sheraaccerpoff/views/more_home/configServer.dart';
 import 'package:sheraaccerpoff/views/more_home/export.dart';
@@ -57,7 +59,7 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
     "Import",
     "Export Backup",
     "Clear Data",
-     "Export",
+    // "Export",
   ];
 
   @override
@@ -376,13 +378,12 @@ Future<void> fetchAndStoreAllLedgerReports() async {
         print("Exporting backup...");
         break;
       case "Clear Data":
-
-       // _showClearDataDialog();
+        _showClearDataClearDialog2();
         break;
-        case "Export":
-        Navigator.push(
-        context, MaterialPageRoute(builder: (_) => Import()));
-        break;
+        // case "Export":
+        // Navigator.push(
+        // context, MaterialPageRoute(builder: (_) => Import()));
+        // break;
       default:
         print("Unknown option selected: $item");
     }
@@ -749,7 +750,36 @@ Future<void> backupAndSyncData() async {
     },
   );
 }
-
+ Future<bool?> _showClearDataClearDialog2() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Text(
+            '                  Are you sure \n   you want to clear all data?',
+            style: getFonts(13, Colors.black),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: Text(
+                'Cancel',
+                style: getFonts(14, Appcolors().maincolor),
+              ),
+            ),
+            TextButton(onPressed: (){
+              Navigator.push(context, MaterialPageRoute(builder: (context)=>ClearDatabase()));
+            }, child:  Text(
+                'Ok',
+                style: getFonts(14, Appcolors().maincolor),
+              ),)
+          ],
+        );
+      },
+    );
+  }
  Future<bool?> _showClearDataDialog2() async {
     return showDialog<bool>(
       context: context,

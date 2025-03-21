@@ -174,7 +174,7 @@ Future<void> syncRVInformationToMSSQL() async {
 
       final insertQuery = '''
   SET IDENTITY_INSERT RV_Information ON;
-  INSERT INTO RV_Information (RealEntryNo, DDATE, AMOUNT, Discount, Total, DEBITACCOUNT, takeuser, Location, 
+          INSERT INTO RV_Information (RealEntryNo, DDATE, AMOUNT, Discount, Total, DEBITACCOUNT, takeuser, Location, 
           Project, SalesMan, MonthDate, app, Transfer_Status, FyID, EntryNo, FrmID, 
           rviCurrency, rviCurrencyValue, pdate)
   VALUES (
@@ -310,7 +310,7 @@ Future<void> syncPVParticularsToMSSQL() async {
       }
 
       if (existingCount > 0) {
-        print("⚠️ Skipping duplicate record: Auto $auto already exists in MSSQL.");
+        print(" Skipping duplicate record: Auto $auto already exists in MSSQL.");
         continue;
       }
       final entryNo = int.tryParse(row['EntryNo'].toString()) ?? 0;

@@ -1,48 +1,27 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:easy_pdf_viewer/easy_pdf_viewer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 
 class PayPDFscreen extends StatefulWidget {
   final File pdfFile;
-
   const PayPDFscreen(this.pdfFile, {super.key});
 
   @override
-  State<PayPDFscreen> createState() => _SalePDFscreenState();
+  State<PayPDFscreen> createState() => _ReciPDFscreenState();
 }
 
-class _SalePDFscreenState extends State<PayPDFscreen> {
-  late Future<PDFDocument> _pdfDocumentFuture;
+class _ReciPDFscreenState extends State<PayPDFscreen> {
+  int totalPages = 0;
+  int currentPage = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _pdfDocumentFuture = loadDocument();
-  }
-
-  Future<PDFDocument> loadDocument() async {
-    try {
-      if (!widget.pdfFile.existsSync()) {
-        throw Exception("File does not exist: ${widget.pdfFile.path}");
-      }
-      print("Loading PDF from: ${widget.pdfFile.path}");
-
-      return await PDFDocument.fromFile(widget.pdfFile);
-    } catch (e) {
-      print("Error loading PDF: $e");
-      rethrow;
-    }
-  }
-
-Future<void> _downloadPDF() async {
+ Future<void> _downloadPDF() async {
   try {
     var status = await Permission.storage.request();
     if (!status.isGranted) {
@@ -50,6 +29,18 @@ Future<void> _downloadPDF() async {
         const SnackBar(content: Text("Storage permission required!")),
       );
       return;
+    }
+    if (Platform.isAndroid) {
+      if (await Permission.manageExternalStorage.isGranted) {
+      } else {
+        var permissionStatus = await Permission.manageExternalStorage.request();
+        if (!permissionStatus.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Permission to manage external storage is required!")),
+          );
+          return;
+        }
+      }
     }
     Directory? downloadsDir;
     if (Platform.isAndroid) {
@@ -64,24 +55,26 @@ Future<void> _downloadPDF() async {
       );
       return;
     }
+
     final path = '${downloadsDir.path}/Payment_report.pdf';
     File newFile = File(path);
-    Uint8List bytes = await widget.pdfFile.readAsBytes();
-    await newFile.writeAsBytes(bytes);
-   Fluttertoast.showToast(msg: "PDF Download Succesfully");
+    await newFile.writeAsBytes(await widget.pdfFile.readAsBytes());
+
+    Fluttertoast.showToast(msg: "PDF Downloaded Successfully");
     OpenFilex.open(path);
+
   } catch (e) {
-    print("Error downloading PDF: $e");
+    print("Error downloading or opening PDF: $e");
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Failed to download PDF.")),
+      SnackBar(content: Text("Failed to download or open PDF.")),
     );
   }
 }
 
+
   Future<void> _sharePDF() async {
     try {
-      String filePath = widget.pdfFile.path;
-            await Share.shareXFiles([XFile(filePath)], text: 'Here is the PDF!');
+      await Share.shareXFiles([XFile(widget.pdfFile.path)], text: 'Here is the PDF!');
     } catch (e) {
       print("Error sharing PDF: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -94,7 +87,6 @@ Future<void> _downloadPDF() async {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: Appcolors().scafoldcolor,
       appBar: AppBar(
@@ -103,9 +95,7 @@ Future<void> _downloadPDF() async {
         leading: Padding(
           padding: const EdgeInsets.only(top: 20),
           child: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.arrow_back_ios_new_sharp,
               color: Colors.white,
@@ -142,21 +132,17 @@ Future<void> _downloadPDF() async {
           ),
         ],
       ),
-      body: FutureBuilder<PDFDocument>(
-        future: _pdfDocumentFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error loading PDF: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            return PDFViewer(
-              backgroundColor: Appcolors().scafoldcolor,
-              document: snapshot.data!,
-            );
-          } else {
-            return const Center(child: Text('No PDF document found.'));
-          }
+      body: PDFView(
+        filePath: widget.pdfFile.path,
+        enableSwipe: true,
+        swipeHorizontal: false,
+        autoSpacing: true,
+        pageFling: true,
+        onRender: (pages) {
+          setState(() => totalPages = pages ?? 0);
+        },
+        onPageChanged: (page, _) {
+          setState(() => currentPage = page ?? 0);
         },
       ),
     );

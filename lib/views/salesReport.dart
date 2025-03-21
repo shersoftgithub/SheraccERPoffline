@@ -242,12 +242,7 @@ List <String>ledgerNames = [];
                     ),
                 ),
               ),
-                //_salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
-                _salefield("Manufacture", _manufactureController, screenWidth, screenHeight),
-                _salefield("Category", _categoryController, screenWidth, screenHeight),
-                                _salefield("Salesman", _salesmanController, screenWidth, screenHeight),
-
-                SingleChildScrollView(
+               SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 7),
                   child: EasyAutocomplete(
@@ -262,13 +257,19 @@ List <String>ledgerNames = [];
                                     decoration: InputDecoration(
                   border: UnderlineInputBorder(),
                   contentPadding: EdgeInsets.only(bottom: screenHeight * 0.01),
-                  hintText: "Select Supplier",
+                  hintText: "Select Customer",
                   hintStyle: TextStyle(fontSize: 14)
                                 ),
                   suggestionBackgroundColor: Appcolors().Scfold,
                     ),
                 ),
               ),
+                //_salefield("Select Item Name", _selectSupplierController, screenWidth, screenHeight),
+                _salefield("Manufacture", _manufactureController, screenWidth, screenHeight),
+                _salefield("Category", _categoryController, screenWidth, screenHeight),
+                                _salefield("Salesman", _salesmanController, screenWidth, screenHeight),
+
+               
                 //_salefield("Select Supplier", _selectSupplierController, screenWidth, screenHeight),
                 SizedBox(height: screenHeight * 0.0002),
                 

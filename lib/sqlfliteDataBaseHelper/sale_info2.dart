@@ -243,6 +243,111 @@ class SalesInformationDatabaseHelper2 {
   //   final db = await instance.database;
   //   return await db.insert('Sales_Information', sale);
   // }
+
+  Future<void> clearSaleinfo() async {
+    final db = await instance.database;
+    await db.delete('Sales_Information');
+  }
+  Future<void> clearSaleperti() async {
+    final db = await instance.database;
+    await db.delete('Sales_Particulars');
+  }
+
+  Future<void> insertSale2(Map<String, dynamic> data) async {
+  final db = await database;
+
+  try {
+    await db.rawQuery("PRAGMA synchronous = OFF");
+    await db.rawQuery("PRAGMA journal_mode = WAL");
+    await db.rawQuery("PRAGMA temp_store = MEMORY");
+
+ String formatDate(String? date) {
+      if (date != null && date.isNotEmpty) {
+        try {
+          final DateTime parsedDate = DateTime.parse(date);
+          return DateFormat('yyyy-MM-dd').format(parsedDate); 
+        } catch (e) {
+          print('Error formatting date: $e');
+        }
+      }
+      return ''; 
+    }
+
+    String formattedDDate = formatDate(data['DDate']);
+    String formattedDDate1 = formatDate(data['ddate1']);
+    String formattedDeliveryDate = formatDate(data['deliverydate']);
+    await db.transaction((txn) async {
+      await txn.rawInsert('''
+        INSERT OR REPLACE INTO Sales_Information (
+          RealEntryNo, EntryNo, InvoiceNo, DDate, Customer, Add1, Add2, Toname, TaxType,
+          GrossValue, Discount, NetAmount, cess, Total, Roundoff, GrandTotal, SalesAccount, 
+          SalesMan, Narration, Profit, CashReceived, BalanceAmount, DiscPercent, SType,
+          PurchaseOrderNo, ddate1, salesorderno, deliverydate, QtyDiscount, Add3, Add4, 
+          BankName, CGST, SGST, IGST, mrptotal, adcess, BillType, discuntamount, unitprice, 
+          RDisc, bankamount, Salesman1, TotalQty, Project, FyID, CreditNoteNo, CreditNoteAmount, 
+          Netwt, grosswt, Blno
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?,?)
+      ''', [
+        data['RealEntryNo']?.toString() ?? '',
+        data['EntryNo']?.toString() ?? '',
+        data['InvoiceNo']?.toString() ?? '',
+        formattedDDate,
+        data['Customer']?.toString() ?? '',
+        data['Add1']?.toString() ?? '',
+        data['Add2']?.toString() ?? '',
+        data['Toname']?.toString() ?? '',
+        data['TaxType']?.toString() ?? '',
+        data['GrossValue']?.toString() ?? '',
+        data['Discount']?.toString() ?? '',
+        data['NetAmount']?.toString() ?? '',
+        data['cess']?.toString() ?? '',
+        data['Total']?.toString() ?? '',
+        data['Roundoff']?.toString() ?? '',
+        data['GrandTotal']?.toString() ?? '',
+        data['SalesAccount']?.toString() ?? '',
+        data['SalesMan']?.toString() ?? '',
+        data['Narration']?.toString() ?? '',
+        data['Profit']?.toString() ?? '',
+        data['CashReceived']?.toString() ?? '',
+        data['BalanceAmount']?.toString() ?? '',
+        data['DiscPercent']?.toString() ?? '',
+        data['SType']?.toString() ?? '',
+        data['PurchaseOrderNo']?.toString() ?? '',
+        formattedDDate1,
+        data['salesorderno']?.toString() ?? '',
+        data['deliverydate']?.toString() ?? '',
+        data['QtyDiscount']?.toString() ?? '',
+        data['Add3']?.toString() ?? '',
+        data['Add4']?.toString() ?? '',
+        data['BankName']?.toString() ?? '',
+        data['CGST']?.toString() ?? '',
+        data['SGST']?.toString() ?? '',
+        data['IGST']?.toString() ?? '',
+        data['mrptotal']?.toString() ?? '',
+        data['adcess']?.toString() ?? '',
+        data['BillType']?.toString() ?? '',
+        data['discuntamount']?.toString() ?? '',
+        data['unitprice']?.toString() ?? '',
+        data['RDisc']?.toString() ?? '',
+        data['bankamount']?.toString() ?? '',
+        data['Salesman1']?.toString() ?? '',
+        data['TotalQty']?.toString() ?? '',
+        data['Project']?.toString() ?? '',
+        data['FyID']?.toString() ?? '',
+        data['CreditNoteNo']?.toString() ?? '',
+        data['CreditNoteAmount']?.toString() ?? '',
+        data['Netwt']?.toString() ?? '',
+        data['grosswt']?.toString() ?? '',
+        data['Blno']?.toString() ?? ''
+      ]);
+    });
+
+    print(' Sales_Information Inserted Successfully');
+  } catch (e) {
+    print('❌ Error inserting Sales_Information data: $e');
+  }
+}
+
 Future<void> insertSale(Map<String, dynamic> payData) async {
   final db = await database;
 
@@ -290,7 +395,109 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     final db = await instance.database;
     await db.delete('Sales_Information');
   }
+ Future<void> insertParticular2(Map<String, dynamic> data) async {
+  final db = await database;
 
+  try {
+    await db.rawQuery("PRAGMA synchronous = OFF");
+    await db.rawQuery("PRAGMA journal_mode = WAL");
+    await db.rawQuery("PRAGMA temp_store = MEMORY");
+
+    String formatDate(String? date) {
+      if (date != null && date.isNotEmpty) {
+        try {
+          final DateTime parsedDate = DateTime.parse(date);
+          return DateFormat('yyyy-MM-dd').format(parsedDate); 
+        } catch (e) {
+          print('Error formatting date: $e');
+        }
+      }
+      return ''; 
+    }
+
+    String formattedDDate = formatDate(data['DDate']);
+
+    await db.transaction((txn) async {
+      await txn.rawInsert('''
+        INSERT OR REPLACE INTO Sales_Particulars (
+        DDate ,
+      EntryNo,
+      UniqueCode,
+      ItemID ,
+      serialno,
+      Rate ,
+      RealRate,
+      Qty,
+      freeQty ,
+      GrossValue ,
+      DiscPersent ,
+      Disc ,
+      Net,
+      Total ,
+      Profit,
+      Auto,
+      Unit ,
+      UnitValue,
+      Funit ,
+      FValue,
+      commision,
+      QtyDiscPercent,
+      QtyDiscount,
+      CGST,
+      SGST,
+      IGST ,
+      taxrate ,
+      Prate ,
+      Rprate,
+      Stype,
+      FyID ,
+      Retail ,
+      spretail,
+      wsrate 
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,? ,? , ? ,? , ?, ?, ? ,? ,?,?,?,?,?,?)
+      ''', [
+        formattedDDate,
+        data['EntryNo']?.toString() ?? '',
+        data['UniqueCode']?.toString() ?? '',
+        data['ItemID']?.toString() ?? '',
+        data['serialno']?.toString() ?? '',
+        data['Rate']?.toString() ?? '',
+        data['RealRate']?.toString() ?? '',
+        data['Qty']?.toString() ?? '',
+        data['freeQty']?.toString() ?? '',
+        data['GrossValue']?.toString() ?? '',
+        data['DiscPersent']?.toString() ?? '',
+        data['Disc']?.toString() ?? '',
+        data['Net']?.toString() ?? '',
+        data['Total']?.toString() ?? '',
+        data['Profit']?.toString() ?? '',
+        data['Auto']?.toString() ?? '',
+        data['Unit']?.toString() ?? '',
+        data['UnitValue']?.toString() ?? '',
+        data['Funit']?.toString() ?? '',
+        data['FValue']?.toString() ?? '',
+        data['commision']?.toString() ?? '',
+        data['QtyDiscPercent']?.toString() ?? '',
+        data['QtyDiscount']?.toString() ?? '',
+        data['CGST']?.toString() ?? '',
+        data['SGST']?.toString() ?? '',
+        data['IGST']?.toString() ?? '',
+        data['taxrate']?.toString() ?? '',
+        data['Prate']?.toString() ?? '',
+        data['Rprate']?.toString() ?? '',
+        data['Stype']?.toString() ?? '',
+        data['FyID']?.toString() ?? '',
+        data['Retail']?.toString() ?? '',
+        data['spretail']?.toString() ?? '',
+        data['wsrate']?.toString() ?? '',
+      ]);
+    });
+
+    print('Sales_Particulars Inserted Successfully');
+  } catch (e) {
+    print('❌ Error inserting Sales_Particulars data: $e');
+  }
+}
  Future<void> insertParticular(Map<String, dynamic> particularData) async {
   final db = await database;
 

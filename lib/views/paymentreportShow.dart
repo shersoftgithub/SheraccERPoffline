@@ -130,17 +130,12 @@ Future<void> _fetchFilteredData() async {
 }
 
 
-
-
-
-Future<File> generatePdf(List<Map<String, dynamic>> Data) async {
+Future<File> generatePdf(List<Map<String, dynamic>> data) async {
   final pdf = pw.Document();
-
-  // Calculate total debit and credit
   double totalDebit = 0;
   double totalCredit = 0;
 
-  for (var report in Data) {
+  for (var report in data) {
     totalDebit += double.tryParse(report['Amount']?.toString() ?? '0') ?? 0;
     totalCredit += double.tryParse(report['Total']?.toString() ?? '0') ?? 0;
   }
@@ -148,40 +143,95 @@ Future<File> generatePdf(List<Map<String, dynamic>> Data) async {
   double closingBalance = totalDebit - totalCredit;
 
   pdf.addPage(
-    pw.Page(
-      pageFormat: PdfPageFormat.a4,
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a3,
+      margin: pw.EdgeInsets.all(20),
+      header: (context) => pw.Text(
+        'Payment Report',
+        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+      ),
       build: (pw.Context context) {
-        return pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              'Payment Report',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 10),
-            pw.Table.fromTextArray(
-              headers: [ 'Date', 'Debit', 'Credit', 'Name', 'Discount', 'Narration'],
-              data: [
-                ...Data.map((report) {
-                  return [                  
-                    report['ddate'] ?? '',
-                    report['Amount']?.toString() ?? 'N/A',
-                    report['Total']?.toString() ?? 'N/A',
-                    report['Name'] ?? 'N/A',
-                    report['Discount']?.toString() ?? 'N/A',
-                    report['Narration'] ?? 'N/A',
-                  ];
-                }).toList(),
-              ],
-            ),
-          ],
-        );
+        return [
+          pw.Table(
+            border: pw.TableBorder.all(),
+            columnWidths: {
+              0: pw.FlexColumnWidth(2),
+              1: pw.FlexColumnWidth(3),
+              2: pw.FlexColumnWidth(3),
+              3: pw.FlexColumnWidth(6),
+              4: pw.FlexColumnWidth(2),
+              5: pw.FlexColumnWidth(4),
+            },
+            children: [
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                children: [
+                  pw.Padding(
+                    padding: pw.EdgeInsets.all(5),
+                    child: pw.Text('Date', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,),
+                  ),
+                  pw.Padding(
+                    padding: pw.EdgeInsets.all(5),
+                    child: pw.Text('Debit', style: pw.TextStyle(fontWeight: pw.FontWeight.bold,),textAlign: pw.TextAlign.center,),
+                  ),
+                  pw.Padding(
+                    padding: pw.EdgeInsets.all(5),
+                    child: pw.Text('Credit', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,),
+                  ),
+                  pw.Padding(
+                    padding: pw.EdgeInsets.all(5),
+                    child: pw.Text('Name', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,),
+                  ),
+                  pw.Padding(
+                    padding: pw.EdgeInsets.all(5),
+                    child: pw.Text('Discount', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,),
+                  ),
+                  pw.Padding(
+                    padding: pw.EdgeInsets.all(5),
+                    child: pw.Text('Narration', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,),
+                  ),
+                ],
+              ),
+
+              ...data.map((report) {
+                return pw.TableRow(
+                  children: [
+                    pw.Padding(
+                      padding: pw.EdgeInsets.all(4),
+                      child: pw.Text(report['ddate'] ?? '',textAlign: pw.TextAlign.center,),
+                    ),
+                    pw.Padding(
+                      padding: pw.EdgeInsets.all(4),
+                      child: pw.Text(report['Amount']?.toString() ?? '',textAlign: pw.TextAlign.right,),
+                    ),
+                    pw.Padding(
+                      padding: pw.EdgeInsets.all(4),
+                      child: pw.Text(report['Total']?.toString() ?? '',textAlign: pw.TextAlign.right,),
+                    ),
+                    pw.Padding(
+                      padding: pw.EdgeInsets.all(4),
+                      child: pw.Text(report['Name'] ?? '',textAlign: pw.TextAlign.center,),
+                    ),
+                    pw.Padding(
+                      padding: pw.EdgeInsets.all(4),
+                      child: pw.Text(report['Discount']?.toString() ?? 'N/A',textAlign: pw.TextAlign.center,),
+                    ),
+                    pw.Padding(
+                      padding: pw.EdgeInsets.all(4),
+                      child: pw.Text(report['Narration'] ?? ''),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ],
+          ),
+        ];
       },
     ),
   );
 
   final output = await getExternalStorageDirectory();
-  final file = File("${output!.path}/payment_report.pdf");
+  final file = File("${output!.path}/Payment_report.pdf");
   await file.writeAsBytes(await pdf.save());
   return file;
 }

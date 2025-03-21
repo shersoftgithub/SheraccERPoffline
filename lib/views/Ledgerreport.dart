@@ -172,9 +172,9 @@ void _showLedgerWithFilters() {
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
                   child: SingleChildScrollView(
                     child: EasyAutocomplete(
+                      suggestionBackgroundColor: Appcolors().Scfold,
                         controller: ledgernamesController,
                         suggestions: names,
-
                         onSubmitted: (value) {
                                   },
                         decoration: InputDecoration(

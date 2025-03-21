@@ -56,7 +56,8 @@ dependencies:
   number_to_words_english: ^2.1.1
   share_plus: ^10.1.4
   flutter_launcher_icons: ^0.14.3
-  
+  xml: 6.5.0
+  flutter_pdfview: ^1.4.0
   
    
   

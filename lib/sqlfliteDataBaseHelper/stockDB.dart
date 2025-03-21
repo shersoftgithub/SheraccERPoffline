@@ -15,16 +15,24 @@ class StockDatabaseHelper {
   }
 
   Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+  final dbPath = await getDatabasesPath();
+  final path = join(dbPath, filePath);
 
-    return await openDatabase(
-      path,
-      version: 3, 
-      onCreate: _createDB,
-      onUpgrade: _upgradeDB,
-    );
-  }
+  return await openDatabase(
+    path,
+    version: 3,
+    onCreate: _createDB,
+    onUpgrade: _upgradeDB,
+    onOpen: (db) async {
+      try {
+        var result = await db.rawQuery('PRAGMA journal_mode=WAL;');
+        print("WAL Mode Status: ${result.first.values.first}"); // Should print 'wal'
+      } catch (e) {
+        print("Error enabling WAL mode: $e");
+      }
+    },
+  );
+}
 
   Future<void> _createDB(Database db, int version) async {
     // Create stock table
@@ -169,15 +177,117 @@ class StockDatabaseHelper {
     }
   }
 
+   Future<void> insertProductRegistrationData2(Map<String, dynamic> data) async {
+     final db = await database;
+
+  try {
+    await db.rawQuery("PRAGMA synchronous = OFF");
+    await db.rawQuery("PRAGMA journal_mode = WAL");
+    await db.rawQuery("PRAGMA temp_store = MEMORY");
+
+    await db.transaction((txn) async {
+      await txn.rawInsert('''
+        INSERT OR REPLACE INTO product_registration (
+        itemcode,
+        hsncode,
+        itemname ,
+        Catagory_id ,
+        unit_id,
+        taxgroup_id ,
+        tax ,
+        cgst ,
+        sgst ,
+        igst,
+        cess ,
+        cessper,
+        adcessper,
+        mrp,
+        retail,
+        wsrate,
+        sprate,
+        branch ,
+        stockvaluation,
+        typeofsupply,
+        RegItemName,
+        StockQty,
+        TaxGroup_Name,
+        IsWarranty,
+        TotalWarrantyMonth,
+        ReplaceWarrantyMonth,
+        ProRataWarrantyMonth ,
+        prSupplier,
+        isInventory ,
+        ItemGroup1,
+        ItemGroup2,
+        ItemGroup3,
+        ItemGroup4 ,
+        ItemGroup5 ,
+        Series_Id ,
+        isMOP 
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,? ,? , ? ,? , ?, ?, ? ,? ,?,?,?,?,?,?,?,?)
+      ''', [
+        data['itemcode']?.toString() ?? '',
+        data['hsncode']?.toString() ?? '',
+        data['itemname']?.toString() ?? '',
+        data['Catagory_id']?.toString() ?? '',
+        data['unit_id']?.toString() ?? '',
+        data['taxgroup_id']?.toString() ?? '',
+        data['tax']?.toString() ?? '',
+        data['cgst']?.toString() ?? '',
+        data['sgst']?.toString() ?? '',
+        data['igst']?.toString() ?? '',
+        data['cess']?.toString() ?? '',
+        data['cessper']?.toString() ?? '',
+        data['adcessper']?.toString() ?? '',
+        data['mrp']?.toString() ?? '',
+        data['retail']?.toString() ?? '',
+        data['wsrate']?.toString() ?? '',
+        data['sprate']?.toString() ?? '',
+        data['branch']?.toString() ?? '',
+        data['stockvaluation']?.toString() ?? '',
+        data['typeofsupply']?.toString() ?? '',
+        data['RegItemName']?.toString() ?? '',
+        data['StockQty']?.toString() ?? '',
+        data['TaxGroup_Name']?.toString() ?? '',
+        data['IsWarranty']?.toString() ?? '',
+        data['TotalWarrantyMonth']?.toString() ?? '',
+        data['ReplaceWarrantyMonth']?.toString() ?? '',
+        data['ProRataWarrantyMonth']?.toString() ?? '',
+        data['prSupplier']?.toString() ?? '',
+        data['isInventory']?.toString() ?? '',
+        data['ItemGroup1']?.toString() ?? '',
+        data['ItemGroup2']?.toString() ?? '',
+        data['ItemGroup3']?.toString() ?? '',
+        data['ItemGroup4']?.toString() ?? '',
+        data['ItemGroup5']?.toString() ?? '',
+        data['Series_Id']?.toString() ?? '',
+        data['isMOP']?.toString() ?? '',
+      ]);
+    });
+
+    print('product_registration Inserted Successfully');
+  } catch (e) {
+    print('❌ Error inserting product_registration data: $e');
+  }
+  }
+
   Future<int> insertProductRegistrationData(Map<String, dynamic> data) async {
     final db = await database;
-    try {
-      return await db.insert(
-        'product_registration',
-        data,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
+     try {
+    final result = await db.insert(
+      'product_registration',
+      data,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    if (result > 0) {
+      print('product_registration Inserted: $data');
+    } else {
+      print('Failed to insert product_registration.');
+    }
+
+    return result; // ✅ Always return an int
+  } catch (e) {
       throw Exception("Failed to insert data into Product_Registration: $e");
     }
   }
@@ -204,22 +314,115 @@ class StockDatabaseHelper {
     }
   }
 
-  Future<int> insertData(Map<String, dynamic> data) async {
-    data['supplier'] ??= 'Unknown';
-    data['Category'] ??= 'Uncategorized';
-    data['EstUnique'] ??= 'DefaultEstUnique';
-    data['Cbarcode'] ??= 'Default';
-    final db = await database;
-    try {
-      return await db.insert(
-        'stock',
-        data,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      throw Exception("Failed to insert data into stock: $e");
-    }
+  Future<void> insertDataStock(Map<String, dynamic> data) async {
+  final db = await database;
+
+  try {
+    await db.rawQuery("PRAGMA synchronous = OFF");
+    await db.rawQuery("PRAGMA journal_mode = WAL");
+    await db.rawQuery("PRAGMA temp_store = MEMORY");
+
+    await db.transaction((txn) async {
+      await txn.rawInsert('''
+        INSERT OR REPLACE INTO stock (
+        ItemId ,
+        serialno ,
+        supplier,
+        Qty ,
+        Disc,
+        Free,
+        Prate ,
+        Amount,
+        TaxType,
+        Category ,
+        SRate ,
+        Mrp ,
+        Retail ,
+        SpRetail,
+        WsRate ,
+        Branch ,
+        RealPrate ,
+        Location ,
+        EstUnique,
+        Locked ,
+        expDate ,
+        Brand,
+        Company,
+        Size ,
+        Color,
+        obarcode ,
+        todevice ,
+        Pdate ,
+        Cbarcode,
+        SktSales  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,? ,? , ? ,? , ?, ?, ? ,? ,?,?)
+      ''', [
+        data['ItemId']?.toString() ?? '',
+        data['serialno']?.toString() ?? '',
+        data['supplier']?.toString() ?? '',
+        data['Qty']?.toString() ?? '',
+        data['Disc']?.toString() ?? '',
+        data['Free']?.toString() ?? '',
+        data['Prate']?.toString() ?? '',
+        data['Amount']?.toString() ?? '',
+        data['TaxType']?.toString() ?? '',
+        data['Category']?.toString() ?? '',
+        data['SRate']?.toString() ?? '',
+        data['Mrp']?.toString() ?? '',
+        data['Retail']?.toString() ?? '',
+        data['SpRetail']?.toString() ?? '',
+        data['WsRate']?.toString() ?? '',
+        data['Branch']?.toString() ?? '',
+        data['RealPrate']?.toString() ?? '',
+        data['Location']?.toString() ?? '',
+        data['EstUnique']?.toString() ?? '',
+        data['Locked']?.toString() ?? '',
+        data['expDate']?.toString() ?? '',
+        data['Brand']?.toString() ?? '',
+        data['Company']?.toString() ?? '',
+        data['Size']?.toString() ?? '',
+        data['Color']?.toString() ?? '',
+        data['obarcode']?.toString() ?? '',
+        data['todevice']?.toString() ?? '',
+        data['Pdate']?.toString() ?? '',
+        data['Cbarcode']?.toString() ?? '',
+        data['SktSales']?.toString() ?? '',
+      ]);
+    });
+
+    print('stock Inserted Successfully');
+  } catch (e) {
+    print('❌ Error inserting stock data: $e');
   }
+}
+
+ Future<int> insertData(Map<String, dynamic> data) async {
+  data['supplier'] ??= 'Unknown';
+  data['Category'] ??= 'Uncategorized';
+  data['EstUnique'] ??= 'DefaultEstUnique';
+  data['Cbarcode'] ??= 'Default';
+  
+  final db = await database;
+
+  try {
+    final result = await db.insert(
+      'stock',
+      data,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    if (result > 0) {
+      print('Stock Inserted: $data');
+    } else {
+      print('Failed to insert stock.');
+    }
+
+    return result; // ✅ Always return an int
+  } catch (e) {
+    print("Failed to insert data into stock: $e");
+    return -1; // ✅ Return a negative value to indicate failure
+  }
+}
+
 
   Future<List<Map<String, dynamic>>> getAllProducts() async {
     try {
@@ -424,6 +627,15 @@ Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
       return result.first;
     }
     return null;
+  }
+
+  Future<void> clearStockTable() async {
+    final db = await instance.database;
+    await db.delete('stock');
+  }
+   Future<void> clearPregTable() async {
+    final db = await instance.database;
+    await db.delete('product_registration');
   }
 
   Future<Map<String, dynamic>?> getProductByIdAndItemId(int id, String itemId) async {

@@ -4,19 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/pdf_report/sale_pdf.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/newLedgerDBhelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_info2.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_information.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
-import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart'; // Adjust with your actual import
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:easy_pdf_viewer/easy_pdf_viewer.dart';
 
 class ShowSalesReport extends StatefulWidget {
   final String? customerName;
@@ -168,53 +163,87 @@ if (stype == '0') {
   });
 }
 
-Future<File> generatePdf(List<Map<String, dynamic>> paymentData) async {
+Future<File> generatePdf(List<Map<String, dynamic>> data) async {
   final pdf = pw.Document();
+  double totalDebit = 0;
+  double totalCredit = 0;
+
+  for (var report in data) {
+    totalDebit += double.tryParse(report['Amount']?.toString() ?? '0') ?? 0;
+    totalCredit += double.tryParse(report['Total']?.toString() ?? '0') ?? 0;
+  }
+
+  double closingBalance = totalDebit - totalCredit;
 
   pdf.addPage(
-    pw.Page(
-      pageFormat: PdfPageFormat.a4,
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a3,
+      margin: pw.EdgeInsets.all(20),
+      header: (context) => pw.Text(
+        'Sale Report',
+        style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+      ),
       build: (pw.Context context) {
-        return pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              'Sales Report',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 10),
-            pw.Table.fromTextArray(
-              headers: [
-                'Invoice No', 'Date', 'Customer', 'ItemId', 'Item Name', 'Qty', 'Rate', 'Discount', 'Total', 'SType',
-              ],
-              data: paymentData.map((data) {
-                return [
-                  data['EntryNo']?.toString() ?? '',
-                  data['InfoDDate']?.toString() ?? '',
-                  data['Toname']?.toString() ?? '',
-                  data['ItemID']?.toString() ?? '',
-                  data['itemname']?.toString() ?? '',
-                  data['TotalQty']?.toString() ?? '',
-                  data['Rate']?.toString() ?? '',
-                  data['Discount']?.toString() ?? '',
-                  data['GrandTotal']?.toString() ?? '',
-                  data['SType']?.toString() ?? '',
-                ];
-              }).toList(),
-            ),
-          ],
-        );
+        return [
+          pw.Table(
+            border: pw.TableBorder.all(),
+            columnWidths: {
+              0: pw.FlexColumnWidth(1), 
+                1: pw.FlexColumnWidth(2), 
+                2: pw.FlexColumnWidth(3), 
+                3: pw.FlexColumnWidth(1), 
+                4: pw.FlexColumnWidth(2), 
+                5: pw.FlexColumnWidth(1), 
+                6: pw.FlexColumnWidth(2), 
+                7: pw.FlexColumnWidth(2), 
+                8: pw.FlexColumnWidth(3),
+                9: pw.FlexColumnWidth(2),
+            },
+            children: [
+               pw.TableRow(
+                  decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                  children: [
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('InNo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('Date', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('Customer', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('ItemId', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('Item Name', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('Qty', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('Rate', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('Discount', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text('SType', style: pw.TextStyle(fontWeight: pw.FontWeight.bold),textAlign: pw.TextAlign.center,)),
+                  ],
+                ),
+
+              ...paymentData.map((data) {
+                  return pw.TableRow(
+                    children: [
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['EntryNo']?.toString() ?? '',textAlign: pw.TextAlign.center,)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['InfoDDate']?.toString() ?? '',textAlign: pw.TextAlign.center,)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['Toname']?.toString() ?? '')),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['ItemID']?.toString() ?? '',textAlign: pw.TextAlign.center,)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['itemname']?.toString() ?? '')),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['TotalQty']?.toString() ?? '',textAlign: pw.TextAlign.center,)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['Rate']?.toString() ?? '',textAlign: pw.TextAlign.right,)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['Discount']?.toString() ?? '',textAlign: pw.TextAlign.right,)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['GrandTotal']?.toString() ?? '',textAlign: pw.TextAlign.right,)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(data['SType']?.toString() ?? '',textAlign: pw.TextAlign.center,)),
+                    ],
+                  );
+                }).toList(),
+            ],
+          ),
+        ];
       },
     ),
   );
 
   final output = await getExternalStorageDirectory();
-  final file = File("${output!.path}/sales_report.pdf");
+  final file = File("${output!.path}/Sale_report.pdf");
   await file.writeAsBytes(await pdf.save());
   return file;
 }
-
-
 
 void _generateAndViewPDF() async {
   File pdfFile = await generatePdf(paymentData);
