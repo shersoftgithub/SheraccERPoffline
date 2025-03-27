@@ -295,8 +295,6 @@ for (var fyRecord in fy) {
     atFxDebit: 0,
     atFxCredit: cashAmount,
   );
-
-  // Saving the Discount (if any)
   if (discountAmount > 0) {
     await LedgerTransactionsDatabaseHelper.instance.insertTransactionData(
       atDate: DateTime.now().toString(),
@@ -510,7 +508,7 @@ for (var fyRecord in fy) {
       'Location': lastLocation, 
       'Project': lastProject,    
       'SalesMan': lastSalesMan,  
-      'MonthDate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'MonthDate': _dateController.text.isNotEmpty ? _dateController.text : '',
       'app': lastApp,            
       'Transfer_Status': lastTransferStatus, 
       'FyID': selectedFyID,          
@@ -518,7 +516,7 @@ for (var fyRecord in fy) {
       'FrmID': lastFrmID,        
       'pviCurrency': lastPviCurrency,  
       'pviCurrencyValue': lastPviCurrencyValue, 
-      'pdate': _dateController.text.isNotEmpty ? _dateController.text : 'Unknown',
+      'pdate': _dateController.text.isNotEmpty ? _dateController.text : '',
     };
 
     await LedgerTransactionsDatabaseHelper.instance.insertPVInformation(transactionData);
@@ -675,18 +673,18 @@ void _settingCashAccChanged(String value) {
 
       batch.insert('PV_Particulars', transactionData);
 
-      newAuto++; // Increment auto for the next record
-      newEntryNo++; // Increment entry number for the next record
+      newAuto++;
+      newEntryNo++;
     }
 
-    await batch.commit(noResult: true); // Execute batch insert
+    await batch.commit(noResult: true); 
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Saved successfully'))
     );
 
     setState(() {
-      temporaryData.clear(); // Clear temporary list after saving
+      temporaryData.clear();
       _amountController.clear();
       _balanceController.clear();
       _DiscountController.clear();
@@ -891,7 +889,7 @@ double _TotalController=_total;
             child: GestureDetector(
               onTap: () {
               if (_isKeyLockSaleRateEnabled()) {
-                _saveData();
+                //_saveData();
       _saveDataPV_Perticular2();
       _saveDataPV_Information2();
       

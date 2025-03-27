@@ -9,7 +9,6 @@ class SaleDatabaseHelper {
 
   static const table = 'salescredit_table';
 
-  // Column names
   static const columnId = 'invoice_id';
   static const columnDate = 'date';
   static const columnSaleRate = 'sales_rate';
@@ -22,7 +21,6 @@ class SaleDatabaseHelper {
   static const columnTax = 'tax';
   static const columnTotalAmt = 'total_amt';
 
-  // Singleton instance
   static final SaleDatabaseHelper instance = SaleDatabaseHelper._privateConstructor();
   static Database? _database;
 
@@ -93,26 +91,21 @@ class SaleDatabaseHelper {
 Future<List<Map<String, String>>> getAll() async {
   Database db = await instance.database;
 
-  // Query the database, selecting the necessary columns
   final List<Map<String, dynamic>> result = await db.query(
     table,
     columns: [columnCustomer, columnItemName],
   );
 
-  // Create a list to store unique customers
   Set<String> seenCustomers = Set();
   List<Map<String, String>> uniqueLedgerNames = [];
 
-  // Loop through the result and add only unique customer-item pairs
   for (var row in result) {
     String customer = row[columnCustomer] as String;
     String itemName = row[columnItemName] as String;
 
     if (!seenCustomers.contains(customer)) {
-      // Add this customer to the set (it will only be added once)
       seenCustomers.add(customer);
 
-      // Add the unique customer-item pair to the list
       uniqueLedgerNames.add({
         'customer': customer,
         'item_name': itemName,
@@ -127,8 +120,8 @@ Future<List<Map<String, String>>> getAll() async {
 Future<Map<String, dynamic>?> getRowById(int id) async {
   final db = await database;
   final result = await db.query(
-    'salescredit_table', // Replace with your sales table name
-    where: 'invoice_id = ?', // Assuming 'id' is the column name for the primary key
+    'salescredit_table',
+    where: 'invoice_id = ?', 
     whereArgs: [id],
   );
   return result.isNotEmpty ? result.first : null;
@@ -187,18 +180,16 @@ Future<List<Map<String, dynamic>>> queryFilteredRows({
   String whereClause = '';
   List<dynamic> whereArgs = [];
 
-  // Filter by ledger name if provided
   if (ledgerName.isNotEmpty) {
     whereClause = '$columnCustomer LIKE ?';
     whereArgs.add('%$ledgerName%');
   }
 
-  // Filter by date range if both fromDate and toDate are provided
   if (fromDate != null && toDate != null) {
     if (whereClause.isNotEmpty) whereClause += ' AND ';
     whereClause += '$columnDate BETWEEN ? AND ?';
-    whereArgs.add(fromDate);  // Use formatted date
-    whereArgs.add(toDate);    // Use formatted date
+    whereArgs.add(fromDate);  
+    whereArgs.add(toDate);    
   }
 
   return await db.query(
@@ -222,8 +213,6 @@ Future<List<int>> getAllLedgerIds() async {
   }
   Future<List<Map<String, dynamic>>> queryTodayRows() async {
   Database db = await instance.database;
-
-  // Get today's date in the format stored in your database
   String today = DateFormat('dd-MM-yyyy').format(DateTime.now());
 
   return await db.query(

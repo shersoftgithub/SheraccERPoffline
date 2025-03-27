@@ -1106,7 +1106,7 @@ Container(
             ),
 
             ListView.builder(
-              shrinkWrap: true, // To avoid full screen usage
+              shrinkWrap: true, 
               itemCount: temporaryData.length,
               itemBuilder: (context, index) {
                 return Padding(

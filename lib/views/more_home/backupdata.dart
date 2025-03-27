@@ -441,6 +441,74 @@ Future<List<Map<String, dynamic>>> fetchDataSTYPEFromMSSQL() async {
       rethrow;
     }
   }
+
+  Future<List<Map<String, dynamic>>> fetchDataFromMSSQLAccTransations() async {
+  try {
+    final query = '''
+      SELECT DISTINCT Auto, atDate, atLedCode, atType, atEntryno, atDebitAmount, 
+             atCreditAmount, atNarration, atOpposite, atSalesEntryno, atSalesType, 
+             atLocation, atChequeNo, atProject, atBankEntry, atInvestor, atFyID, 
+             atFxDebit, atFxCredit 
+      FROM Account_Transactions
+      WHERE Auto IS NOT NULL 
+      ORDER BY Auto ASC
+    ''';
+
+    final rawData = await MsSQLConnectionPlatform.instance.getData(query);
+
+    if (rawData is String) {
+      final decodedData = jsonDecode(rawData);
+
+      if (decodedData is List) {
+        List<String> expectedColumns = [
+          "Auto", "atDate", "atLedCode", "atType", "atEntryno", "atDebitAmount",
+          "atCreditAmount", "atNarration", "atOpposite", "atSalesEntryno",
+          "atSalesType", "atLocation", "atChequeNo", "atProject", "atBankEntry",
+          "atInvestor", "atFyID", "atFxDebit", "atFxCredit"
+        ];
+
+        List<Map<String, dynamic>> validData = [];
+
+        for (var row in decodedData) {
+          if (row is Map<String, dynamic>) {
+            bool isValid = expectedColumns.every((col) => row.containsKey(col));
+
+            if (isValid) {
+              String formattedDate = row["atDate"].toString();
+
+              try {
+                DateTime parsedDate = DateTime.parse(formattedDate);
+                formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
+              } catch (e) {
+                print('Invalid date format for Auto ${row["Auto"]}: $formattedDate');
+                formattedDate = ""; 
+              }
+
+              row["atDate"] = formattedDate;
+              validData.add(Map<String, dynamic>.from(row));
+            } else {
+              print('Invalid row detected and ignored: $row');
+            }
+          }
+        }
+        Map<String, Map<String, dynamic>> uniqueDataMap = {
+          for (var item in validData) item["Auto"].toString(): item
+        };
+        final uniqueData = uniqueDataMap.values.toList();
+
+        print('Fetched ${uniqueData.length} unique rows from Account_Transactions.');
+        return uniqueData;
+      } else {
+        throw Exception('Unexpected JSON format in MSSQL data: $decodedData');
+      }
+    } else {
+      throw Exception('Unexpected data format received from MSSQL: $rawData');
+    }
+  } catch (e) {
+    print('Error fetching data from Account_Transactions: $e');
+    rethrow;
+  }
+}
   //    Future<List<Map<String, dynamic>>> fetchDataCompanyFromMSSQL() async {
   //   try {
   //     final query = 'SELECT * FROM Company';
@@ -1182,6 +1250,41 @@ for (var row in stockData) {
         };
         await dbHelper.insertProductRegistrationData2(productRowData);
       }
+
+       final Accdata = await fetchDataFromMSSQLAccTransations();
+ if (Accdata.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL Product_Registration')),
+        );
+        return;
+      }
+      final DbHelperACc = LedgerTransactionsDatabaseHelper.instance;
+for (var row in Accdata) {
+  Map<String, dynamic> rowData = {
+    'Auto': row['Auto'] ?? '',
+        'atDate': row['atDate'] ?? '',
+        'atLedCode': row['atLedCode'] ?? '',
+        'atType': row['atType'] ?? '',
+        'atEntryno': row['atEntryno'] ?? '',
+        'atDebitAmount': row['atDebitAmount'] ?? 0.0,
+        'atCreditAmount': row['atCreditAmount'] ?? 0.0,
+        'atNarration': row['atNarration'] ?? '',
+        'atOpposite': row['atOpposite'] ?? '',
+        'atSalesEntryno': row['atSalesEntryno'] ?? '',
+        'atSalesType': row['atSalesType'] ?? '',
+        'atLocation': row['atLocation'] ?? '',
+        'atChequeNo': row['atChequeNo'] ?? '',
+        'atProject': row['atProject'] ?? '',
+        'atBankEntry': row['atBankEntry'] ?? '',
+        'atInvestor': row['atInvestor'] ?? '',
+        'atFyID': row['atFyID'] ?? '',
+        'atFxDebit': row['atFxDebit'] ?? 0.0,
+        'atFxCredit': row['atFxCredit'] ?? 0.0,
+  };
+
+  await DbHelperACc.insertData2(rowData);
+  
+}
 
 
       // ScaffoldMessenger.of(context).showSnackBar(

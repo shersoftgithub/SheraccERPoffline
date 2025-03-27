@@ -24,8 +24,6 @@ class _SplashState extends State<Splash> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
-    // Adjust font sizes, padding, and spacing based on screen size
     double fontSize1 = screenWidth * 0.07;
     double fontSize2 = screenWidth * 0.06;
     double fontSize3 = screenWidth * 0.03;
@@ -50,7 +48,7 @@ class _SplashState extends State<Splash> {
             Container(
               child: Image.asset(
                 "assets/images/launch 1.png",
-                height: screenHeight * 0.25, // Adjust image height for responsiveness
+                height: screenHeight * 0.25, 
               ),
             ),
             Center(
@@ -58,18 +56,18 @@ class _SplashState extends State<Splash> {
                 children: [
                   Text(
                     "SherAcc",
-                    style: splashFonts(fontSize1), // Adjust font size
+                    style: splashFonts(fontSize1), 
                   ),
                   SizedBox(width: 3),
                   ClipPath(
                     clipper: SlantedContainerClipper(),
                     child: Container(
-                      height: screenHeight * 0.04, // Adjust height of the ERP text container
+                      height: screenHeight * 0.04, 
                       color: Colors.white,
                       child: Center(
                         child: Text(
                           "  ERP",
-                          style: splash3Fonts(fontSize2), // Adjust ERP font size
+                          style: splash3Fonts(fontSize2), 
                         ),
                       ),
                     ),
@@ -85,7 +83,7 @@ class _SplashState extends State<Splash> {
                   children: [
                     Text(
                       "offline",
-                      style: splash2Fonts(fontSize3), // Adjust offline font size
+                      style: splash2Fonts(fontSize3), 
                     ),
                     SizedBox(width: 7),
                     Icon(
@@ -108,14 +106,12 @@ class SlantedContainerClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     Path path = Path();
-
-    // Start with the sloped left edge
-    path.moveTo(size.width * 0.3, 0); // Slope starting point
-    path.lineTo(size.width, 0); // Top-right edge
-    path.lineTo(size.width, size.height); // Right vertical edge
-    path.lineTo(1, size.height); // Bottom edge
-    path.lineTo(0, size.height * 0.8); // Left bottom point
-    path.lineTo(size.width * 0.2, 0); // Diagonal sloped line to the top-left
+    path.moveTo(size.width * 0.3, 0); 
+    path.lineTo(size.width, 0); 
+    path.lineTo(size.width, size.height);
+    path.lineTo(1, size.height); 
+    path.lineTo(0, size.height * 0.8); 
+    path.lineTo(size.width * 0.2, 0); 
 
     path.close();
     return path;

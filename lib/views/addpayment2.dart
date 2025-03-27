@@ -47,12 +47,34 @@ class _AddpaymantState extends State<Addpaymant2> {
     });
   }
    List<String> productNames = [];
-    Future<void> _fetchProductNames() async {
-    List<String> products = await StockDatabaseHelper.instance.getAllItemNames();
-        setState(() {
-      productNames = products;
-    });
+ Future<void> _fetchProductNames() async {
+  try {
+    List<Map<String, dynamic>> products = await StockDatabaseHelper.instance.getItemDetails2();
+        print("Fetched products: $products");
+    
+    if (products.isNotEmpty) {
+      setState(() {
+        productNames = products.map((product) {
+          String itemName = product['itemname'] ?? 'Unknown';
+                    int stockQty = (product['stockQty'] is double)
+              ? (product['stockQty'] as double).toInt() 
+              : product['stockQty'] ?? 0;
+
+          int productQty = (product['productQty'] is double)
+              ? (product['productQty'] as double).toInt() 
+              : product['productQty'] ?? 0;
+          
+          return '$itemName (qty : $stockQty)';
+        }).toList();
+
+      });
+    } else {
+      print("No products found.");
+    }
+  } catch (e) {
+    print("Error fetching products: $e");
   }
+}
  void _saveData() {
   final itemName = _itemnameController.text.trim();
   final unit = _unitController.text.trim();
@@ -240,23 +262,15 @@ void _onFieldsChanged() {
         _updateTextController(_Discpercentroller, calculatedPercent, allowManualEdit: true);
       }
     }
-
-    // Calculate taxable amount
     double taxableAmount = (subtotal - discountAmount).clamp(0, double.infinity);
-
-    // Skip tax value calculation if not needed (editing time)
     double taxValue = 0.0;
     if (selectedValue == 'With Tax') {
       if (_taxController.text.isNotEmpty) {
         taxValue = (taxableAmount * tax / 100);
       }
     }
-
-    // Calculate total amount
     double totalAmount = taxableAmount + taxValue;
     totalAmount = totalAmount.isFinite ? totalAmount : 0.0;
-
-    // Update controllers safely
     _updateTextController(_subtotalController, subtotal);
     _updateTextController(_taxvalueController, taxValue);
     _updateTextController(_totalamtController, totalAmount);
@@ -368,20 +382,17 @@ void _onPercentChanged() {
   double percValue = double.tryParse(_Discpercentroller.text.trim()) ?? 0.0;
 
   if (_Discpercentroller.text.isEmpty) {
-    // If the PercentageController is cleared, don't perform calculations or update the discount
-    _DiscountController.text = ''; // Clear discount controller
+    _DiscountController.text = ''; 
   } else if (totalAmt > 0) {
     setState(() {
       _isUpdating = true;
-
-      // Calculate discount amount based on percentage
       final discountAmt = (totalAmt * percValue) / 100;
       _DiscountController.text = discountAmt.toStringAsFixed(2);
 
       _isUpdating = false;
     });
   } else {
-    _DiscountController.text = '0.00'; // Default discount to 0 if no total amount
+    _DiscountController.text = '0.00'; 
   }
 }
 Future<void> _validateQuantity( ) async {
@@ -565,7 +576,6 @@ var taxvalue= (totalAmt*tax)/100;
     _taxvalueController.text = taxvalue.toStringAsFixed(2);
   });
 }
-
 void _editDataInTemporaryList() {
   if (widget.selectedItemC != null) {
     int index = temporaryData.indexWhere(
@@ -634,7 +644,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
          toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
         leading: Padding(
-          padding: const EdgeInsets.only(top: 20),
+          padding:  EdgeInsets.only(top: screenHeight * 0.03),
           child: IconButton(
             onPressed: () {
               Navigator.pop(context);
@@ -657,7 +667,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(top: 20, right: 10),
+            padding:  EdgeInsets.only(top: screenHeight*0.02, right: screenHeight*0.012),
             child: PopupMenuButton<String>(
               onSelected: (String selectedItem) {
                 if (selectedItem == 'Rates') {
@@ -677,8 +687,8 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                 ];
               },
               child: SizedBox(
-                width: 20,
-                height: 20,
+                 width:  screenHeight*0.024,
+                height:  screenHeight*0.024,
                 child: Image.asset("assets/images/setting (2).png"),
               ),
             ),
@@ -686,7 +696,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
         ],
       ),
       body: SingleChildScrollView(
-        physics: AlwaysScrollableScrollPhysics(),
+        //physics: AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
             SizedBox(height: screenHeight * 0.02),
@@ -708,18 +718,24 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
               child: SingleChildScrollView(
+                physics: NeverScrollableScrollPhysics(),
                 child: EasyAutocomplete(
                   inputTextStyle: getFontsinput(14, Colors.black),
                   suggestionBackgroundColor: Appcolors().Scfold,
                     controller: _itemnameController,
                     suggestions: _isKeyItembycodeEnabled() ? items : productNames,
-                    onChanged: (value) {
+                  onChanged: (value) {
+                      value=_itemnameController.text;
+                      String selectedItemName = _getItemNameFromFullString(value);
+    _itemnameController.text = selectedItemName; 
+    value=selectedItemName;
     _onItemnameChanged2(value); 
   },
   onSubmitted: (value) {
-    _onItemnameChanged2(value); 
-  },
-                    decoration: InputDecoration(
+    String selectedItemName = _getItemNameFromFullString(value);
+    _itemnameController.text = selectedItemName;  
+    
+  },              decoration: InputDecoration(
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(horizontal: screenHeight*0.01,vertical: 8),
                     ),
@@ -831,7 +847,7 @@ final PercenDisc = (totalAmt * DiscPerc)/100;
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Padding(
-                padding:  EdgeInsets.symmetric(horizontal: 7,vertical:screenHeight*0.02,),
+                padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.02,vertical:screenHeight*0.02,),
                 child: TextField(
   controller: _rateController, 
   style: getFontsinput(14, Colors.black),
@@ -958,8 +974,8 @@ _calculateSubtotal();
                         SizedBox(height: screenHeight * 0.01),
                         GestureDetector(
             child: Container(
-               height: 35, 
-              width: 173,
+                height: screenHeight * 0.05, 
+              width: screenWidth * 0.45,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(5),
                 color: Colors.white,
@@ -992,8 +1008,8 @@ _calculateSubtotal();
                         SizedBox(height: screenHeight * 0.01),
                         GestureDetector(
             child: Container(
-               height: 35, 
-              width: 173,
+                height: screenHeight * 0.05, 
+              width: screenWidth * 0.45,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(5),
                 color: Colors.white,
@@ -1299,8 +1315,8 @@ if(selectedValue == null || selectedValue!.trim().isEmpty){
         MaterialPageRoute(
           builder: (context) => SalesOrder(
             cusname: widget.billname,
-            grandtotal: _grandTotal,
-            tempdata: temporaryData,
+            grandtotalcash: _grandTotal,
+            tempdataCASH: temporaryData,
           ),
         ),
       );

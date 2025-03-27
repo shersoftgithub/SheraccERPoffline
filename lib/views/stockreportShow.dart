@@ -83,7 +83,7 @@ Future<void> _fetchStockData2() async {
           child: Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02),
             child: Text(
-              "Stock Report",  // Updated title to reflect the correct report
+              "Stock Report",  
               style: appbarFonts(screenHeight * 0.02, Colors.white),
             ),
           ),
@@ -121,7 +121,6 @@ Future<void> _fetchStockData2() async {
                 5: FixedColumnWidth(80),
               },
               children: [
-                // Table header row
                 TableRow(
                   children: [
                     _buildHeaderCell('SlNo'),
@@ -132,16 +131,15 @@ Future<void> _fetchStockData2() async {
                     _buildHeaderCell('Amount'),
                   ],
                 ),
-                // Table data rows
                 ...stockData.map((data) {
                   return TableRow(
                     children: [
                       _buildDataCell(data['id'].toString()), 
                       _buildDataCell(data['ItemId'] ?? 'N/A'), 
                       _buildDataCell(data['itemname'] ?? 'N/A'), 
-                      _buildDataCell(data['Qty'].toString() ?? '0'), // Assuming column name is `quantity`
-                      _buildDataCell(data['Disc'].toString() ?? '0'), // Assuming column name is `rate`
-                      _buildDataCell(data['Amount'].toString() ?? '0'), // Assuming column name is `total`
+                      _buildDataCell(data['Qty'].toString() ?? '0'), 
+                      _buildDataCell(data['Disc'].toString() ?? '0'), 
+                      _buildDataCell(data['Amount'].toString() ?? '0'), 
                     ],
                   );
                 }).toList(),
@@ -152,8 +150,6 @@ Future<void> _fetchStockData2() async {
       ),
     );
   }
-
-  // Header cell builder
   Widget _buildHeaderCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),
@@ -166,7 +162,6 @@ Future<void> _fetchStockData2() async {
     );
   }
 
-  // Data cell builder
   Widget _buildDataCell(String text) {
     return Container(
       padding: const EdgeInsets.all(8.0),

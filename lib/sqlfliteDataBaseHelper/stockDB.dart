@@ -267,7 +267,7 @@ class StockDatabaseHelper {
 
     print('product_registration Inserted Successfully');
   } catch (e) {
-    print('❌ Error inserting product_registration data: $e');
+    print('Error inserting product_registration data: $e');
   }
   }
 
@@ -286,7 +286,7 @@ class StockDatabaseHelper {
       print('Failed to insert product_registration.');
     }
 
-    return result; // ✅ Always return an int
+    return result; 
   } catch (e) {
       throw Exception("Failed to insert data into Product_Registration: $e");
     }
@@ -391,7 +391,7 @@ class StockDatabaseHelper {
 
     print('stock Inserted Successfully');
   } catch (e) {
-    print('❌ Error inserting stock data: $e');
+    print('Error inserting stock data: $e');
   }
 }
 
@@ -416,10 +416,10 @@ class StockDatabaseHelper {
       print('Failed to insert stock.');
     }
 
-    return result; // ✅ Always return an int
+    return result; 
   } catch (e) {
     print("Failed to insert data into stock: $e");
-    return -1; // ✅ Return a negative value to indicate failure
+    return -1; 
   }
 }
 
@@ -546,8 +546,6 @@ Future<String?> getItemIdByItemName(String itemName) async {
   return result.isNotEmpty ? result.first['itemcode'] as String? : null;
 }
 
-
-// Step 2: Fetch stock data using ItemId from the stock table.
 Future<Map<String, dynamic>?> getProductByItemId2(String itemId) async {
   final db = await database;
   final result = await db.query(
@@ -595,8 +593,6 @@ Future<List<Map<String, dynamic>>> getStockWithItemNames() async {
                    'FROM stock '
                    'LEFT JOIN product_registration ON stock.ItemId = product_registration.itemcode '
                    'WHERE 1=1'; 
-
-    // Apply filters
     if (itemcode.isNotEmpty) {
       query += ' AND stock.ItemId = "$itemcode"';
     }

@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
@@ -66,57 +68,94 @@ void _calculateGrandTotal() {
           decoration: pw.BoxDecoration(border: pw.Border.all(color:  PdfColors.black,)),
           child: pw.Column(
             children: [
-              pw.Table(
-                border: pw.TableBorder.symmetric(outside: pw.BorderSide.none, inside: pw.BorderSide.none),
-                columnWidths: {
-                  0: pw.FixedColumnWidth(50),
-                  1: pw.FixedColumnWidth(40),
-                  2: pw.FixedColumnWidth(103),
-                  3: pw.FixedColumnWidth(193),
-                },
-                children: [
-                  pw.TableRow(
-                    children: [
-                      _buildHeaderCell2p(''),
-                      _buildHeaderCell2p(''),
-                      _buildHeaderCell2p(''),
-                      _buildHeaderCell2p(''),
-                    ],
+               pw.Container(
+                    width: 500,
+                    height: 30,
+                    color: PdfColors.grey,
+                    child: pw.Center(child: pw.Text("Preview",style: pw.TextStyle(fontSize: 14,color: PdfColors.black,fontBold: pw.Font.courierBold(),),)),
                   ),
-                  pw.TableRow(
-                    children: [
-                      _buildDataCell2p("NO"),
-                      _buildDataCell2p(" : "),
-                      _buildDataCell2p("${widget.no}"),
-                      _buildDataCell2p(""),
-                    ],
+                  pw.SizedBox(height: 10,),
+                   pw.Container(
+                    padding: pw.EdgeInsets.symmetric(horizontal: 8),
+                    child: pw.Column(
+                      children: [
+                         pw.Row(
+          children: [
+            pw.Text("No         :",style: pw.TextStyle(fontSize: 11,color: PdfColors.black,fontBold: pw.Font.courierBold(),)),
+            pw.SizedBox(width: 8,),
+            pw.Text("${widget.no}", style: pw.TextStyle(fontSize: 10,color: PdfColors.black))
+          ],
+        ),
+         pw.Row(
+          children: [
+            pw.Text("Date     :",style: pw.TextStyle(fontSize: 11,color: PdfColors.black,fontBold: pw.Font.courierBold(),)),
+            pw.SizedBox(width: 8,),
+            pw.Text("${widget.date.toString()}", style: pw.TextStyle(fontSize: 10,color: PdfColors.black))
+          ],
+        ),
+         pw.Row(
+          children: [
+            pw.Text("Name  :",style: pw.TextStyle(fontSize: 11,color: PdfColors.black,fontBold: pw.Font.courierBold()),),
+            pw.SizedBox(width: 8,),
+            pw.Text("${widget.name}", style: pw.TextStyle(fontSize: 10,color: PdfColors.black))
+         
+          ],
+        ),
+                      ],
+                    ),
                   ),
-                  pw.TableRow(
-                    children: [
-                      _buildDataCell2p("DATE"),
-                      _buildDataCell2p(" : "),
-                      _buildDataCell2p("${widget.date.toString()}"),
-                      _buildDataCell2p(""),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      _buildDataCell2p("TO"),
-                      _buildDataCell2p(" : "),
-                      _buildDataCell2p("${widget.name.toString()}"),
-                      _buildDataCell2p(""),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      _buildDataCellp(""),
-                      _buildDataCellp("  "),
-                      _buildDataCellp(""),
-                      _buildDataCellp(""),
-                    ],
-                  ),
-                ],
-              ),
+            pw.SizedBox(height: 20),
+              // pw.Table(
+              //   border: pw.TableBorder.symmetric(outside: pw.BorderSide.none, inside: pw.BorderSide.none),
+              //   columnWidths: {
+              //     0: pw.FixedColumnWidth(50),
+              //     1: pw.FixedColumnWidth(40),
+              //     2: pw.FixedColumnWidth(103),
+              //     3: pw.FixedColumnWidth(193),
+              //   },
+              //   children: [
+              //     pw.TableRow(
+              //       children: [
+              //         _buildHeaderCell2p(''),
+              //         _buildHeaderCell2p(''),
+              //         _buildHeaderCell2p(''),
+              //         _buildHeaderCell2p(''),
+              //       ],
+              //     ),
+              //     pw.TableRow(
+              //       children: [
+              //         _buildDataCell2p("NO"),
+              //         _buildDataCell2p(" : "),
+              //         _buildDataCell2p("${widget.no}"),
+              //         _buildDataCell2p(""),
+              //       ],
+              //     ),
+              //     pw.TableRow(
+              //       children: [
+              //         _buildDataCell2p("DATE"),
+              //         _buildDataCell2p(" : "),
+              //         _buildDataCell2p("${widget.date.toString()}"),
+              //         _buildDataCell2p(""),
+              //       ],
+              //     ),
+              //     pw.TableRow(
+              //       children: [
+              //         _buildDataCell2p("TO"),
+              //         _buildDataCell2p(" : "),
+              //         _buildDataCell2p("${widget.name.toString()}"),
+              //         _buildDataCell2p(""),
+              //       ],
+              //     ),
+              //     pw.TableRow(
+              //       children: [
+              //         _buildDataCellp(""),
+              //         _buildDataCellp("  "),
+              //         _buildDataCellp(""),
+              //         _buildDataCellp(""),
+              //       ],
+              //     ),
+              //   ],
+              // ),
 
               pw.Table(
                 border: pw.TableBorder(
@@ -124,7 +163,7 @@ void _calculateGrandTotal() {
                   horizontalInside: pw.BorderSide.none,
                 ),
                 columnWidths: {
-                  0: pw.FixedColumnWidth(15),
+                  0: pw.FixedColumnWidth(12),
                   1: pw.FixedColumnWidth(120),
                   2: pw.FixedColumnWidth(50),
                   3: pw.FixedColumnWidth(50),
@@ -145,7 +184,7 @@ void _calculateGrandTotal() {
                   for (var i = 0; i < widget.tempdata!.length; i++) ...[
                     pw.TableRow(
                       children: [
-                        _buildDataCellp(widget.tempdata![i]["no"] ?? ""),
+                        _buildDataCellp((i + 1).toString()),
                         _buildDataCellleftp(widget.tempdata![i]["itemname"] ?? ""),
                         _buildDataCellrightp(widget.tempdata![i]["qty"]?.toString() ?? ""),
                         _buildDataCellp(widget.tempdata![i]["no"] ?? ""),
@@ -186,11 +225,11 @@ void _calculateGrandTotal() {
                   ),
                   pw.TableRow(
                     children: [
-                      _buildHeaderCellp(''),
+                      _buildHeaderCellp(' .'),
                       _buildHeaderCellp('Total'),
                       _buildHeaderCellrightp('${_qty.toString()}'),
-                      _buildHeaderCellp(''),
-                      _buildHeaderCellp(''),
+                      _buildHeaderCellp('. '),
+                      _buildHeaderCellp('. '),
                       _buildHeaderCellrightp('${_grandTotal.toString()}'),
                     ],
                   ),
@@ -199,10 +238,12 @@ void _calculateGrandTotal() {
             ],
           ),
         ),
+       
         pw.Container(
           decoration: pw.BoxDecoration(border: pw.Border.all(color:  PdfColors.black,)),
           child: pw.Row(
             children: [
+               pw.SizedBox(height: 18),
               pw.Expanded(
                 flex: 1,
                 child: pw.Container(
@@ -443,7 +484,52 @@ pw.Widget _buildDataCellp(String text) {
     await file.writeAsBytes(await pdf.save());
     Fluttertoast.showToast(msg: 'PDF Downloaded');
   }
+Future<void> _downloadPDF() async {
+  try {
+    var status = await Permission.storage.request();
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Storage permission required!")),
+      );
+      return;
+    }
+    if (Platform.isAndroid && (await Permission.manageExternalStorage.isDenied)) {
+      var permissionStatus = await Permission.manageExternalStorage.request();
+      if (!permissionStatus.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Permission to manage external storage is required!")),
+        );
+        return;
+      }
+    }
+    final pdf = await _generatePdf();
+    final pdfBytes = await pdf.save(); 
+    Directory? downloadsDir;
+    if (Platform.isAndroid) {
+      downloadsDir = Directory('/storage/emulated/0/Download');
+    } else {
+      downloadsDir = await getDownloadsDirectory();
+    }
 
+    if (downloadsDir == null || !downloadsDir.existsSync()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to access storage directory.")),
+      );
+      return;
+    }
+    final path = '${downloadsDir.path}/sales_preview.pdf';
+    final file = File(path);
+    await file.writeAsBytes(pdfBytes);
+
+    Fluttertoast.showToast(msg: "PDF Downloaded Successfully");
+    OpenFilex.open(path);
+  } catch (e) {
+    print("Error downloading or opening PDF: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Failed to download or open PDF.")),
+    );
+  }
+}
   void _sharePdf() async {
     final pdf = await _generatePdf(); 
 
@@ -492,7 +578,7 @@ pw.Widget _buildDataCellp(String text) {
                 if (selectedItem == 'Share PDF') {
                    _sharePdf();
                 }else if (selectedItem== "Download PDF"){
-                  _downloadPdf();
+                  _downloadPDF();
                 }
               },
               itemBuilder: (BuildContext context) {
@@ -530,61 +616,98 @@ padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
               child: Column(
                 
                 children: [
-                  Table(
-                          border: TableBorder.symmetric(outside: BorderSide.none,inside: BorderSide.none),
-                        columnWidths: {
-                           0: FixedColumnWidth(50),
-                          1: FixedColumnWidth(40),
-                          2: FixedColumnWidth(103),
-                          3: FixedColumnWidth(193),
-                          
-                        },
-                        children: [
-                            TableRow(
-                            children: [
-                              
-                                _buildHeaderCell2(''),
-                                _buildHeaderCell2(''),
-                                 _buildHeaderCell2('PREVIEW'),
-                                 _buildHeaderCell2(''),
-                               
-                            ],
-                          ),
-                          TableRow(
-                            children: [
-                             _buildDataCell2("NO"),
-                          _buildDataCell2(" : "),
-                          _buildDataCell2("${widget.no}"),
-                          _buildDataCell2(""),
-                            ]
-                          ),
-                          TableRow(
-                            children: [
-                             _buildDataCell2("DATE"),
-                          _buildDataCell2(" : "),
-                          _buildDataCell2("${widget.date.toString()}"),
-                          _buildDataCell2(""),
-                            ]
-                          ),
-                          TableRow(
-                            children: [
-                             _buildDataCell2("TO"),
-                          _buildDataCell2(" : "),
-                          _buildDataCell2("${widget.name.toString()}"),
-                          _buildDataCell2(""),
-                            ]
-                          ),
-                          TableRow(
-                            children: [
-                             _buildDataCell(""),
-                          _buildDataCell("  "),
-                          _buildDataCell(""),
-                          _buildDataCell(""),
-                            ]
-                          ),
-                          
-                        ],                              
+                  Container(
+                    width: screenHeight*0.5,
+                    height: screenHeight*0.03,
+                    color: Colors.grey,
+                    child: Center(child: Text("Preview",style: getFonts(12, Colors.black),)),
                   ),
+                  SizedBox(height: screenHeight*0.015,),
+                   Container(
+                    padding: EdgeInsets.symmetric(horizontal: screenHeight*0.01),
+                    child: Column(
+                      children: [
+                         Row(
+          children: [
+            Text("No         :",style: getFonts(10,Colors.black),),
+            SizedBox(width: screenHeight*0.02,),
+            Text("${widget.no}", style: filedFonts())
+          ],
+        ),
+         Row(
+          children: [
+            Text("Date     :",style: getFonts(10,Colors.black),),
+            SizedBox(width: screenHeight*0.02,),
+            Text("${widget.date.toString()}", style: filedFonts())
+          ],
+        ),
+         Row(
+          children: [
+            Text("Name  :",style: getFonts(10,Colors.black),),
+            SizedBox(width: screenHeight*0.02,),
+            Text("${widget.name}", style: filedFonts())
+         
+          ],
+        ),
+                      ],
+                    ),
+                  ),
+SizedBox(height: screenHeight*0.02,),
+                  // Table(
+                  //         border: TableBorder.symmetric(outside: BorderSide.none,inside: BorderSide.none),
+                  //       columnWidths: {
+                  //          0: FixedColumnWidth(50),
+                  //         1: FixedColumnWidth(40),
+                  //         2: FixedColumnWidth(103),
+                  //         3: FixedColumnWidth(193),
+                          
+                  //       },
+                  //       children: [
+                  //           TableRow(
+                  //           children: [
+                              
+                  //               _buildHeaderCell2(''),
+                  //               _buildHeaderCell2(''),
+                  //                _buildHeaderCell2('PREVIEW'),
+                  //                _buildHeaderCell2(''),
+                               
+                  //           ],
+                  //         ),
+                  //         TableRow(
+                  //           children: [
+                  //            _buildDataCell2("NO"),
+                  //         _buildDataCell2(" : "),
+                  //         _buildDataCell2("${widget.no}"),
+                  //         _buildDataCell2(""),
+                  //           ]
+                  //         ),
+                  //         TableRow(
+                  //           children: [
+                  //            _buildDataCell2("DATE"),
+                  //         _buildDataCell2(" : "),
+                  //         _buildDataCell2("${widget.date.toString()}"),
+                  //         _buildDataCell2(""),
+                  //           ]
+                  //         ),
+                  //         TableRow(
+                  //           children: [
+                  //            _buildDataCell2("TO"),
+                  //         _buildDataCell2(" : "),
+                  //         _buildDataCell2("${widget.name.toString()}"),
+                  //         _buildDataCell2(""),
+                  //           ]
+                  //         ),
+                  //         TableRow(
+                  //           children: [
+                  //            _buildDataCell(""),
+                  //         _buildDataCell("  "),
+                  //         _buildDataCell(""),
+                  //         _buildDataCell(""),
+                  //           ]
+                  //         ),
+                          
+                  //       ],                              
+                  // ),
                   Table(
                     border: TableBorder(
                       verticalInside: BorderSide(),horizontalInside: BorderSide.none
@@ -611,12 +734,12 @@ padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
                           for (var i = 0; i < widget.tempdata!.length; i++) ...[
                         TableRow(
                           children: [
+                         _buildDataCell((i + 1).toString()),
+                          _buildDataCellleft(widget.tempdata![i]["itemname"] ?? ""),
+                          _buildDataCellright(widget.tempdata![i]["qty"]?.toString() ?? ""),
                           _buildDataCell(widget.tempdata![i]["no"] ?? ""),
-_buildDataCellleft(widget.tempdata![i]["itemname"] ?? ""),
-_buildDataCellright(widget.tempdata![i]["qty"]?.toString() ?? ""),
-_buildDataCell(widget.tempdata![i]["no"] ?? ""),
-_buildDataCellright(widget.tempdata![i]["rate"]?.toString() ?? ""),
-_buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
+                          _buildDataCellright(widget.tempdata![i]["rate"]?.toString() ?? ""),
+                          _buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
 
                           ],
                         ),
@@ -674,7 +797,6 @@ _buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
                   Expanded(
                     flex: 1, 
                     child: Container(
-                      
                       child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, 
               children: [
@@ -705,7 +827,7 @@ _buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
             Expanded(
               flex: 3, 
               child: Align(
-                alignment: Alignment.centerRight, // Aligns only the values to the right
+                alignment: Alignment.centerRight,
                 child: Text("${""}  ", style: filedFonts()),
               ),
             ),
@@ -717,7 +839,7 @@ _buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
             Expanded(
               flex: 3, 
               child: Align(
-                alignment: Alignment.centerRight, // Aligns the values to the right
+                alignment: Alignment.centerRight, 
                 child: Text("${_grandTotal}  ", style: filedFonts()),
               ),
             ),
@@ -741,7 +863,7 @@ _buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
             Expanded(
               flex: 3, 
               child: Align(
-                alignment: Alignment.centerRight, // Aligns the values to the right
+                alignment: Alignment.centerRight, 
                 child: Text("${widget.cashreci}  ", style: filedFonts()),
               ),
             ),
@@ -753,7 +875,7 @@ _buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
             Expanded(
               flex: 3, 
               child: Align(
-                alignment: Alignment.centerRight, // Aligns the values to the right
+                alignment: Alignment.centerRight, 
                 child: Text("${widget.balance}", style: filedFonts()),
               ),
             ),
@@ -789,12 +911,15 @@ _buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
   Widget _buildHeaderCellright(String text) {
     return Container(
       color: Colors.grey,
-      child: Text(
-        text,
-        textAlign: TextAlign.right,
-        style: TextStyle(fontWeight: FontWeight.bold,fontSize: 10),
-        overflow: TextOverflow.ellipsis,  
-        softWrap: false,  
+      child: Padding(
+        padding:  EdgeInsets.only(right: 5),
+        child: Text(
+          text,
+          textAlign: TextAlign.right,
+          style: TextStyle(fontWeight: FontWeight.bold,fontSize: 10),
+          overflow: TextOverflow.ellipsis,  
+          softWrap: false,  
+        ),
       ),
     );
   }
@@ -843,8 +968,9 @@ _buildDataCellright(widget.tempdata![i]["total"]?.toString() ?? ""),
     );
   }
    Widget _buildDataCell2(String text) {
-    return Container(
-padding: const EdgeInsets.symmetric( horizontal: 8.0),      child: Text(
+        return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Text(
         text,
         style: getFonts(10, Colors.black),
         textAlign: TextAlign.center,
@@ -854,6 +980,18 @@ padding: const EdgeInsets.symmetric( horizontal: 8.0),      child: Text(
    Widget _listcontents(String listtext) {
     return Expanded(
       flex: 3,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 9, top: 5),
+        child: Text(
+          listtext,
+          style: getFonts(10, Colors.black),
+        ),
+      ),
+    );
+  }
+   Widget _listcontents2(String listtext) {
+    return Expanded(
+      flex: 1,
       child: Padding(
         padding: const EdgeInsets.only(left: 9, top: 5),
         child: Text(

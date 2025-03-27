@@ -158,8 +158,6 @@ void _saveData() {
       tax: tax,
       totalAmt: ffiinalamt2,
     );
-
-    // Navigate with input field data
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -279,8 +277,6 @@ void _onFieldsChanged() {
 
     double subtotal = qty * rate;
     double discountAmount = 0.0;
-
-    // Handle discount percentage to discount amount conversion only when percentage exists
     if (_Discpercentroller.text.isNotEmpty && discountPercent > 0 && discountPercent <= 100) {
       discountAmount = (subtotal * discountPercent) / 100;
       _updateTextController(_DiscountController, discountAmount, allowManualEdit: true);
@@ -291,23 +287,15 @@ void _onFieldsChanged() {
         _updateTextController(_Discpercentroller, calculatedPercent, allowManualEdit: true);
       }
     }
-
-    // Calculate taxable amount
     double taxableAmount = (subtotal - discountAmount).clamp(0, double.infinity);
-
-    // Skip tax value calculation if not needed (editing time)
     double taxValue = 0.0;
     if (selectedValue == 'With Tax') {
       if (_taxController.text.isNotEmpty) {
         taxValue = (taxableAmount * tax / 100);
       }
     }
-
-    // Calculate total amount
     double totalAmount = taxableAmount + taxValue;
     totalAmount = totalAmount.isFinite ? totalAmount : 0.0;
-
-    // Update controllers safely
     _updateTextController(_subtotalController, subtotal);
     _updateTextController(_taxvalueController, taxValue);
     _updateTextController(_totalamtController, totalAmount);
@@ -419,20 +407,17 @@ void _onPercentChanged() {
   double percValue = double.tryParse(_Discpercentroller.text.trim()) ?? 0.0;
 
   if (_Discpercentroller.text.isEmpty) {
-    // If the PercentageController is cleared, don't perform calculations or update the discount
-    _DiscountController.text = ''; // Clear discount controller
+    _DiscountController.text = ''; 
   } else if (totalAmt > 0) {
     setState(() {
       _isUpdating = true;
-
-      // Calculate discount amount based on percentage
       final discountAmt = (totalAmt * percValue) / 100;
       _DiscountController.text = discountAmt.toStringAsFixed(2);
 
       _isUpdating = false;
     });
   } else {
-    _DiscountController.text = '0.00'; // Default discount to 0 if no total amount
+    _DiscountController.text = '0.00'; 
   }
 }
 Future<void> _validateQuantity( ) async {
@@ -568,12 +553,13 @@ void _addDataToTemporaryList() {
         'discount': double.tryParse(_DiscountController.text) ?? 0.0,
         'discountpercentage': double.tryParse(_Discpercentroller.text) ?? 0.0,
         'unit': _unitController.text,
-        'freeItem': _FreeItemcentroller.text,
+        'freeItem': double.tryParse(_FreeItemcentroller.text) ?? 0.0,
         'subtotal': _subtotalController.text,
         'total': _totalamtController.text,
         'taxtype': selectedValue.toString(),
         'taxvalue': _taxvalueController.text,
-        'cusname':widget.customername.toString()
+        'cusname':widget.customername.toString(),
+        
       };
 
       if (selectedItemIndex != null) {
@@ -717,13 +703,14 @@ void _editDataInTemporaryList() {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(top: 20, right: 10),
+            padding:  EdgeInsets.only(top: screenHeight*0.02, right: screenHeight*0.012),
             child: PopupMenuButton<String>(
               onSelected: (String selectedItem) {
                 if (selectedItem == 'Rates') {
                   _showRatesDialog();
                 }
               },
+               
               itemBuilder: (BuildContext context) {
                 return [
                   PopupMenuItem<String>(
@@ -737,8 +724,8 @@ void _editDataInTemporaryList() {
                 ];
               },
               child: SizedBox(
-                width: 20,
-                height: 20,
+                width:  screenHeight*0.024,
+                height:  screenHeight*0.024,
                 child: Image.asset("assets/images/setting (2).png"),
               ),
             ),
@@ -746,7 +733,7 @@ void _editDataInTemporaryList() {
         ],
       ),
       body: SingleChildScrollView(
-        physics: AlwaysScrollableScrollPhysics(),
+        //physics: AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
             SizedBox(height: screenHeight * 0.02),
@@ -768,6 +755,7 @@ void _editDataInTemporaryList() {
                 border: Border.all(color: Appcolors().searchTextcolor),
               ),
               child: SingleChildScrollView(
+                physics: NeverScrollableScrollPhysics(),
                 child: EasyAutocomplete(
                   inputTextStyle: getFontsinput(14, Colors.black),
                   suggestionBackgroundColor: Appcolors().Scfold,
@@ -897,7 +885,7 @@ void _editDataInTemporaryList() {
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Padding(
-                padding:  EdgeInsets.symmetric(horizontal: 7,vertical:screenHeight*0.02,),
+                padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.02,vertical:screenHeight*0.02,),
                 child: TextField(
   controller: _rateController, 
   style: getFontsinput(14, Colors.black),
@@ -1129,7 +1117,7 @@ _calculateSubtotal();
                     border: Border.all(color: Appcolors().searchTextcolor),
                   ),
                                 child: TextFormField(
-                                  focusNode: _focusNode,
+                                
                     style: getFontsinput(14, Colors.black),
                            controller: _Discpercentroller,
                             keyboardType: TextInputType.number,
@@ -1176,6 +1164,7 @@ _calculateSubtotal();
                     border: Border.all(color: Appcolors().searchTextcolor),
                   ),
                                 child: TextFormField(
+                                  
                     style: getFontsinput(14, Colors.black),
                            controller: _DiscountController,
                             keyboardType: TextInputType.number,
@@ -1239,7 +1228,7 @@ _calculateSubtotal();
                   border: Border.all(color: Appcolors().searchTextcolor),
                 ),
                              height: screenHeight*0.05,width: screenWidth*0.1,
-                              child:  Icon(Icons.currency_rupee),
+                            child:  Icon(Icons.currency_rupee),
                             ),
                             Container(
                             padding: EdgeInsets.symmetric(vertical: screenHeight*0.01,horizontal: screenHeight*0.01),
@@ -1267,9 +1256,9 @@ _calculateSubtotal();
               Text("Total Amount",style: getFonts(14, Colors.black),),
               Column(children: [
                 Row(
-                  children: [
+                    children: [
                     Text("₹",style: getFonts(14, Colors.black)),
-                Text("${_totalamtController.text}",style: getFonts(14, Colors.red),
+                    Text("${_totalamtController.text}",style: getFonts(14, Colors.red),
                         
                       ),                  ],
                 ),

@@ -132,6 +132,7 @@ void _showLedgerWithFilters() {
                   child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
                   child: SingleChildScrollView(
+                    physics: NeverScrollableScrollPhysics(),
                     child: EasyAutocomplete(
                       suggestionBackgroundColor: Appcolors().scafoldcolor,
                         controller: ledgernamesController,

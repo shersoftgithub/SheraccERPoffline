@@ -344,7 +344,7 @@ class SalesInformationDatabaseHelper2 {
 
     print(' Sales_Information Inserted Successfully');
   } catch (e) {
-    print('❌ Error inserting Sales_Information data: $e');
+    print(' Error inserting Sales_Information data: $e');
   }
 }
 
@@ -353,8 +353,6 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
 
   try {
     print('Checking for existing RealEntryNo: ${payData['RealEntryNo']}');
-
-    // Check if the RealEntryNo already exists
     final existingEntry = await db.query(
       'Sales_Information',
       where: 'RealEntryNo = ?',
@@ -363,7 +361,7 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
 
     if (existingEntry.isNotEmpty) {
       print('Duplicate RealEntryNo found: ${payData['RealEntryNo']}. Insertion aborted.');
-      return; // Stop execution to prevent duplicate entry
+      return; 
     }
 
     print('Inserting saleData: $payData');
@@ -371,7 +369,7 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     final result = await db.insert(
       'Sales_Information',
       payData,
-      conflictAlgorithm: ConflictAlgorithm.ignore, // Ignores duplicate entries
+      conflictAlgorithm: ConflictAlgorithm.ignore, 
     );
 
     if (result > 0) {
@@ -383,14 +381,11 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     print('Error inserting sale data: $e');
   }
 }
-
-  // **Fetch Data**
   Future<List<Map<String, dynamic>>> getSalesData() async {
     final db = await instance.database;
     return await db.query('Sales_Information');
   }
 
-  // **Delete All Data (Optional)**
   Future<void> clearSalesTable() async {
     final db = await instance.database;
     await db.delete('Sales_Information');
@@ -495,7 +490,7 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
 
     print('Sales_Particulars Inserted Successfully');
   } catch (e) {
-    print('❌ Error inserting Sales_Particulars data: $e');
+    print('Error inserting Sales_Particulars data: $e');
   }
 }
  Future<void> insertParticular(Map<String, dynamic> particularData) async {

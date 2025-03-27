@@ -26,14 +26,14 @@ class LedgerTransactionsDatabaseHelper {
 
     return openDatabase(
       path,
-      version: 4,
+      version: 3,
       onCreate: (db, version) async {
         await _createDatabase(db);
       },
        onUpgrade: (db, oldVersion, newVersion) async {
-    if (oldVersion < 4) {
-       await db.execute("ALTER TABLE Account_Transactions ADD COLUMN Caccount TEXT");
-        await db.execute("ALTER TABLE Account_Transactions ADD COLUMN xmlData TEXT");
+    if (oldVersion < 3) {
+      //  await db.execute("ALTER TABLE Account_Transactions ADD COLUMN Caccount TEXT");
+      //   await db.execute("ALTER TABLE Account_Transactions ADD COLUMN xmlData TEXT");
       }
   },
     );
@@ -103,11 +103,10 @@ class LedgerTransactionsDatabaseHelper {
         atFyID TEXT,
         atFxDebit TEXT,
         atFxCredit TEXT,
-        Caccount TEXT,
         atDiscount REAL,
         atNaration TEXT,
-        atLedName TEXT,
-        xmlData TEXT
+        atLedName TEXT
+       
       );
     ''');
 
@@ -304,7 +303,7 @@ Future<void> insertRVParticulars(Map<String, dynamic> payData) async {
 
       if (result > 0) {
         print('RV_Particulars Insertion successful. Row inserted with ID: $result');
-        //await _insertAccountTransaction(payData);
+        await _insertAccountTransaction(payData);
       } else {
         print('Insertion failed. No row inserted.');
       }
@@ -352,7 +351,7 @@ Future<void> insertRVInformation2(Map<String, dynamic> data) async {
 
     print('RV_Information Inserted Successfully');
   } catch (e) {
-    print('❌ Error inserting payment data: $e');
+    print(' Error inserting payment data: $e');
   }
 }
    Future<void> insertRVInformation(Map<String, dynamic> data) async {
@@ -468,7 +467,7 @@ Future<void> _insertAccountTransaction(Map<String, dynamic> payData) async {
           WHERE a.Amount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
         ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
 
-        print('Second Account Transaction inserted for Amount');
+        print('Second AccountTransaction inserted for Amount');
 
         List<Map<String, dynamic>> secondInsertedData = await txn.rawQuery(''' 
           SELECT * FROM Account_Transactions
@@ -532,7 +531,7 @@ Future<void> _insertAccountTransaction(Map<String, dynamic> payData) async {
             WHERE atEntryno = ? AND atFyID = ? AND atSalesEntryno = ?;
           ''', [payData['EntryNo'], payData['FyID'], payData['FrmID']]);
 
-          print('Inserted Account Transaction Data for Discount (Second): $secondDiscountData');
+          print('Inserted AccountTransaction Data for Discount (Second): $secondDiscountData');
         }
       }
     });
@@ -606,7 +605,7 @@ Future<void> insertPVParticulars2(Map<String, dynamic> payData2) async {
 
     print(' PV_Particulars Inserted Successfully');
   } catch (e) {
-    print('❌ Error inserting payment data: $e');
+    print(' Error inserting payment data: $e');
   }
 }
 
@@ -624,7 +623,7 @@ Future<void> insertPVParticulars2(Map<String, dynamic> payData2) async {
 
       if (result > 0) {
         print(' PV_Particulars Inserted: $payData2');
-        //await _insertAccountTransactionPV(payData2);
+        await _insertAccountTransactionPV(payData2);
       } else {
         print(' Failed to insert PV_Particulars.');
       }
@@ -724,7 +723,7 @@ Future<void> _insertAccountTransactionPV(Map<String, dynamic> payData2) async {
           JOIN FormRegistration b ON a.FrmID = b.fmrEntryNo
           JOIN PV_Information c ON a.EntryNo = c.EntryNo AND a.FyID = c.FyID AND a.FrmID = c.FrmID
           WHERE a.Amount > 0 AND a.EntryNo = ? AND a.FyID = ? AND a.FrmID = ?;
-        ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
+         ''', [payData2['EntryNo'], payData2['FyID'], payData2['FrmID']]);
 
         print('Account Transaction inserted for Amount');
 
@@ -834,7 +833,6 @@ Future<void> _insertAccountTransactionPV(Map<String, dynamic> payData2) async {
   List<String> whereClauses = [];
   List<dynamic> whereArgs = [];
 
-  // Date filtering
   if (fromDate != null && toDate != null) {
     String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
     String toDateString = DateFormat('yyyy-MM-dd').format(toDate);
@@ -843,13 +841,11 @@ Future<void> _insertAccountTransactionPV(Map<String, dynamic> payData2) async {
     whereArgs.addAll([fromDateString, toDateString]);
   }
 
-  // Ledger name filtering
   if (ledgerName != null && ledgerName.isNotEmpty) {
     whereClauses.add('Name LIKE ?');
     whereArgs.add('%$ledgerName%');
   }
 
-  // Construct WHERE clause
   String whereClause = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : '';
 
   try {
@@ -886,7 +882,6 @@ Future<void> inserttmp_voucher(Map<String, dynamic> payData) async {
       print('Insertion failed. No row inserted.');
     }
 
-    // Check if the data exists
     final checkResult = await db.query(
       'tmp_voucher',
       where: 'id = ?',
@@ -1063,7 +1058,7 @@ Future<void> insertLedgerData2(Map<String, dynamic> data) async {
 
     print('LedgerNames Inserted Successfully');
   } catch (e) {
-    print('❌ Error inserting LedgerNames data: $e');
+    print('Error inserting LedgerNames data: $e');
   }
 }
 Future<void> insertLedgerData(Map<String, dynamic> ledgerData) async {
@@ -1099,16 +1094,57 @@ Future<void> insertLedgerData(Map<String, dynamic> ledgerData) async {
   }
 }
 
+Future<void> insertData2(Map<String, dynamic> data ) async {
+ final db = await database;
+
+  try {
+    await db.rawQuery("PRAGMA synchronous = OFF");
+    await db.rawQuery("PRAGMA journal_mode = WAL");
+    await db.rawQuery("PRAGMA temp_store = MEMORY");
+
+    await db.transaction((txn) async {
+      await txn.rawInsert('''
+        INSERT OR REPLACE INTO Account_Transactions (
+       Auto, atDate, atLedCode, atType, atEntryno,
+        atDebitAmount, atCreditAmount, atNarration, atOpposite, 
+        atSalesEntryno, atSalesType, atLocation, atChequeNo, 
+        atProject, atBankEntry, atInvestor, atFyID, atFxDebit, atFxCredit
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''', [
+        data['Auto'] ?? '',
+        data['atDate'] ?? '',
+        data['atLedCode'] ?? '',
+        data['atType'] ?? '',
+        data['atEntryno'] ?? '',
+        data['atDebitAmount'] ?? 0.0,
+        data['atCreditAmount'] ?? 0.0,
+        data['atNarration'] ?? '',
+        data['atOpposite'] ?? '',
+        data['atSalesEntryno'] ?? '',
+        data['atSalesType'] ?? '',
+        data['atLocation'] ?? '',
+        data['atChequeNo'] ?? '',
+        data['atProject'] ?? '',
+        data['atBankEntry'] ?? '',
+        data['atInvestor'] ?? '',
+        data['atFyID'] ?? '',
+        data['atFxDebit'] ?? '',
+        data['atFxCredit'] ?? '',
+      ]);
+    });
+
+    print('Account_Transactions Inserted Successfully');
+  } catch (e) {
+    print('Error inserting Account_Transactions data: $e');
+  }
+}
 
 Future<void> insertData(List<Map<String, dynamic>> data) async {
   final db = await database;
 
-  // 🚀 Enable Performance Boosting PRAGMA Settings
   await db.rawQuery("PRAGMA synchronous = OFF");  
   await db.rawQuery("PRAGMA journal_mode = WAL"); 
   await db.rawQuery("PRAGMA temp_store = MEMORY"); 
-
-  // 🚀 Use a Single Transaction for Fastest Write Speed
   await db.transaction((txn) async {
     StringBuffer sql = StringBuffer('INSERT OR IGNORE INTO Account_Transactions ('
         'Auto, atDate, atLedCode, atType, atEntryno, '
@@ -1144,12 +1180,10 @@ Future<void> insertData(List<Map<String, dynamic>> data) async {
         row['atFxCredit'] ?? '',
       ]);
 
-      // 🚀 Execute batch insert every 500 records (prevents memory overload)
       if (valueRows.length >= 500) {
         sql.write(valueRows.join(","));
         await txn.rawInsert(sql.toString(), args);
 
-        // Reset buffers for next batch
         sql = StringBuffer('INSERT OR IGNORE INTO Account_Transactions ('
             'Auto, atDate, atLedCode, atType, atEntryno, '
             'atDebitAmount, atCreditAmount, atNarration, atOpposite, '
@@ -1161,21 +1195,15 @@ Future<void> insertData(List<Map<String, dynamic>> data) async {
       }
     }
 
-    // 🚀 Insert remaining rows if any
     if (valueRows.isNotEmpty) {
       sql.write(valueRows.join(","));
       await txn.rawInsert(sql.toString(), args);
     }
   });
 
-  // 🚀 Get Total Count
   int count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM Account_Transactions')) ?? 0;
-  print('✔️ Total rows inserted: $count');
+  print(' Total rows inserted: $count');
 }
-
-
-
-
 
 
 
@@ -1213,7 +1241,6 @@ Future<List<Map<String, dynamic>>> queryFilteredRows({
   List<String> whereClauses = ['atType = ?'];
   List<dynamic> whereArgs = ['RECEIPT'];
 
-  // Format dates properly
   String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate);
   String toDateString = DateFormat('yyyy-MM-dd ').format(toDate);
 
@@ -1249,7 +1276,6 @@ Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
   List<String> whereClauses = ['atType = ?'];
   List<dynamic> whereArgs = ['PAYMENT'];
 
-  // Format dates properly
   String fromDateString = DateFormat('yyyy-MM-dd').format(fromDate!);
   String toDateString = DateFormat('yyyy-MM-dd ').format(toDate!);
 
@@ -1329,7 +1355,7 @@ Future<double> getOpeningBalance(String ledgerName) async {
   if (result.isNotEmpty && result.first['OpeningBalance'] != null) {
     return double.tryParse(result.first['OpeningBalance'].toString()) ?? 0.0;
   } else {
-    return 0.0; // Default to 0.0 if no data found
+    return 0.0; 
   }
 }
 
@@ -1837,8 +1863,6 @@ Future<void> syncAccountTransactionsToMSSQL(Map<String, dynamic> transaction) as
       if (value == null || value.toString().trim().isEmpty) return null;
       return num.tryParse(value.toString());
     }
-
-    // Prepare fields
     final atDate = escapeString(transaction['atDate']);
     final atLedCode = escapeString(transaction['atLedCode']);
     final atType = escapeString(transaction['atType']);
@@ -2127,7 +2151,7 @@ Future<Map<String, dynamic>> getLedgerBalance(String ledgerName) async {
     };
   } catch (e) {
     print('Error fetching ledger balance: $e');
-    return {'error': 'Failed to fetch ledger balance'};
+    return {'error': ''};
   }
 }
 
@@ -2187,23 +2211,21 @@ Future<void> fetchDataAndStoreInXML() async {
           }
         }
 
-        // Convert the list of valid data to XML format
         final builder = xml.XmlBuilder();
         builder.processing('xml', 'version="1.0" encoding="UTF-8"');
         builder.element('Account_Transactions', nest: () {
           for (var row in validData) {
             builder.element('Transaction', nest: () {
               row.forEach((key, value) {
-                builder.element(key, nest: value ?? '');  // Handle null values
+                builder.element(key, nest: value ?? ''); 
               });
             });
           }
         });
 
         final xmlString = builder.buildDocument().toXmlString(pretty: true);
-        print('XML Data: $xmlString');  // Check the generated XML string.
+        print('XML Data: $xmlString');  
 
-        // Now store the XML data in SQLite
         final dbHelper = LedgerTransactionsDatabaseHelper.instance;
         await dbHelper.insertXMLData(xmlString);
 
