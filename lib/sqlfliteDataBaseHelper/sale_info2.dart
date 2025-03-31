@@ -493,10 +493,23 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     print('Error inserting Sales_Particulars data: $e');
   }
 }
- Future<void> insertParticular(Map<String, dynamic> particularData) async {
+
+Future<void> insertParticular(Map<String, dynamic> particularData) async {
   final db = await database;
 
   try {
+    print('Checking for existing data: ${particularData['UniqueCode']}, ${particularData['EntryNo']}');
+
+    final existingData = await db.rawQuery(
+      'SELECT * FROM Sales_Particulars WHERE UniqueCode = ? AND EntryNo = ?',
+      [particularData['UniqueCode'], particularData['EntryNo']],
+    );
+
+    if (existingData.isNotEmpty) {
+      print('Duplicate entry found. Skipping insertion for UniqueCode: ${particularData['UniqueCode']}, EntryNo: ${particularData['EntryNo']}');
+      return; // Exit function if duplicate exists
+    }
+
     print('Inserting Particular Data: $particularData');
 
     final result = await db.insert(
@@ -524,6 +537,7 @@ Future<void> insertSale(Map<String, dynamic> payData) async {
     print('Error inserting particular data: $e');
   }
 }
+
 
 
 Future<List<Map<String, dynamic>>> getSalesDataperticular() async {
@@ -625,6 +639,17 @@ Future<List<Map<String, dynamic>>> fetchNewSaleParticulars(int lastMssqlAuto) as
     where: 'Auto > ?',
     whereArgs: [lastMssqlAuto],
     orderBy: 'Auto ASC',
+  );
+
+  return result;
+}
+Future<List<Map<String, dynamic>>> fetchNewSaleInformation(int lastMssqlAuto) async {
+  final db = await database;
+    final List<Map<String, dynamic>> result = await db.query(
+    'Sales_Information',
+    where: 'RealEntryNo > ?',
+    whereArgs: [lastMssqlAuto],
+    orderBy: 'RealEntryNo ASC',
   );
 
   return result;

@@ -281,7 +281,6 @@ void _showSalesOptionsDialog() {
 }
 
 void _showSalesTypeDialog() {
-  // Create a temporary list to avoid modifying the original list directly
   List<Map<String, dynamic>> tempSalesType = List<Map<String, dynamic>>.from(stypelist);
 
   showDialog(
@@ -315,8 +314,6 @@ void _showSalesTypeDialog() {
                                 'isChecked': value ? 1 : 0, 
                               };
                             });
-
-                            // Update the database
                             await SaleReferenceDatabaseHelper.instance.updateSalesTypeCheck(
                               tempSalesType[index]['iD'], 
                               value,
@@ -338,7 +335,6 @@ void _showSalesTypeDialog() {
             actions: [
               TextButton(
                 onPressed: () {
-                  // Update the original list with changes
                   stypelist = List<Map<String, dynamic>>.from(tempSalesType);
                   Navigator.of(context).pop();
                 },

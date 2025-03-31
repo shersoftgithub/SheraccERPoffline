@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/LEDGER_DB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/MainDB.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/options.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/sale_refer.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/salesDBHelper.dart';
 import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/stockDB.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
@@ -62,6 +63,8 @@ class _SalesReportState extends State<SalesReport> {
   _fetchCustomerItemData();
   _fetchstock();
   _fetchLedgerNames();
+  _fetchSType();
+  _fetchSettings();
   }
 final GlobalKey _arrowKey = GlobalKey();
 optionsDBHelper dbHelper=optionsDBHelper();
@@ -69,6 +72,32 @@ List salieretype=[];
 Future<void> salesreporttype()async{
   salieretype=await dbHelper.getOptionsByType("sales_reporttype");
 }
+
+List settings=[];
+  Future<void> _fetchSettings() async {
+    try {
+      List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllsettings();
+      print('Fetched stock data: $data');
+      setState(() {
+        settings = data;
+      });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
+  }
+  List stypelist=[];
+Future<void> _fetchSType() async {
+    try {
+      List<Map<String, dynamic>> data = await SaleReferenceDatabaseHelper.instance.getAllStype();
+      print('Fetched stock data: $data');
+      setState(() {
+        stypelist = data;
+      });
+    } catch (e) {
+      print('Error fetching stock data: $e');
+    }
+  }
+
 List<String> ItemList = [];
 List<Map<String, String>> customer = [];
 Future<void> _fetchCustomerItemData() async {
@@ -293,7 +322,7 @@ List <String>ledgerNames = [];
         SizedBox(width: screenHeight*0.05,),
          InkWell(
           onTap: (){
-         showRectangularDialog(context,screenHeight,screenWidth);
+         _showSalesTypeDialog();
           },
           child: Text("Sales",style: getFonts(12, Colors.black),)),
                 ],
@@ -372,6 +401,73 @@ List <String>ledgerNames = [];
       
     );
   }
+
+void _showSalesTypeDialog() {
+  List<Map<String, dynamic>> tempSalesType = List<Map<String, dynamic>>.from(stypelist);
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Sales Forms', style: drewerFonts()),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(tempSalesType.length, (index) {
+                    bool isChecked = (tempSalesType[index]['isChecked'] ?? 0) == 1;
+                    return Container(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Checkbox(
+                            value: isChecked,
+                            activeColor: isChecked ? Appcolors().maincolor : Colors.grey, 
+                            checkColor: Colors.white,
+                            onChanged: (bool? value) async {
+                              if (value == null) return;
+                      
+                              setState(() { 
+                                tempSalesType[index] = {
+                                  ...tempSalesType[index], 
+                                  'isChecked': value ? 1 : 0, 
+                                };
+                              });
+                            
+                            },
+                          ),
+                          Expanded(
+                            child: Text(
+                              tempSalesType[index]['Type'] ?? "",
+                              style: getFonts(14, isChecked ? Appcolors().maincolor : Colors.black),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  stypelist = List<Map<String, dynamic>>.from(tempSalesType);
+                  Navigator.of(context).pop();
+                },
+                child: Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
   Widget _salefield(String txt,TextEditingController controller,double screenWidth, double screenHeight){
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),

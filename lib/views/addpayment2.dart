@@ -251,7 +251,6 @@ void _onFieldsChanged() {
     double subtotal = qty * rate;
     double discountAmount = 0.0;
 
-    // Handle discount percentage to discount amount conversion only when percentage exists
     if (_Discpercentroller.text.isNotEmpty && discountPercent > 0 && discountPercent <= 100) {
       discountAmount = (subtotal * discountPercent) / 100;
       _updateTextController(_DiscountController, discountAmount, allowManualEdit: true);
@@ -372,6 +371,7 @@ Future<void> _onItemnameChanged2(String value) async {
  bool _isDropdownVisible = false;
  bool _isDropdownVisible2 = false;
 bool _isUpdating = false;
+
 void _onPercentChanged() {
   if (_isUpdating) return;
 
@@ -392,7 +392,7 @@ void _onPercentChanged() {
       _isUpdating = false;
     });
   } else {
-    _DiscountController.text = '0.00'; 
+    _DiscountController.text = ''; 
   }
 }
 Future<void> _validateQuantity( ) async {

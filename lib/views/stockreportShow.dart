@@ -67,7 +67,7 @@ Future<void> _fetchStockData2() async {
         toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
         leading: Padding(
-          padding: const EdgeInsets.only(top: 20),
+          padding:  EdgeInsets.only(top: screenHeight*0.017),
           child: IconButton(
             onPressed: () {
               Navigator.pop(context);
@@ -75,7 +75,7 @@ Future<void> _fetchStockData2() async {
             icon: Icon(
               Icons.arrow_back_ios_new_sharp,
               color: Colors.white,
-              size: 20,
+              size: screenHeight*0.024,
             ),
           ),
         ),
@@ -94,8 +94,8 @@ Future<void> _fetchStockData2() async {
             child: GestureDetector(
               onTap: () {},
               child: SizedBox(
-                width: 20,
-                height: 20,
+                width: screenHeight*0.024,
+                height: screenHeight*0.024,
                 child: Image.asset("assets/images/setting (2).png"),
               ),
             ),
@@ -105,7 +105,7 @@ Future<void> _fetchStockData2() async {
       body: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
-          padding: const EdgeInsets.only(top: 10),
+          padding:  EdgeInsets.only(top: screenHeight*0.01),
           child: SingleChildScrollView(
             child: Table(
               border: TableBorder.all(
@@ -113,11 +113,11 @@ Future<void> _fetchStockData2() async {
                 width: 1.0,
               ),
               columnWidths: {
-                0: FixedColumnWidth(60), 
-                1: FixedColumnWidth(80), 
+                0: FixedColumnWidth(40), 
+                1: FixedColumnWidth(55), 
                 2: FixedColumnWidth(120),
-                3: FixedColumnWidth(80),
-                4: FixedColumnWidth(80),
+                3: FixedColumnWidth(60),
+                4: FixedColumnWidth(70),
                 5: FixedColumnWidth(80),
               },
               children: [
@@ -152,21 +152,22 @@ Future<void> _fetchStockData2() async {
   }
   Widget _buildHeaderCell(String text) {
     return Container(
-      padding: const EdgeInsets.all(8.0),
-      color: Colors.white,
+      padding: const EdgeInsets.all(5.0),
+      color: Colors.blue,
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: TextStyle(fontWeight: FontWeight.bold),
+        style: getFonts(11, Colors.black),
       ),
     );
   }
 
   Widget _buildDataCell(String text) {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
+   return Container(
+      padding: const EdgeInsets.all(5.0),
       child: Text(
         text,
+        style: getFonts(10, Colors.black),
         textAlign: TextAlign.center,
       ),
     );

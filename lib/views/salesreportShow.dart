@@ -19,7 +19,7 @@ class ShowSalesReport extends StatefulWidget {
   final String? itemcode;
   final DateTime? fromDate;
   final DateTime? toDate;
-  
+  final List<String>? stype;
   const ShowSalesReport({
     super.key,
     this.customerName,
@@ -27,6 +27,7 @@ class ShowSalesReport extends StatefulWidget {
     this.itemName,
     this.fromDate,
     this.toDate,
+    this.stype
   });
 
   @override

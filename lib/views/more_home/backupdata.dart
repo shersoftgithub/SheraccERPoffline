@@ -1016,29 +1016,29 @@ for (var row in saleDatainf) {
 
   await DbHelperSaleinf.insertSale2(rowData);
 }
-// final unitData = await fetchDataUnitFromMSSQL();
-//  if (unitData.isEmpty) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('No data fetched from MSSQL unit')),
-//         );
-//         return;
-//       }
-//       final DbHelperUnit = SaleReferenceDatabaseHelper.instance;
-// for (var row in unitData) {
-//   Map<String, dynamic> rowData = {
-//     'ItemId': row['ItemId']?.toString() ?? '',  
-//       'PUnit': row['PUnit']?.toString() ?? '',
-//       'SUnit': row['SUnit']?.toString() ?? '',
-//       'Unit': row['Unit']?.toString() ?? '',
-//       'Conversion': row['Conversion']?.toString() ?? '0', 
-//       'Auto': row['Auto']?.toString() ?? '0',
-//       'Rate': row['Rate']?.toString() ?? '0',
-//       'Barcode': row['Barcode']?.toString() ?? '',
-//       'IsGatePass': row['IsGatePass']?.toString() ?? '0',
-//   };
+final unitData = await fetchDataUnitFromMSSQL();
+ if (unitData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL unit')),
+        );
+        return;
+      }
+      final DbHelperUnit = SaleReferenceDatabaseHelper.instance;
+for (var row in unitData) {
+  Map<String, dynamic> rowData = {
+    'ItemId': row['ItemId']?.toString() ?? '',  
+      'PUnit': row['PUnit']?.toString() ?? '',
+      'SUnit': row['SUnit']?.toString() ?? '',
+      'Unit': row['Unit']?.toString() ?? '',
+      'Conversion': row['Conversion']?.toString() ?? '0', 
+      'Auto': row['Auto']?.toString() ?? '0',
+      'Rate': row['Rate']?.toString() ?? '0',
+      'Barcode': row['Barcode']?.toString() ?? '',
+      'IsGatePass': row['IsGatePass']?.toString() ?? '0',
+  };
 
-//   await DbHelperUnit.insertunit(rowData);
-// }
+  await DbHelperUnit.insertunit(rowData);
+}
 final fyData = await fetchDatafyFromMSSQL();
  if (fyData.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1074,21 +1074,21 @@ for (var row in LedheadsData) {
   await DbHelperledhead.insertLedgerheads(rowData);
 }
 
-// final settingsData = await fetchDataSettingsFromMSSQL();
-//  if (settingsData.isEmpty) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('No data fetched from MSSQL settings')),
-//         );
-//         return;
-//       }
-//       final DbHelpersettings = SaleReferenceDatabaseHelper.instance;
-// for (var row in settingsData) {
-//   Map<String, dynamic> rowData = {
-//     'Name': row['Name']?.toString() ?? '',  
-//       'Status': row['Status']?.toString() ?? '',
-//   };
-//   await DbHelpersettings.insertSettings(rowData);
-// }
+final settingsData = await fetchDataSettingsFromMSSQL();
+ if (settingsData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No data fetched from MSSQL settings')),
+        );
+        return;
+      }
+      final DbHelpersettings = SaleReferenceDatabaseHelper.instance;
+for (var row in settingsData) {
+  Map<String, dynamic> rowData = {
+    'Name': row['Name']?.toString() ?? '',  
+      'Status': row['Status']?.toString() ?? '',
+  };
+  await DbHelpersettings.insertSettings(rowData);
+}
 
 final stypeData = await fetchDataSTYPEFromMSSQL();
  if (stypeData.isEmpty) {

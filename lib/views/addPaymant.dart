@@ -314,7 +314,11 @@ void _clearControllers() {
 
 void _updateTextController(TextEditingController controller, double value, {bool allowManualEdit = false}) {
   String newText = value.isFinite ? value.toStringAsFixed(2) : "0.00";
-  if (allowManualEdit && controller.text.isNotEmpty && controller.text != "0") return;
+
+  if (allowManualEdit && controller.text.isNotEmpty && controller.text != "0") {
+    return;
+  }
+
   if (controller.text != newText) {
     controller.value = TextEditingValue(
       text: newText,
@@ -322,6 +326,7 @@ void _updateTextController(TextEditingController controller, double value, {bool
     );
   }
 }
+
 
 
 
@@ -397,29 +402,33 @@ Future<void> _onItemnameChanged2(String value) async {
  bool _isDropdownVisible = false;
  bool _isDropdownVisible2 = false;
 bool _isUpdating = false;
+
 void _onPercentChanged() {
   if (_isUpdating) return;
+  _isUpdating = true;
 
-  final rate = double.tryParse(_selectedRate.toString()) ?? 0.0;
-  final qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
-  final totalAmt = rate * qty;
+  final double rate = double.tryParse(_selectedRate ?? '0') ?? 0.0;
+  final double qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
+  final double totalAmt = rate * qty;
 
   double percValue = double.tryParse(_Discpercentroller.text.trim()) ?? 0.0;
 
   if (_Discpercentroller.text.isEmpty) {
     _DiscountController.text = ''; 
   } else if (totalAmt > 0) {
+    final discountAmt = (totalAmt * percValue) / 100;
+    
     setState(() {
-      _isUpdating = true;
-      final discountAmt = (totalAmt * percValue) / 100;
       _DiscountController.text = discountAmt.toStringAsFixed(2);
-
-      _isUpdating = false;
     });
   } else {
-    _DiscountController.text = '0.00'; 
+    _DiscountController.text = ''; 
   }
+
+  _isUpdating = false;
 }
+
+
 Future<void> _validateQuantity( ) async {
   List<Map<String, dynamic>> items = await StockDatabaseHelper.instance.getItemDetails();
   String enteredItem = _itemnameController.text.trim();
@@ -447,6 +456,7 @@ Future<void> _validateQuantity( ) async {
  
 void _onDiscountChanged() {
   if (_isUpdating) return;
+   _isUpdating = true;
   final rate = double.tryParse(_selectedRate ?? '0') ?? 0.0;
   final qty = double.tryParse(_qtyController.text.trim()) ?? 1.0;
   final totalAmt = rate * qty;
@@ -457,21 +467,23 @@ void _onDiscountChanged() {
     _Discpercentroller.text = ''; 
   } else if (totalAmt > 0) {
     setState(() {
+      
       _isUpdating = true;
 
       final percValue = (discountAmt / totalAmt) * 100;
 
       if (percValue.isFinite && percValue >= 0 && percValue <= 100) {
         _Discpercentroller.text = percValue.toStringAsFixed(2);
+        
       } else {
         _Discpercentroller.text = ''; 
       }
 
-      _isUpdating = false;
     });
   } else {
     _Discpercentroller.text = ''; 
   }
+  _isUpdating = false;
 }
 
 
@@ -733,7 +745,7 @@ void _editDataInTemporaryList() {
         ],
       ),
       body: SingleChildScrollView(
-        //physics: AlwaysScrollableScrollPhysics(),
+        physics: AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
             SizedBox(height: screenHeight * 0.02),
@@ -870,14 +882,13 @@ void _editDataInTemporaryList() {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                        Text(
-                    
+                        Text(                   
                     'Rate(Price/unit)',
                     style: formFonts(14, Colors.black),
                   ),
               SizedBox(height: screenHeight * 0.01),
-                      GestureDetector(
-                        child: Container(
+                GestureDetector(
+                child: Container(
                 height: screenHeight * 0.05, 
               width: screenWidth * 0.45,
               decoration: BoxDecoration(
@@ -892,16 +903,16 @@ void _editDataInTemporaryList() {
   readOnly: _isKeyLockSaleRateEnabled(), 
   enabled: !_isKeyLockSaleRateEnabled(),
   decoration: InputDecoration(
-    border: InputBorder.none,
+  border: InputBorder.none,
     
   ),
   keyboardType: TextInputType.number,
   onChanged: (value) {
   double enteredRate = double.tryParse(value) ?? 0.0;
   double mrpRate = double.tryParse(itemDetails[0]["mrp"]?.toString() ?? "0") ?? 0.0;
-_calculateSubtotal();
-  if (_isKeyLockMinSaleRateEnabled()) {
-    if (enteredRate > mrpRate) {
+     _calculateSubtotal();
+     if (_isKeyLockMinSaleRateEnabled()) {
+     if (enteredRate > mrpRate) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _rateController.text = mrpRate.toString();
       });
@@ -977,7 +988,6 @@ _calculateSubtotal();
           isExpanded: true, 
           items: dropdownItems.map<DropdownMenuItem<String>>((String value) {
           return DropdownMenuItem<String>(
-            
               value: value,
               child: Text(
                 value,
@@ -987,7 +997,7 @@ _calculateSubtotal();
           }).toList(),
         ),
       ),
-    )
+    ),
                         ],
                       ),
               )

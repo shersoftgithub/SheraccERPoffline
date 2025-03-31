@@ -84,7 +84,7 @@ class LedgerTransactionsDatabaseHelper {
 
     await db.execute(''' 
       CREATE TABLE IF NOT EXISTS Account_Transactions (
-       Auto TEXT,
+        Auto TEXT,
         atDate TEXT,
         atLedCode TEXT,
         atType TEXT,
@@ -1359,7 +1359,17 @@ Future<double> getOpeningBalance(String ledgerName) async {
   }
 }
 
+Future<List<Map<String, dynamic>>> fetchNewAccount_Transactions(int lastMssqlAuto) async {
+  final db = await database;
+    final List<Map<String, dynamic>> result = await db.query(
+    'Account_Transactions',
+    where: 'Auto > ?',
+    whereArgs: [lastMssqlAuto],
+    orderBy: 'Auto ASC',
+  );
 
+  return result;
+}
 
 
 

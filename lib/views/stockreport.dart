@@ -101,7 +101,7 @@ void _showLedgerWithFilters() {
         toolbarHeight: screenHeight * 0.1,
         backgroundColor: Appcolors().maincolor,
         leading: Padding(
-          padding: const EdgeInsets.only(top: 20),
+          padding:  EdgeInsets.only(top: screenHeight*0.017),
           child: IconButton(
             onPressed: () {
               Navigator.pop(context);
@@ -109,7 +109,7 @@ void _showLedgerWithFilters() {
             icon: Icon(
               Icons.arrow_back_ios_new_sharp,
               color: Colors.white,
-              size: 20,
+              size: screenHeight*0.024,
             ),
           ),
         ),
@@ -128,8 +128,8 @@ void _showLedgerWithFilters() {
             child: GestureDetector(
               onTap: () {},
               child: SizedBox(
-                width: 20,
-                height: 20,
+                width: screenHeight*0.024,
+                height: screenHeight*0.024,
                 child: Image.asset("assets/images/setting (2).png"),
               ),
             ),
@@ -144,7 +144,7 @@ void _showLedgerWithFilters() {
             Padding(
                padding:  EdgeInsets.symmetric(horizontal: screenHeight *0.02),
                child: Container(
-                 height: 39,
+                 height: screenHeight*0.045,
                  width: screenWidth*0.9,
                  decoration: BoxDecoration(
                    borderRadius: BorderRadius.circular(5),

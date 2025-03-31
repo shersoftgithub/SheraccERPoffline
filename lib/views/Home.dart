@@ -59,7 +59,7 @@ class _HomePageERPState extends State<HomePageERP> with SingleTickerProviderStat
     "Import",
     "Export Backup",
     "Clear Data",
-    // "Export",
+    "Export",
   ];
 
   @override
@@ -380,10 +380,10 @@ Future<void> fetchAndStoreAllLedgerReports() async {
       case "Clear Data":
         _showClearDataClearDialog2();
         break;
-        // case "Export":
-        // Navigator.push(
-        // context, MaterialPageRoute(builder: (_) => Import()));
-        // break;
+        case "Export":
+        Navigator.push(
+        context, MaterialPageRoute(builder: (_) => Import()));
+        break;
       default:
         print("Unknown option selected: $item");
     }
@@ -786,7 +786,7 @@ Future<void> backupAndSyncData() async {
       builder: (BuildContext context) {
         return AlertDialog(
           content: Text(
-            '                  Are you sure \n   you want to clear all data?',
+            '                  Are you sure \n   you want to Export data?',
             style: getFonts(13, Colors.black),
           ),
           actions: <Widget>[

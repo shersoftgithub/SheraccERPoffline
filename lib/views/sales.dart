@@ -1527,11 +1527,9 @@ void _saveDataSalepertiCash() async {
     final lastRow = await db2.rawQuery(
       'SELECT * FROM Sales_Particulars ORDER BY Auto DESC LIMIT 1',
     );
-
     final lastRowinfo = await db2.rawQuery(
       'SELECT * FROM Sales_Information ORDER BY RealEntryNo DESC LIMIT 1',
     );
-
     int newAuto = 1;
     int newentryno = 1;
 
@@ -1580,6 +1578,47 @@ void _saveDataSalepertiCash() async {
       final String rprate = stocksaleDetails?['RealPrate']?.toString() ?? '0.0';
 
       double realRate = await calculateRealRate(rate);
+      Map<String, double> itemQuantities = {};
+
+    for (var tempDataEntry in widget.tempdataCASH!) {
+      String itemName = tempDataEntry['itemname'] ?? '';
+      double qty = double.tryParse(tempDataEntry['qty']?.toString() ?? '0.0') ?? 0.0;
+
+      if (itemName.isNotEmpty) {
+        itemQuantities[itemName] = (itemQuantities[itemName] ?? 0.0) + qty;
+      }
+    }
+
+    for (var entry in itemQuantities.entries) {
+      String itemName = entry.key;
+      double totalQtyToReduce = entry.value;
+
+      String? itemCode = await StockDatabaseHelper.instance.getItemIdByItemName(itemName);
+      if (itemCode == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Item not found: $itemName')),
+        );
+        return;
+      }
+
+      final stockData = await StockDatabaseHelper.instance.getProductByItemId2(itemCode);
+      if (stockData == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Stock data not found for item: $itemName')),
+        );
+        return;
+      }
+      double currentQty = stockData['Qty'] as double;
+      double updatedQty = currentQty - totalQtyToReduce;
+
+      if (updatedQty < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Not enough stock for $itemName')),
+        );
+        return;
+      }
+      await StockDatabaseHelper.instance.updateProductQuantity(itemCode, updatedQty);
+    }
 
       final transactionData = {
         'DDate': _dateController.text,
@@ -1599,7 +1638,7 @@ void _saveDataSalepertiCash() async {
         'Vat': '0.0',
         'freeVat': '0.0',
         'cess': '0.0',
-        'Total': _CashtotalamtController.text,
+        'Total': totalAmount.toString(),
         'Profit': profit.toString(),
         'Auto': newAuto.toString(),
         'Unit': unit,
@@ -1701,6 +1740,7 @@ newAuto = (lastData['RealEntryNo'] as int? ?? 0) + 1;
 final taxtype = tempDataEntry['taxtype'] ?? '';
       final finalAmt = qty * rate; 
       final profit = finalAmt - (qty * rate);
+      final _grandTotalcash = widget.tempdataCASH!.fold(0.0, (sum, item) => sum + (double.tryParse(item['total'].toString()) ?? 0.0));
 
       final double cgst = (tax ?? 0.0) / 2;
       final double sgst = (tax ?? 0.0) / 2;
@@ -1719,7 +1759,6 @@ final taxtype = tempDataEntry['taxtype'] ?? '';
     }
 final double finalAmtfi = widget.grandtotal ?? 0.0;
       final transactionData = {
-
       'RealEntryNo': newAuto, 
       'EntryNo': _InvoicenoController.text, 
       'InvoiceNo': _InvoicenoController.text,
@@ -1742,7 +1781,7 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       'OtherCharges': 0.00,
       'OtherDiscount': 0.00,
       'Roundoff': 0.00,
-      'GrandTotal': finalAmtfi,
+      'GrandTotal': _grandTotalcash,
       'SalesAccount': 0, 
       'SalesMan': 0, 
       'Location': 1, 
@@ -2129,7 +2168,7 @@ _InvoicenoController.text=updatedInno.toString();
                if(widget.tempdata != null && widget.tempdata!.isNotEmpty){
                 _saveDataSaleperti2222222();
                 _saveDataSaleinfor22multi();
-                _saveData2();
+              
                 PreviewDiaalogue();
                }else{
               // _saveDataSaleperti();
@@ -2184,8 +2223,8 @@ _InvoicenoController.text=updatedInno.toString();
           SizedBox(height: screenHeight * 0.001),
           Container(
    height: screenHeight * 0.032, 
-              width: screenWidth * 0.43,
-  decoration: BoxDecoration(
+   width: screenWidth * 0.43,
+   decoration: BoxDecoration(
     borderRadius: BorderRadius.circular(5),
     color: Colors.white,
     border: Border.all(color: Appcolors().searchTextcolor),
@@ -2851,7 +2890,6 @@ if(_CustomerController.text.isEmpty){
           Navigator.push(
                         context, MaterialPageRoute(builder: (_) => Addpaymant2(
                           salesdebit: widget.salesDebit,
-                          billname: _billnameController.text,
                           tempdataaddC: widget.tempdataCASH?? [],
                           RateKeyC: _selectedKey,
                           )));
