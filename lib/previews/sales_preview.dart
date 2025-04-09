@@ -1,16 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:sheraaccerpoff/sqlfliteDataBaseHelper/companydb.dart';
 import 'package:sheraaccerpoff/utility/colors.dart';
 import 'package:sheraaccerpoff/utility/fonts.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:number_to_words_english/number_to_words_english.dart';
 import 'package:sheraaccerpoff/views/Home.dart';
+import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 
 class SalesPreview extends StatefulWidget {
   final List<Map<String, dynamic>>? tempdata;
@@ -36,6 +39,7 @@ class _SalesPreviewState extends State<SalesPreview> {
    @override
   void initState() {
     super.initState();
+    _fetchCompany();
    _calculateGrandTotal();
     amountInWords = convertNumberToWords(_grandTotal);
   }
@@ -458,7 +462,7 @@ pw.Widget _buildHeaderCell2p(String text) {
 }
 pw.Widget _buildDataCellp(String text) {
   return pw.Container(
-    padding: const pw.EdgeInsets.all(8.0),
+    padding: const pw.EdgeInsets.all(3),
     child: pw.Text(
       text,
       style: pw.TextStyle(
@@ -538,6 +542,118 @@ Future<void> _downloadPDF() async {
     await file.writeAsBytes(await pdf.save());
     Share.shareXFiles([XFile(file.path)], text: 'Check out this Sales Preview PDF!');
   }
+
+   Future<void> requestBluetoothPermission() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+    ].request();
+
+    if (statuses[Permission.bluetooth] == PermissionStatus.granted) {
+      debugPrint('Permission Granted');
+    } else if (statuses[Permission.bluetooth] == PermissionStatus.denied) {
+      debugPrint('Permission denied');
+    } else if (statuses[Permission.bluetooth] ==
+        PermissionStatus.permanentlyDenied) {
+      debugPrint('Permission Permanently Denied');
+      await openAppSettings();
+    }
+  }
+List CompanyData=[];
+  Future<void> _fetchCompany() async {
+  try {
+    List<Map<String, dynamic>> data = await CompanyDatabaseHelper.instance.getAllCompany();
+    print('Fetched company data: $data'); 
+    setState(() {
+      CompanyData = data;
+    });
+  } catch (e) {
+    print('Error fetching company data: $e');
+  }
+}
+
+  Future<List<int>> _Print(PaperSize paper) async {
+  var profile = await CapabilityProfile.load();
+  final Generator ticket = Generator(paper, profile);
+  List<int> bytes = [];
+  final company = CompanyData.isNotEmpty ? CompanyData[0] : {};
+
+  bytes += ticket.text('${company['name'].toString()}',
+      styles: PosStyles(align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2),
+      linesAfter: 1);
+
+  bytes += ticket.text('${company['add1'].toString()}', styles: PosStyles(align: PosAlign.center));
+  bytes += ticket.text('${company['add2'].toString()}', styles: PosStyles(align: PosAlign.center));
+    bytes += ticket.text('${company['add3'].toString()}', styles: PosStyles(align: PosAlign.center));
+
+  bytes += ticket.text('Tel: ${company['mobile'].toString()}', styles: PosStyles(align: PosAlign.center));
+  bytes += ticket.text('Email: ${company['email'.toString()]}', styles: PosStyles(align: PosAlign.center), linesAfter: 1);
+
+  bytes += ticket.hr();
+
+  bytes += ticket.row([
+    PosColumn(text: 'Qty', width: 1),
+    PosColumn(text: 'Item', width: 7),
+    PosColumn(text: 'Price', width: 2, styles: PosStyles(align: PosAlign.right)),
+    PosColumn(text: 'Total', width: 2, styles: PosStyles(align: PosAlign.right)),
+  ]);
+
+  for (var company in widget.tempdata!) {
+    bytes += ticket.row([
+      PosColumn(text: company['qty'].toString(), width: 1),
+      PosColumn(text: company['itemname'].toString(), width: 7),
+      PosColumn(text: company['rate'].toString(), width: 2, styles: PosStyles(align: PosAlign.right)),
+      PosColumn(text: company['total'].toString(), width: 2, styles: PosStyles(align: PosAlign.right)),
+    ]);
+  }
+
+  bytes += ticket.hr();
+
+  bytes += ticket.row([
+    PosColumn(
+        text: 'TOTAL',
+        width: 6,
+        styles: PosStyles(height: PosTextSize.size2, width: PosTextSize.size2)),
+    PosColumn(
+        text: '${_grandTotal}',
+        width: 6,
+        styles: PosStyles(align: PosAlign.right, height: PosTextSize.size2, width: PosTextSize.size2)),
+  ]);
+
+  bytes += ticket.hr(ch: '=', linesAfter: 1);
+
+  // bytes += ticket.row([
+  //   PosColumn(text: 'Cash', width: 7, styles: PosStyles(align: PosAlign.right, width: PosTextSize.size2)),
+  //   PosColumn(text: '\$15.00', width: 5, styles: PosStyles(align: PosAlign.right, width: PosTextSize.size2)),
+  // ]);
+  // bytes += ticket.row([
+  //   PosColumn(text: 'Change', width: 7, styles: PosStyles(align: PosAlign.right, width: PosTextSize.size2)),
+  //   PosColumn(text: '\$4.03', width: 5, styles: PosStyles(align: PosAlign.right, width: PosTextSize.size2)),
+  // ]);
+
+  bytes += ticket.feed(2);
+  bytes += ticket.text('Thank you!', styles: PosStyles(align: PosAlign.center, bold: true));
+
+  final now = DateTime.now();
+  final formatter = DateFormat('MM/dd/yyyy H:mm');
+  final timestamp = formatter.format(now);
+  bytes += ticket.text(timestamp, styles: PosStyles(align: PosAlign.center), linesAfter: 2);
+
+  bytes += ticket.cut();
+
+  return bytes;
+}
+
+  PaperSize _paperSize = PaperSize.mm80;
+  Future<void> _handlePrint() async {
+    try {
+      List<int> receiptBytes = await _Print(_paperSize);
+            print('Bill generated: $receiptBytes');
+    } catch (e) {
+      print('Error during print: $e');
+    }
+  }
+
   
   @override
   Widget build(BuildContext context) {
@@ -600,7 +716,13 @@ Future<void> _downloadPDF() async {
            Padding(
             padding: EdgeInsets.only(top: screenHeight * 0.02, right: screenHeight*0.02),
             child: GestureDetector(
-              onTap: () {},
+              onTap: () async{
+                    //  List<int> bytes = await _Print(PaperSize.mm58);
+                    // final printer = PrinterBluetoothManager();
+                    // await printer.printTicket((printer) async => bytes);
+                    _handlePrint();
+                                        
+              },
               child: Icon(Icons.print,color: Colors.white,size: screenHeight *0.03,),
             ),
           ),
@@ -613,8 +735,7 @@ padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
             SizedBox(height: screenHeight*0.03,),
             Container(
               decoration: BoxDecoration(border: Border.all(color: Colors.black)),
-              child: Column(
-                
+              child: Column(              
                 children: [
                   Container(
                     width: screenHeight*0.5,
@@ -790,8 +911,7 @@ SizedBox(height: screenHeight*0.02,),
               ),
             ),
             Container(
-                          decoration: BoxDecoration(border: Border.all(color: Colors.black)),
-            
+            decoration: BoxDecoration(border: Border.all(color: Colors.black)),
               child: Row(
                 children: [
                   Expanded(
@@ -806,6 +926,7 @@ SizedBox(height: screenHeight*0.02,),
                     Expanded(flex: 3, child: Text(" :  ", style: filedFonts())),
                   ],
                 ),
+                Divider(endIndent: screenHeight*0.1,),
                 Padding(
                   padding:  EdgeInsets.symmetric(horizontal: screenHeight*0.012),
                   child: Text("$amountInWords",style: getFonts(10, Colors.black),),

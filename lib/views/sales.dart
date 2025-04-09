@@ -714,7 +714,7 @@ final String add4 = ledgerDetails?['add4'] ?? '';
       final freeItem = tempDataEntry['freeItem'] ?? '';
       final subtotal = tempDataEntry['subtotal'] ?? '';
       final totalAmount = tempDataEntry['total'] ?? '';
-final taxtype = tempDataEntry['taxtype'] ?? '';
+      final taxtype = (tempDataEntry['taxtype'] == 'with tax') ? 'T' : 'NT';
       final finalAmt = qty * rate; 
       final profit = finalAmt - (qty * rate);
 
@@ -766,7 +766,7 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       'SalesAccount': 0, 
       'SalesMan': 0, 
       'Location': 1, 
-      'Narration': 0,
+      'Narration': '',
       'Profit': profit.toString(),
       'CashReceived': _cashRecieveController.text,
       'BalanceAmount': finalAmt,
@@ -805,9 +805,9 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       'ScheemDiscount': 0.00,
       'Add3': add3,
       'Add4': add4,
-      'BankName': 0,
+      'BankName': '',
       'CCardNo': 0,
-      'SMInvoice': 0,
+      'SMInvoice': '',
       'Bankcharges': 0.00,
       'CGST': cgst,
       'SGST': sgst,
@@ -815,11 +815,11 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       'mrptotal': 0.00,
       'adcess': 0.00,
       'BillType': 0,
-      'discuntamount': 0.00,
-      'unitprice': 0.00,
-      'lrno': 0,
-      'evehicleno': 0,
-      'ewaybillno': 0,
+      'discuntamount': '',
+      'unitprice': '',
+      'lrno': '',
+      'evehicleno': '',
+      'ewaybillno': '',
       'RDisc': 0.00,
       'subsidy': 0.00,
       'kms': 0.00,
@@ -835,38 +835,38 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       'CostCenter': 0,
       'CounterClose': 0,
       'CashAccountID': ledCode,
-      'ShippingName': 0,
-      'ShippingAdd1': 0,
-      'ShippingAdd2': 0,
-      'ShippingAdd3': 0,
-      'ShippingGstNo': 0,
-      'ShippingState': 0,
-      'ShippingStateCode': 0,
+      'ShippingName': '',
+      'ShippingAdd1': '',
+      'ShippingAdd2': '',
+      'ShippingAdd3': '',
+      'ShippingGstNo': '',
+      'ShippingState': '',
+      'ShippingStateCode': '',
       'RateType': 0,
       'EmiAc': 0,
       'EmiAmount': 0.00,
-      'EmiRefNo': 0,
+      'EmiRefNo': '',
       'RedeemPoint': 0,
-      'IRNNo': 0,
-      'signedinvno': 0,
-      'signedQrCode': 0,
+      'IRNNo': '',
+      'signedinvno': '',
+      'signedQrCode': '',
       'Salesman1': 0,
       'TCSPer': 0.00,
       'TCS': 0.00,
       'app': 0,
       'TotalQty': qty.toString(), 
-      'InvoiceLetter': 0,
-      'AckDate': 0,
-      'AckNo': 0,
+      'InvoiceLetter': '',
+      'AckDate': '',
+      'AckNo': '',
       'Project': 0,
-      'PlaceofSupply': 0,
-      'tenderRefNo': 0,
+      'PlaceofSupply': '',
+      'tenderRefNo': '',
       'IsCancel': 0,
       'FyID': selectedFyID,
       'm_invoiceno': _InvoicenoController.text,
-      'PaymentTerms': 0,
-      'WarrentyTerms': 0,
-      'QuotationEntryNo': 0,
+      'PaymentTerms': '',
+      'WarrentyTerms': '',
+      'QuotationEntryNo': '',
       'CreditNoteNo': 0,
       'CreditNoteAmount': 0.00,
       'Careoff': 0,
@@ -879,22 +879,22 @@ final double finalAmtfi = widget.grandtotal ?? 0.0;
       'ExcEntryAmt': 0.00,
       'FxCurrency': 0,
       'FxValue': 0.00,
-      'CntryofOrgin': 0,
-      'ContryFinalDest': 0,
-      'PrecarriageBy': 0,
-      'PlacePrecarrier': 0,
-      'PortofLoading': 0,
-      'Portofdischarge': 0,
-      'FinalDestination': 0,
+      'CntryofOrgin': '',
+      'ContryFinalDest': '',
+      'PrecarriageBy': '',
+      'PlacePrecarrier': '',
+      'PortofLoading': '',
+      'Portofdischarge': '',
+      'FinalDestination': '',
       'CtnNo': 0,
       'Totalctn': 0,
       'Netwt': 0.00,
       'grosswt': 0.00,
-      'Blno': 0
+      'Blno': ''
       };
 
       await SalesInformationDatabaseHelper2.instance.insertSale(transactionData);
-      newAuto++; // Increment to avoid same Auto number
+      newAuto++; 
     }
 
     // ScaffoldMessenger.of(context).showSnackBar(
@@ -1218,7 +1218,7 @@ void _saveDataSaleperti2222222() async {
         'EntryNo':updatedInno.toString(),
         'UniqueCode': Ucode,
         'ItemID': itemCode,
-        'serialno': '0',
+        'serialno': '',
         'Rate': rate.toString(),
         'RealRate': realRate.toString(),
         'Qty': qty.toString(),
@@ -1258,10 +1258,10 @@ void _saveDataSaleperti2222222() async {
         'location': '0',
         'Stype': selectedID.toString(),
         'LC': '0.0',
-        'ScanBarcode': '0',
-        'Remark': '0',
+        'ScanBarcode': '',
+        'Remark': '',
         'FyID': "2",
-        'Supplier': '0',
+        'Supplier': '',
         'Retail': retail,
         'spretail': sprate,
         'wsrate': wrate,
@@ -1737,7 +1737,8 @@ newAuto = (lastData['RealEntryNo'] as int? ?? 0) + 1;
       final freeItem = tempDataEntry['freeItem'] ?? '';
       final subtotal = tempDataEntry['subtotal'] ?? '';
       final totalAmount = tempDataEntry['total'] ?? '';
-final taxtype = tempDataEntry['taxtype'] ?? '';
+      final taxtype = tempDataEntry['taxtype'] ?? '';
+      
       final finalAmt = qty * rate; 
       final profit = finalAmt - (qty * rate);
       final _grandTotalcash = widget.tempdataCASH!.fold(0.0, (sum, item) => sum + (double.tryParse(item['total'].toString()) ?? 0.0));

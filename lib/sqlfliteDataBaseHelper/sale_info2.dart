@@ -507,7 +507,7 @@ Future<void> insertParticular(Map<String, dynamic> particularData) async {
 
     if (existingData.isNotEmpty) {
       print('Duplicate entry found. Skipping insertion for UniqueCode: ${particularData['UniqueCode']}, EntryNo: ${particularData['EntryNo']}');
-      return; // Exit function if duplicate exists
+      return; 
     }
 
     print('Inserting Particular Data: $particularData');
@@ -572,6 +572,7 @@ Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
   String? ledgerName,
   String? itemname,
   String? itemcode,
+  List<String>? stype,
 }) async {
   Database db = await instance.database;
 
@@ -598,6 +599,7 @@ Future<List<Map<String, dynamic>>> queryFilteredRowsPay({
     whereClauses.add("Sales_Particulars.ItemID LIKE ?");
     whereArgs.add("%$itemcode%");
   }
+  
 
   String whereClause = whereClauses.isNotEmpty ? "WHERE ${whereClauses.join(' AND ')}" : '';
 

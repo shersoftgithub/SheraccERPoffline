@@ -107,6 +107,7 @@ Future<void> _fetchSType() async {
     ledgerName: widget.customerName,
     itemcode: widget.itemcode,
     itemname: null, 
+    stype: widget.stype
   );
 
   List<Map<String, dynamic>> stockData = await StockDatabaseHelper.instance.getItemDetails();
@@ -139,8 +140,8 @@ Future<void> _fetchSType() async {
       }
 
 
-String stype = ledger['SType']?.toString() ?? 'N/A';
-if (stype == '0') {
+   String stype = ledger['SType']?.toString() ?? 'N/A';
+  if (stype == '0') {
   stype = 'Sales Order'; 
 } else {
   var matchingType = stypelist.firstWhere(
@@ -159,6 +160,7 @@ if (stype == '0') {
         'ItemID': itemID ?? 'N/A',
         'itemname': itemName,
         'SType': stype,
+        //'attype': ledger['atType']?.toString() ?? '',
       };
     }).toList();
   });

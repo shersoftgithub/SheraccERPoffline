@@ -1534,9 +1534,9 @@ Future<void> storeXMLDataInColumns(List<Map<String, dynamic>> data) async {
             : () async {
                 setState(() => _isLoadingCompany = true); 
                 try {
-                  //await companyBackup();
-                   //await fetchDataAndStoreInXML();
-                   await performBackup();
+                  await companyBackup();
+                  //  //await fetchDataAndStoreInXML();
+                  //  await performBackup();
                    Fluttertoast.showToast(msg: 'Backup completed successfully!');
                   
                 } catch (e) {
@@ -1559,7 +1559,7 @@ Future<void> storeXMLDataInColumns(List<Map<String, dynamic>> data) async {
           child: Center(
             child: _isLoadingCompany
                 ? CircularProgressIndicator(color: Colors.white)
-                : Text("Accounts Data", style: getFonts(14, Colors.white)),
+                : Text("Company Data", style: getFonts(14, Colors.white)),
           ),
         ),
       ),
@@ -1567,6 +1567,6 @@ Future<void> storeXMLDataInColumns(List<Map<String, dynamic>> data) async {
   ),
 ),
 
-    );
-  }
+);
+}
 }

@@ -30,7 +30,7 @@ class CompanyDatabaseHelper {
   Future<void> _createDB(Database db, int version) async {
      await db.execute('''
       CREATE TABLE IF NOT EXISTS Company(
-         Code TEXT PRIMARY KEY,
+            Code TEXT PRIMARY KEY,
             Presumptive INTEGER,
             Sname TEXT,
             name TEXT,
@@ -162,9 +162,9 @@ Future<void> enableWALMode() async {
          LDFPath, VDBName, VMDFPath, VLDFPath, CType, CCompany, EXDuty, DACCAll, 
          AddExDuty, currencytype, stype, cess, barcodecurrencytype, secondfont, 
          s_currency, sheight, CustomerCode, insDate
-  FROM Company
-  ORDER BY Code ASC
-''';
+         FROM Company
+         ORDER BY Code ASC
+         ''';
 
       final rawData = await MsSQLConnectionPlatform.instance.getData(query);
 
@@ -204,7 +204,6 @@ Future<void> enableWALMode() async {
       final decodedData = jsonDecode(rawData);
 
       if (decodedData is List) {
-        // Ensure each row has all expected fields
         return decodedData.map((row) {
           return {
             'Code': row['Code']?.toString() ?? '',
@@ -297,16 +296,12 @@ Future<void> backupMSSQLToSQLite2() async {
 
     final db = await dbHelper.database;
     final batch = db.batch();
-
     for (var row in fetchedData) {
-      batch.insert('Company', row, conflictAlgorithm: ConflictAlgorithm.replace);
+    batch.insert('Company', row, conflictAlgorithm: ConflictAlgorithm.replace);
     }
-
     await batch.commit(noResult: true);
-
     final sqliteRowCount = await dbHelper.getRowCount();
     print('SQLite contains $sqliteRowCount rows after backup.');
-
     if (sqliteRowCount != fetchedData.length) {
       print('Warning: Mismatch in row count!');
     } else {

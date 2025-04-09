@@ -56,7 +56,7 @@ class _SalesReportState extends State<SalesReport> {
   String selectedValue = "Report Type";
   bool isExpanded = false; 
   
-
+List<String> selectedSalesTypes=[];
   @override
   void initState() {
     super.initState();
@@ -280,7 +280,7 @@ List <String>ledgerNames = [];
                         
                            onChanged: (value) {
          
-              },
+                     },
                       onSubmitted: (value) {
                                 },
                                     decoration: InputDecoration(
@@ -375,6 +375,7 @@ List <String>ledgerNames = [];
                           itemName: _selectItemnameController.text,
                           fromDate: _fromDate,
                           toDate: _toDate,
+                          stype: selectedSalesTypes,
                         )));
           },
           child: Padding(
@@ -383,7 +384,7 @@ List <String>ledgerNames = [];
               height: screenHeight * 0.05,
               width: screenWidth * 0.9,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(5),
                 color: Color(0xFF0A1EBE),
               ),
               child: Center(
@@ -419,34 +420,27 @@ void _showSalesTypeDialog() {
                   mainAxisSize: MainAxisSize.min,
                   children: List.generate(tempSalesType.length, (index) {
                     bool isChecked = (tempSalesType[index]['isChecked'] ?? 0) == 1;
-                    return Container(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Checkbox(
-                            value: isChecked,
-                            activeColor: isChecked ? Appcolors().maincolor : Colors.grey, 
-                            checkColor: Colors.white,
-                            onChanged: (bool? value) async {
-                              if (value == null) return;
-                      
-                              setState(() { 
-                                tempSalesType[index] = {
-                                  ...tempSalesType[index], 
-                                  'isChecked': value ? 1 : 0, 
-                                };
-                              });
-                            
-                            },
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: isChecked,
+                          activeColor: Appcolors().maincolor,
+                          checkColor: Colors.white,
+                          onChanged: (bool? value) {
+                            if (value == null) return;
+                            setState(() {
+                              tempSalesType[index]['isChecked'] = value ? 1 : 0;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Text(
+                            tempSalesType[index]['Type'] ?? "",
+                            style: getFonts(14, isChecked ? Appcolors().maincolor : Colors.black),
                           ),
-                          Expanded(
-                            child: Text(
-                              tempSalesType[index]['Type'] ?? "",
-                              style: getFonts(14, isChecked ? Appcolors().maincolor : Colors.black),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     );
                   }),
                 ),
@@ -455,7 +449,15 @@ void _showSalesTypeDialog() {
             actions: [
               TextButton(
                 onPressed: () {
+                  // Save to global list
                   stypelist = List<Map<String, dynamic>>.from(tempSalesType);
+
+                  // Extract selected types to variable
+                  selectedSalesTypes = tempSalesType
+                      .where((item) => item['isChecked'] == 1)
+                      .map<String>((item) => item['Type'].toString())
+                      .toList();
+
                   Navigator.of(context).pop();
                 },
                 child: Text('Close'),
@@ -467,6 +469,7 @@ void _showSalesTypeDialog() {
     },
   );
 }
+
 
   Widget _salefield(String txt,TextEditingController controller,double screenWidth, double screenHeight){
     return Padding(

@@ -538,7 +538,7 @@ Future<void> syncSalesParticularsToMSSQL() async {
    ${parseDouble(entryNo)},
    ${parseDouble(uniqueCode)},
    ${parseDouble(itemID)}, 
-   ${parseDouble(serialNo)},
+   ${parseString(serialNo)},
     ${parseDouble(rate)}, 
     ${parseDouble(realRate)}, 
     ${parseDouble(qty)}, 
@@ -599,6 +599,7 @@ String parseString(dynamic value) {
   }
   return "'${value.toString().replaceAll("'", "''")}'";  
 }
+
 String formatDate(dynamic value) {
   if (value == null || value.toString().trim().isEmpty) return "NULL";  
   try {
@@ -619,9 +620,9 @@ String formatDate(dynamic value) {
 }
 double parseDouble(dynamic value) {
   if (value == null || value.toString().trim().isEmpty) {
-    return 0.0; 
+    return 0; 
   }
-  return double.tryParse(value.toString()) ?? 0.0;
+  return double.tryParse(value.toString()) ?? 0;
 }
 
 Future<void> syncSalesInformationToMSSQL2() async {
@@ -644,12 +645,10 @@ Future<void> syncSalesInformationToMSSQL2() async {
       return;
     }
 
-    for (var row in localData) {
+      for (var row in localData) {
       final auto = int.tryParse(row['RealEntryNo'].toString()) ?? 0;
-
       final checkQuery = "SELECT COUNT(*) AS count FROM Sales_Information WHERE RealEntryNo = $auto";
       final checkResult = await MsSQLConnectionPlatform.instance.getData(checkQuery);
-
       int existingCount = 0;
       if (checkResult is String) {
         final decodedCheck = jsonDecode(checkResult);
@@ -663,20 +662,20 @@ Future<void> syncSalesInformationToMSSQL2() async {
       }
       final realEntryNo = row['RealEntryNo'].toString();
       final entryNo = int.tryParse(row['EntryNo'].toString()) ?? 0;
-      final invoiceNo = row['InvoiceNo'] ?? 0;
+      final invoiceNo = double.tryParse(row['InvoiceNo'].toString()) ?? 0.0;
       final ddate = row['DDate'] ?? 0;
       final btime = row['BTime']?.toString().replaceAll("'", "''") ?? '';
-      final  Customer= double.tryParse(row['Customer'].toString()) ?? 0.0;
-      final add1 = double.tryParse(row['Add1'].toString()) ?? 0.0;
-      final add2 = double.tryParse(row['Add2'].toString()) ?? 0.0;
-      final toname = double.tryParse(row['Toname'].toString()) ?? 0.0;
-      final taxtype = double.tryParse(row['TaxType'].toString()) ?? 0.0;
+      final Customer= double.tryParse(row['Customer'].toString()) ?? 0.0;
+      final add1 = row['Add1']?? 0;
+      final add2 = row['Add2']?? 0;
+      final toname = row['Toname']?? 0.0;
+      final taxtype = row['TaxType']?? 0.0;
       final grossValue = double.tryParse(row['GrossValue'].toString()) ?? 0.0;
       final discount = double.tryParse(row['Discount'].toString()) ?? 0.0;
       final netamt = double.tryParse(row['NetAmount'].toString()) ?? 0.0;
       final cess = double.tryParse(row['cess'].toString()) ?? 0.0;
       final total = double.tryParse(row['Total'].toString()) ?? 0.0;
-      final  loadingcharge= double.tryParse(row['loadingcharge'].toString()) ?? 0.0;
+      final loadingcharge= double.tryParse(row['loadingcharge'].toString()) ?? 0.0;
       final otherCharges = double.tryParse(row['OtherCharges'].toString()) ?? 0.0;
       final otherDiscount = double.tryParse(row['OtherDiscount'].toString()) ?? 0.0;
       final roundoff = double.tryParse(row['Roundoff'].toString()) ?? 0.0;
@@ -696,7 +695,7 @@ Future<void> syncSalesInformationToMSSQL2() async {
       final cno = double.tryParse(row['CNo'].toString()) ?? 0.0;
       final creditPeriod = double.tryParse(row['CreditPeriod'].toString()) ?? 0.0;
       final discPercent = double.tryParse(row['DiscPercent'].toString()) ?? 0.0;
-      final sType = double.tryParse(row['SType'].toString()) ?? 0.0;
+      final sType = row['SType'] ?? 0.0;
       final vatEntryNo = row['VatEntryNo'] ?? 0;
       final cardno = row['cardno']?.toString().replaceAll("'", "''") ?? '';
       final takeuser = double.tryParse(row['takeuser'].toString()) ?? 0.0;
@@ -704,7 +703,7 @@ Future<void> syncSalesInformationToMSSQL2() async {
       final ddate1 = double.tryParse(row['ddate1'].toString()) ?? 0.0;
       final despatchdate = row['despatchdate'] ?? 0;
       final add3 = row['Add3'] ?? 0;
-      final add4 = double.tryParse(row['Add4'].toString()) ?? 0.0;
+      final add4 = row['Add4'] ?? 0;
       final cgst = row['CGST']?.toString().replaceAll("'", "''") ?? '';
       final sgst = row['SGST']?.toString().replaceAll("'", "''") ?? '';
       final igst = row['IGST'] ?? 0;
@@ -713,12 +712,12 @@ Future<void> syncSalesInformationToMSSQL2() async {
       final fyID = double.tryParse(row['FyID'].toString()) ?? 0.0;
       final m_invoiceno = double.tryParse(row['m_invoiceno'].toString()) ?? 0.0;
 
- final insertQuery = '''
-  INSERT INTO Sales_Information (
+    final insertQuery = '''
+    INSERT INTO Sales_Information (
     EntryNo ,InvoiceNo ,DDate ,BTime, Customer, Add1, Add2, Toname, TaxType, GrossValue, Discount, NetAmount, cess, 
     Total, loadingcharge, OtherCharges, OtherDiscount, Roundoff,GrandTotal, SalesAccount, SalesMan, Location,Narration, Profit,
     CashReceived, BalanceAmount, Ecommision, labourCharge, OtherAmount,Type,PrintStatus,CNo,CreditPeriod,DiscPercent,SType,VatEntryNo, 
-     cardno, takeuser, PurchaseOrderNo,ddate1,despatchdate, Add3,Add4,CGST, SGST, IGST, receiptDate,
+    cardno, takeuser, PurchaseOrderNo,ddate1,despatchdate, Add3,Add4,CGST, SGST, IGST, receiptDate,
     TotalQty,FyID,m_invoiceno
   ) VALUES (     
     ${parseDouble(entryNo)},
@@ -774,10 +773,7 @@ Future<void> syncSalesInformationToMSSQL2() async {
     
   );
 ''';
-
-
-
-      await MsSQLConnectionPlatform.instance.writeData(insertQuery);
+    await MsSQLConnectionPlatform.instance.writeData(insertQuery);
       print(" Inserted new record: RealEntryNo $auto");
     }
 
@@ -787,6 +783,7 @@ Future<void> syncSalesInformationToMSSQL2() async {
     print(" Error syncing Sales_Information to MSSQL: $e");
   }
 }
+
 Future<void> syncledgerToMSSQL(Map<String, dynamic> transaction) async {
  try {
     final lastRowQuery = "SELECT TOP 1 RealEntryNo FROM Sales_Information ORDER BY RealEntryNo DESC";
@@ -829,7 +826,7 @@ Future<void> syncledgerToMSSQL(Map<String, dynamic> transaction) async {
       final ih_id = row['lh_id'] ?? 0;
       final add1 = row['add1'] ?? 0;
       final add2 = row['add2']?.toString().replaceAll("'", "''") ?? '';
-      final  add3= double.tryParse(row['add3'].toString()) ?? 0.0;
+      final add3= double.tryParse(row['add3'].toString()) ?? 0.0;
       final add4 = double.tryParse(row['add4'].toString()) ?? 0.0;
       final city = double.tryParse(row['city'].toString()) ?? 0.0;
       final route = double.tryParse(row['route'].toString()) ?? 0.0;
@@ -897,17 +894,13 @@ Future<void> syncledgerToMSSQL(Map<String, dynamic> transaction) async {
    
   );
 ''';
-
-
-
-      await MsSQLConnectionPlatform.instance.writeData(insertQuery);
-      print(" Inserted new record: RealEntryNo $auto");
-    }
-
-    print(" Sync completed successfully!");
+   await MsSQLConnectionPlatform.instance.writeData(insertQuery);
+  print("Inserted new record: RealEntryNo $auto");
+  }
+  print("Sync completed successfully!");
 
   } catch (e) {
-    print(" Error syncing Sales_Information to MSSQL: $e");
+  print("Error syncing Sales_Information to MSSQL: $e");
   }
 }
 
@@ -1030,7 +1023,7 @@ String _convertToSQLDate(String inputDate) {
 }
 
 bool _isDateColumn(String columnName) {
-  List<String> dateColumns = ["DDate","BTime","ddate1", "despatchdate", "receiptDate"]; // Add your date column names here
+  List<String> dateColumns = ["DDate","BTime","ddate1", "despatchdate", "receiptDate"];
   return dateColumns.contains(columnName);
 }
 

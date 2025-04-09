@@ -587,6 +587,7 @@ Future<void> backupAndSyncData() async {
       appBar: AppBar(
         toolbarHeight: MediaQuery.of(context).size.height * 0.1,
         backgroundColor: Appcolors().maincolor,
+        leading: Text(''),
         title: Center(
           child: Padding(
             padding: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.02),
@@ -596,19 +597,7 @@ Future<void> backupAndSyncData() async {
             ),
           ),
         ),
-        leading: Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: IconButton(
-            onPressed: () {
-              //Navigator.pop(context);
-            },
-            icon: Icon(
-              Icons.arrow_back_ios_new_sharp,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-        ),
+       
         actions: [
           Padding(
             padding: const EdgeInsets.only(top: 20, right: 10),
@@ -800,9 +789,8 @@ Future<void> backupAndSyncData() async {
               ),
             ),
             TextButton(
-                onPressed: isExporting ? null : exportData, // Disable button while exporting
-      child: isExporting ? CircularProgressIndicator() : Text('Export Data'),
-              
+                onPressed: isExporting ? null : exportData, 
+                child: isExporting ? CircularProgressIndicator() : Text('Export Data'),
             ),
           ],
         );
